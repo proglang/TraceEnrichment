@@ -1,0 +1,17 @@
+OASISFormat: 0.4
+Name:        js-trace-enrichment
+Version:     0.1
+Synopsis:    Trace enrichment for JavaScript execution traces.
+Authors:     Johannes Kloos
+License:     MIT
+Plugins:     META (0.4), StdFiles (0.4)
+AlphaFeatures:  ocamlbuild_more_args
+XOCamlbuildExtraArgs: -use-ocamlfind
+
+Library "js-enrichment"
+  Path:       .
+  BuildTools: ocamlbuild
+  Modules:    CalculatePointsTo, CalculateVersions, Cleantrace, FormatHelper,
+    LocalFacts, Misc, PointsTo, Reference, Richtrace, Streaming, Trace,
+    TraceTypes, Types
+  

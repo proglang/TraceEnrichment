@@ -1,5 +1,0 @@
-version = "0.1"
-description = "Enrich JavaScript execution traces with heap information"
-archive(byte) = "enrich.cma"
-archive(native) = "enrich.cmxa"
-

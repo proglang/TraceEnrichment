@@ -7,3 +7,5 @@
 <test_base_data.*>: package(kaputt)
 <*>: package(lwt)
 <streaming.*>: package(lwt.ppx)
+# OASIS_START
+# OASIS_STOP

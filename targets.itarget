@@ -1,8 +1,0 @@
-enrich.cma
-enrich.cmxa
-calculatePointsTo_unit.native
-calculateVersions_unit.native
-cleantrace_unit.native
-localFacts_unit.native
-pointsTo_unit.native
-reference_unit.native
