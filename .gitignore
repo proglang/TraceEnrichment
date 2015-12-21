@@ -17,6 +17,7 @@ _build/
 
 # Editor backup files.
 *~
+*.bak
 
 # OASIS generated files.
 AUTHORS.txt
