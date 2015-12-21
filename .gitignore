@@ -15,4 +15,16 @@ _build/
 *.byte
 *.native
 
+# Editor backup files.
 *~
+
+# OASIS generated files.
+AUTHORS.txt
+INSTALL.txt
+META
+README.txt
+_tags
+*.mldylib
+*.mllib
+myocamlbuild.ml
+setup.*
