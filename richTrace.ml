@@ -86,7 +86,7 @@ let calculate_rich_stream init stream =
 let tracefile_to_rich_tracefile trace =
   let points_to = ref Reference.VersionReferenceMap.empty in
   trace
-    |> Cleantrace.clean_tracefile
+    |> CleanTrace.clean_tracefile
     |> LocalFacts.collect_arguments_tracefile
     |> CalculateVersions.collect_versions_trace
     |> CalculatePointsTo.calculate_pointsto points_to
@@ -95,7 +95,7 @@ let tracefile_to_rich_tracefile trace =
 
 let trace_stream_to_rich_stream init stream =
   stream
-    |> Cleantrace.clean_stream init
+    |> CleanTrace.clean_stream init
     |> LocalFacts.collect_arguments_stream
     |> CalculateVersions.collect_versions_stream init
     |> CalculatePointsTo.collect_pointsto_stream init

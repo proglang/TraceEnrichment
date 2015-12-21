@@ -1,7 +1,7 @@
 open Types
 open Kaputt.Abbreviations
 open Test_base_data
-open Richtrace
+open RichTrace
 open LocalFacts
 
 let (|>) = Pervasives.(|>)
@@ -20,7 +20,7 @@ let facts_write3 = { last_arguments = None; last_update = Some (ct1_f_simp1_mark
 let facts_literal = { last_arguments = None; last_update = Some (ct1_f_simp1_marker, 0); versions = ct1ver_simp2; aliases = ct1al_emp }
 let facts_local = { last_arguments = None; last_update = Some (ct1_l_y, 0); versions = ct1ver_y; aliases = ct1al_emp }
 
-let richtrace1 = let open Richtrace in [
+let richtrace1 = let open RichTrace in [
     RForIn obj1_simp2, facts_init;
     RWith obj1_simp2, facts_init; (* FIXME handle with properly *)
     RScriptEnter, facts_init;
@@ -60,7 +60,7 @@ let rop_eq (op1, facts1) (op2, facts2) =
 
 
 let test1 = Test.make_simple_test ~title:"calculate_rich_tracefile" (fun () ->
-    let rt = Richtrace.calculate_rich_tracefile (functab1, objtab1, trace1, globals, true) in
+    let rt = RichTrace.calculate_rich_tracefile (functab1, objtab1, trace1, globals, true) in
     Assert.make_equal (=) (Misc.to_string pp_functions) functab1 rt.funcs;
     Assert.make_equal (=) (Misc.to_string pp_objects) objtab1 rt.objs;
     Assert.make_equal (=) (Misc.to_string pp_globals) globals rt.globals;

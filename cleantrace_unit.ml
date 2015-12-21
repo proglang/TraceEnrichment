@@ -1,4 +1,4 @@
-open Cleantrace
+open CleanTrace
 open Kaputt.Abbreviations
 open Types
 open Trace

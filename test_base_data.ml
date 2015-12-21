@@ -727,7 +727,7 @@ let test_data = let open MatchObjects in {
 }
 *)
 
-let test_rt1 = let open Richtrace in { 
+let test_rt1 = let open RichTrace in { 
     funcs = functab1;
     objs = objtab1;
     trace = [];
@@ -736,7 +736,7 @@ let test_rt1 = let open Richtrace in {
     points_to = points_to_1
   }
 
-let test_rt2 = let open Richtrace in { 
+let test_rt2 = let open RichTrace in { 
     funcs = functab2;
     objs = objtab2;
     trace = [];
