@@ -1,7 +1,7 @@
-open CleanTrace
 open Kaputt.Abbreviations
 open Types
 open Trace
+open TraceTypes
 open Test_base_data
 
 let (|>) = Pervasives.(|>)
@@ -9,7 +9,7 @@ let (|>) = Pervasives.(|>)
 (* First test, basically a smoke test: Transform the generic trace. *)
 let test1 =
   Test.make_simple_test ~title:"Basic trace cleanup" (fun () ->
-      let (funs, objs, cleantrace, globals', gap) = clean_tracefile tracefile1 in
+      let (funs, objs, cleantrace, globals', gap) = CleanTrace.clean_tracefile tracefile1 in
       Assert.make_equal (=) (Misc.to_string pp_functions) functab1 funs;
       Assert.make_equal (=) (Misc.to_string pp_objects) objtab1 objs;
       Assert.make_equal (=) (Misc.to_string pp_globals) globals globals';
@@ -20,34 +20,34 @@ let test1 =
 let test2 =
   Test.make_simple_test ~title:"Global calculation" (fun () ->
       let trace = [
-        Read { name = "r1"; value = vundef; isGlobal = true; isScriptLocal = true; iid = 0 }; 
-        Read { name = "r2"; value = vundef; isGlobal = true; isScriptLocal = true; iid = 0 }; 
-        Write { name = "w1"; value = vundef; lhs = vundef; isGlobal = true; isScriptLocal = true; iid = 0 }; 
-        Write { name = "w2"; value = vundef; lhs = vundef; isGlobal = true; isScriptLocal = true; iid = 0 }; 
-        Declare { name = "r2"; value = vundef; argument = None; isCatchParam = false; iid = 0 };
-        Read { name = "r1"; value = vundef; isGlobal = true; isScriptLocal = true; iid = 0 }; 
-        Read { name = "r2"; value = vundef; isGlobal = true; isScriptLocal = true; iid = 0 }; 
-        Write { name = "w1"; value = vundef; lhs = vundef; isGlobal = true; isScriptLocal = true; iid = 0 }; 
-        Write { name = "w2"; value = vundef; lhs = vundef; isGlobal = true; isScriptLocal = true; iid = 0 }; 
-        FunPre { f = obj1_fun1; base = vundef; args = vundef; isConstructor = false; isMethod = false; iid = 0 };
-        FunEnter { f = vundef; this = vundef; args = vundef;  iid = 0 };
-        Read { name = "r1"; value = vundef; isGlobal = true; isScriptLocal = true; iid = 0 }; 
-        Read { name = "r2"; value = vundef; isGlobal = true; isScriptLocal = true; iid = 0 }; 
-        Write { name = "w1"; value = vundef; lhs = vundef; isGlobal = true; isScriptLocal = true; iid = 0 }; 
-        Write { name = "w2"; value = vundef; lhs = vundef; isGlobal = true; isScriptLocal = true; iid = 0 }; 
-        Declare { name = "w1"; value = vundef; argument = None; isCatchParam = false; iid = 0 };
-        Read { name = "r1"; value = vundef; isGlobal = true; isScriptLocal = true; iid = 0 }; 
-        Read { name = "r2"; value = vundef; isGlobal = true; isScriptLocal = true; iid = 0 }; 
-        Write { name = "w1"; value = vundef; lhs = vundef; isGlobal = true; isScriptLocal = true; iid = 0 }; 
-        Write { name = "w2"; value = vundef; lhs = vundef; isGlobal = true; isScriptLocal = true; iid = 0 }; 
-        FunExit { ret = vundef; exc = vundef ; iid = 0 };
-        FunPost { f = obj1_fun1; base = vundef; args = vundef; result = vundef; isConstructor = false; isMethod = false; iid = 0 };
-        Read { name = "r1"; value = vundef; isGlobal = true; isScriptLocal = true; iid = 0 }; 
-        Read { name = "r2"; value = vundef; isGlobal = true; isScriptLocal = true; iid = 0 }; 
-        Write { name = "w1"; value = vundef; lhs = vundef; isGlobal = true; isScriptLocal = true; iid = 0 }; 
-        Write { name = "w2"; value = vundef; lhs = vundef; isGlobal = true; isScriptLocal = true; iid = 0 } 
+        Read (0, { name = "r1"; value = vundef; isGlobal = true; isScriptLocal = true }); 
+        Read (0, { name = "r2"; value = vundef; isGlobal = true; isScriptLocal = true }); 
+        Write (0, { name = "w1"; value = vundef; lhs = vundef; isGlobal = true; isScriptLocal = true }); 
+        Write (0, { name = "w2"; value = vundef; lhs = vundef; isGlobal = true; isScriptLocal = true }); 
+        Declare (0, { name = "r2"; value = vundef; argument = None; isCatchParam = false });
+        Read (0, { name = "r1"; value = vundef; isGlobal = true; isScriptLocal = true }); 
+        Read (0, { name = "r2"; value = vundef; isGlobal = true; isScriptLocal = true }); 
+        Write (0, { name = "w1"; value = vundef; lhs = vundef; isGlobal = true; isScriptLocal = true }); 
+        Write (0, { name = "w2"; value = vundef; lhs = vundef; isGlobal = true; isScriptLocal = true }); 
+        FunPre (0, { f = obj1_fun1; base = vundef; args = vundef; isConstructor = false; isMethod = false });
+        FunEnter (0, { f = vundef; this = vundef; args = vundef });
+        Read (0, { name = "r1"; value = vundef; isGlobal = true; isScriptLocal = true }); 
+        Read (0, { name = "r2"; value = vundef; isGlobal = true; isScriptLocal = true }); 
+        Write (0, { name = "w1"; value = vundef; lhs = vundef; isGlobal = true; isScriptLocal = true }); 
+        Write (0, { name = "w2"; value = vundef; lhs = vundef; isGlobal = true; isScriptLocal = true }); 
+        Declare (0, { name = "w1"; value = vundef; argument = None; isCatchParam = false });
+        Read (0, { name = "r1"; value = vundef; isGlobal = true; isScriptLocal = true }); 
+        Read (0, { name = "r2"; value = vundef; isGlobal = true; isScriptLocal = true }); 
+        Write (0, { name = "w1"; value = vundef; lhs = vundef; isGlobal = true; isScriptLocal = true }); 
+        Write (0, { name = "w2"; value = vundef; lhs = vundef; isGlobal = true; isScriptLocal = true }); 
+        FunExit (0, { ret = vundef; exc = vundef  });
+        FunPost (0, { f = obj1_fun1; base = vundef; args = vundef; result = vundef; isConstructor = false; isMethod = false });
+        Read (0, { name = "r1"; value = vundef; isGlobal = true; isScriptLocal = true }); 
+        Read (0, { name = "r2"; value = vundef; isGlobal = true; isScriptLocal = true }); 
+        Write (0, { name = "w1"; value = vundef; lhs = vundef; isGlobal = true; isScriptLocal = true }); 
+        Write (0, { name = "w2"; value = vundef; lhs = vundef; isGlobal = true; isScriptLocal = true }) 
       ] in
-      let (_, _, cleantrace, _, _) = clean_tracefile (functab1, objtab1, trace, globals, true) in
+      let (_, _, cleantrace, _, _) = CleanTrace.clean_tracefile (functab1, objtab1, trace, globals, true) in
       Assert.make_equal (=) (Misc.to_string pp_clean_trace) [
         CRead { name = "r1"; value = vundef; isGlobal = true }; 
         CRead { name = "r2"; value = vundef; isGlobal = true }; 
@@ -82,29 +82,29 @@ let test2 =
 let test3 =
   Test.make_simple_test ~title:"Declaration and function types" (fun () ->
       let trace = [
-        FunPre { f = obj1_fun1; base = vundef; args = vundef; isMethod = false; isConstructor = false; iid = 0 }; 
-        FunEnter { f = obj1_fun1; this = vundef; args = vundef; iid = 0 }; 
-        FunPre { f = obj1_fun1; base = vundef; args = vundef; isMethod = true; isConstructor = false; iid = 0 }; 
-        FunEnter { f = obj1_fun1; this = vundef; args = vundef; iid = 0 }; 
-        FunPre { f = obj1_fun1; base = vundef; args = vundef; isMethod = false; isConstructor = true; iid = 0 }; 
-        FunEnter { f = obj1_fun1; this = vundef; args = vundef; iid = 0 }; 
-        FunPre { f = obj1_fun1; base = vundef; args = vundef; isMethod = true; isConstructor = true; iid = 0 }; 
-        FunEnter { f = obj1_fun1; this = vundef; args = vundef; iid = 0 };
-        FunExit { ret = vundef; exc = vundef; iid = 0 };
-        FunPost { f = obj1_fun1; base = vundef; args = vundef; isMethod = true; isConstructor = true; iid = 0; result = vundef }; 
-        FunExit { ret = vundef; exc = vundef; iid = 0 };
-        FunPost { f = obj1_fun1; base = vundef; args = vundef; isMethod = false; isConstructor = true; iid = 0; result = vundef }; 
-        FunExit { ret = vundef; exc = vundef; iid = 0 };
-        FunPost { f = obj1_fun1; base = vundef; args = vundef; isMethod = true; isConstructor = false; iid = 0; result = vundef }; 
-        FunExit { ret = vundef; exc = vundef; iid = 0 };
-        FunPost { f = obj1_fun1; base = vundef; args = vundef; isMethod = false; isConstructor = false; iid = 0; result = vundef }; 
-        Declare { name = "x"; value = vundef; argument = None; isCatchParam = false; iid = 0 };
-        Declare { name = "x"; value = vundef; argument = None; isCatchParam = true; iid = 0 };
-        Declare { name = "x"; value = vundef; argument = Some 0; isCatchParam = false; iid = 0 };
-        Declare { name = "x"; value = vundef; argument = Some 1; isCatchParam = false; iid = 0 };
-        Declare { name = "x"; value = vundef; argument = Some (-1); isCatchParam = false; iid = 0 };
+        FunPre (0, { f = obj1_fun1; base = vundef; args = vundef; isMethod = false; isConstructor = false }); 
+        FunEnter (0, { f = obj1_fun1; this = vundef; args = vundef }); 
+        FunPre (0, { f = obj1_fun1; base = vundef; args = vundef; isMethod = true; isConstructor = false }); 
+        FunEnter (0, { f = obj1_fun1; this = vundef; args = vundef }); 
+        FunPre (0, { f = obj1_fun1; base = vundef; args = vundef; isMethod = false; isConstructor = true }); 
+        FunEnter (0, { f = obj1_fun1; this = vundef; args = vundef }); 
+        FunPre (0, { f = obj1_fun1; base = vundef; args = vundef; isMethod = true; isConstructor = true }); 
+        FunEnter (0, { f = obj1_fun1; this = vundef; args = vundef });
+        FunExit (0, { ret = vundef; exc = vundef });
+        FunPost (0, { f = obj1_fun1; base = vundef; args = vundef; isMethod = true; isConstructor = true; result = vundef }); 
+        FunExit (0, { ret = vundef; exc = vundef });
+        FunPost (0, { f = obj1_fun1; base = vundef; args = vundef; isMethod = false; isConstructor = true; result = vundef }); 
+        FunExit (0, { ret = vundef; exc = vundef });
+        FunPost (0, { f = obj1_fun1; base = vundef; args = vundef; isMethod = true; isConstructor = false; result = vundef }); 
+        FunExit (0, { ret = vundef; exc = vundef });
+        FunPost (0, { f = obj1_fun1; base = vundef; args = vundef; isMethod = false; isConstructor = false; result = vundef }); 
+        Declare (0, { name = "x"; value = vundef; argument = None; isCatchParam = false });
+        Declare (0, { name = "x"; value = vundef; argument = None; isCatchParam = true });
+        Declare (0, { name = "x"; value = vundef; argument = Some 0; isCatchParam = false });
+        Declare (0, { name = "x"; value = vundef; argument = Some 1; isCatchParam = false });
+        Declare (0, { name = "x"; value = vundef; argument = Some (-1); isCatchParam = false });
       ]in
-      let (_, _, cleantrace, _, _) = clean_tracefile (functab1, objtab1, trace, globals, true) in
+      let (_, _, cleantrace, _, _) = CleanTrace.clean_tracefile (functab1, objtab1, trace, globals, true) in
       Assert.make_equal (=) (Misc.to_string pp_clean_trace) [
         CFunPre { f = obj1_fun1; base = vundef; args = vundef; call_type = Function }; 
         CFunEnter { f = obj1_fun1; this = vundef; args = vundef }; 
@@ -134,14 +134,14 @@ let test3 =
 let test4 =
   Test.make_simple_test ~title: "External event synthesis" (fun () ->
       let trace = [
-        FunPre { f = obj1_fun4; base = v0; args = v1; isMethod = false; isConstructor = false; iid = 0 };
-        FunPost  { f = obj1_fun4; base = v0; args = v1; result = vtrue; isMethod = false; isConstructor = false; iid = 0 };
-        FunPre { f = obj1_fun4; base = v0; args = v1; isMethod = false; isConstructor = false; iid = 0 };
-        FunEnter { f = obj1_fun2; this = v0; args = v1; iid = 0 };
-        FunExit { ret = vnull; exc = vundef; iid = 0 };
-        FunPost  { f = obj1_fun4; base = v0; args = v1; result = vtrue; isMethod = false; isConstructor = false; iid = 0 };
+        FunPre (0, { f = obj1_fun4; base = v0; args = v1; isMethod = false; isConstructor = false });
+        FunPost  (0, { f = obj1_fun4; base = v0; args = v1; result = vtrue; isMethod = false; isConstructor = false });
+        FunPre (0, { f = obj1_fun4; base = v0; args = v1; isMethod = false; isConstructor = false });
+        FunEnter (0, { f = obj1_fun2; this = v0; args = v1 });
+        FunExit (0, { ret = vnull; exc = vundef });
+        FunPost  (0, { f = obj1_fun4; base = v0; args = v1; result = vtrue; isMethod = false; isConstructor = false });
       ] in
-      let (_, _, cleantrace, _, _) = clean_tracefile (functab1, objtab1, trace, globals, true) in
+      let (_, _, cleantrace, _, _) = CleanTrace.clean_tracefile (functab1, objtab1, trace, globals, true) in
       Assert.make_equal (=) (Misc.to_string pp_clean_trace) [
         CFunPre { f = obj1_fun4; base = v0; args = v1; call_type = Function };
         CFunEnter { f = obj1_fun4; this = v0; args = v1 };

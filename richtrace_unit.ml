@@ -1,7 +1,7 @@
 open Types
 open Kaputt.Abbreviations
 open Test_base_data
-open RichTrace
+open TraceTypes
 open LocalFacts
 
 let (|>) = Pervasives.(|>)
@@ -39,7 +39,7 @@ let richtrace1 = let open RichTrace in [
     RAlias { name = "x"; ref = (ct1_arg0, 0); source = Argument 0 }, facts_arg0;
     RReturn vfalse, facts_arg0;
     RFunExit { ret = vfalse; exc = vundef }, facts_exit;
-    RFunPost { f = obj1_fun1; args = obj1_simp1; result = vfalse; base = obj1_cyc1 }, facts_post;
+    RFunPost { f = obj1_fun1; args = obj1_simp1; result = vfalse; base = obj1_cyc1; call_type = Method }, facts_post;
     RScriptEnter, facts_post;
     RBinary { op = "+"; left = v0; right = v1; result = v1 }, facts_post;
     RUnary { op = "-"; arg = v0; result = v0 }, facts_post;
@@ -60,7 +60,7 @@ let rop_eq (op1, facts1) (op2, facts2) =
 
 
 let test1 = Test.make_simple_test ~title:"calculate_rich_tracefile" (fun () ->
-    let rt = RichTrace.calculate_rich_tracefile (functab1, objtab1, trace1, globals, true) in
+    let rt = RichTrace.calculate_rich_tracefile (functab1, objtab1, facttrace1, globals, true) in
     Assert.make_equal (=) (Misc.to_string pp_functions) functab1 rt.funcs;
     Assert.make_equal (=) (Misc.to_string pp_objects) objtab1 rt.objs;
     Assert.make_equal (=) (Misc.to_string pp_globals) globals rt.globals;
@@ -70,7 +70,7 @@ let test1 = Test.make_simple_test ~title:"calculate_rich_tracefile" (fun () ->
       (Misc.to_string (VRMFmt.pp_print_map_default Reference.pp_versioned_reference pp_jsval))
       trace1_pointsto rt.points_to;
     Assert.make_equal_list rop_eq
-      (Misc.to_string (FormatHelper.pp_print_pair pp_rich_operation LocalFacts.pp_local_facts))
+      (Misc.to_string (FormatHelper.pp_print_pair pp_rich_operation pp_local_facts))
       richtrace1 rt.trace)
 
 let _ = Test.run_tests [ test1 ]
