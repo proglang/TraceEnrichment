@@ -356,20 +356,20 @@ let cleantrace1_updates =
     Some (ct1_l_e, 0);
     Some (ct1_g_x, 0);
     Some (ct1_g_x, 0);
-    Some (ct1_g_x, 0);
-    Some (ct1_g_x, 0);
+    Some (ct1_toString, 0);
+    Some (ct1_this, 0);
     Some (ct1_args, 0);
-    Some (ct1_arg0, 0);
-    Some (ct1_arg0, 0);
-    Some (ct1_arg0, 0);
-    Some (ct1_arg0, 0);
-    Some (ct1_arg0, 0);
-    Some (ct1_arg0, 0);
-    Some (ct1_arg0, 0);
-    Some (ct1_arg0, 0);
-    Some (ct1_arg0, 0);
-    Some (ct1_f_simp1_marker, 1);
-    Some (ct1_f_simp1_marker, 1);
+    Some (ct1_args, 0);
+    Some (ct1_args, 0);
+    Some (ct1_args, 0);
+    Some (ct1_args, 0);
+    Some (ct1_args, 0);
+    Some (ct1_args, 0);
+    Some (ct1_args, 0);
+    Some (ct1_args, 0);
+    Some (ct1_f_simp1_marker, 0);
+    Some (ct1_f_simp1_marker, 0);
+    Some (ct1_toString', 0);
     Some (ct1_l_y, 0);
     Some (ct1_l_y, 0)
   ]
