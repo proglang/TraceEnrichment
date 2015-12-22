@@ -745,3 +745,90 @@ let test_rt2 = {
     points_to = points_to_2
   }
 
+module AssertStringMap =
+  Kaputt.Assertion.Map(Misc.StringMap)(struct type t = string let to_string x = x end)
+module AssertReferenceMap =
+  Kaputt.Assertion.Map(Reference.ReferenceMap)
+    (struct
+       type t = Reference.reference
+       let to_string = (Misc.to_string Reference.pp_reference)
+     end)
+module AssertVersionedReferenceMap = 
+  Kaputt.Assertion.Map(Reference.VersionReferenceMap)
+    (struct
+       type t = Reference.versioned_reference
+       let to_string = (Misc.to_string Reference.pp_versioned_reference)
+     end)
+
+let same_jsval = Kaputt.Assertion.make_equal (=) (Misc.to_string pp_jsval)
+let same_fieldspec = Kaputt.Assertion.make_equal (=) (Misc.to_string pp_fieldspec)
+let same_objectspec = AssertStringMap.make_equal (=) (Misc.to_string pp_fieldspec)
+let same_objects = Kaputt.Assertion.make_equal_array
+                     (Misc.StringMap.equal (=)) (Misc.to_string pp_objectspec)
+let same_funcspec = Kaputt.Assertion.make_equal (=) (Misc.to_string pp_funcspec)
+let same_functions = Kaputt.Assertion.make_equal_array (=) (Misc.to_string pp_funcspec)
+let same_globals = AssertStringMap.make_equal (=) (Misc.to_string pp_jsval)
+let same_objectid = Kaputt.Assertion.make_equal (=) (Misc.to_string pp_objectid)
+let same_fieldref = Kaputt.Assertion.make_equal (=) (Misc.to_string pp_fieldref)
+let same_event = Kaputt.Assertion.make_equal (=) (Misc.to_string pp_operation)
+let same_trace = Kaputt.Assertion.make_equal_list (=) (Misc.to_string pp_operation)
+let same_tracefile (f1, o1, t1, g1, p1) (f2, o2, t2, g2, p2) =
+  same_functions f1 f2;
+  same_objects o1 o2;
+  same_trace t1 t2;
+  same_globals g1 g2;
+  Kaputt.Assertion.equal_bool ~msg:"globals are properties" p1 p2
+let same_clean_operation = Kaputt.Assertion.make_equal (=) (Misc.to_string pp_clean_operation)
+let same_clean_trace = Kaputt.Assertion.make_equal_list (=) (Misc.to_string pp_clean_operation)
+let same_clean_tracefile (f1, o1, t1, g1, p1) (f2, o2, t2, g2, p2) =
+  same_functions f1 f2;
+  same_objects o1 o2;
+  same_clean_trace t1 t2;
+  same_globals g1 g2;
+  Kaputt.Assertion.equal_bool ~msg:"globals are properties" p1 p2
+let same_local_facts f1 f2 =
+  Kaputt.Assertion.make_equal ~msg:"last arguments don't match" (=)
+    (Misc.to_string (FormatHelper.pp_print_option Format.pp_print_int))
+    f1.last_arguments f2.last_arguments;
+  Kaputt.Assertion.make_equal ~msg:"last updates don't match" (=)
+    (Misc.to_string (FormatHelper.pp_print_option Reference.pp_versioned_reference))
+    f1.last_update f2.last_update;
+  AssertReferenceMap.make_equal (=) string_of_int f1.versions f2.versions;
+  AssertStringMap.make_equal (=) (Misc.to_string pp_fieldref) f1.aliases f2.aliases
+
+let same_enriched_trace eq_a pp_a tr1 tr2 =
+  Kaputt.Assertion.make_equal_list (fun (op1, en1) (op2, en2) -> op1 = op2 && eq_a en1 en2)
+    (Misc.to_string (FormatHelper.pp_print_pair pp_clean_operation pp_a)) tr1 tr2
+let same_enriched_trace_file eq_a pp_a (f1, o1, t1, g1, p1) (f2, o2, t2, g2, p2) =
+  same_functions f1 f2;
+  same_objects o1 o2;
+  same_enriched_trace eq_a pp_a t1 t2;
+  same_globals g1 g2;
+  Kaputt.Assertion.equal_bool ~msg:"globals are properties" p1 p2
+
+let equal_local_facts f1 f2 =
+  f1.last_arguments = f2.last_arguments &&
+  f1.last_update = f2.last_update &&
+  Reference.ReferenceMap.equal (=) f1.versions f2.versions &&
+  Misc.StringMap.equal (=) f1.aliases f2.aliases
+
+let same_facts_trace = same_enriched_trace equal_local_facts pp_local_facts
+let same_facts_tracefile = same_enriched_trace_file equal_local_facts pp_local_facts
+let same_arguments_trace = same_enriched_trace (=)
+                             (FormatHelper.pp_print_option Format.pp_print_int)
+let same_arguments_tracefile = same_enriched_trace_file (=)
+                                 (FormatHelper.pp_print_option Format.pp_print_int)
+
+let same_rich_trace =
+  Kaputt.Assertion.make_equal_list
+    (fun (o1, f1) (o2, f2) -> o1 = o2 && equal_local_facts f1 f2)
+    (Misc.to_string (FormatHelper.pp_print_pair pp_rich_operation pp_local_facts))
+let same_rich_tracefile t1 t2 =
+  same_functions t1.funcs t2.funcs;
+  same_objects t1.objs t2.objs;
+  same_rich_trace t1.trace t2.trace;
+  same_globals t1.globals t2.globals;
+  Kaputt.Assertion.equal_bool ~msg:"globals are properties"
+    t1.globals_are_properties t2.globals_are_properties;
+  AssertVersionedReferenceMap.make_equal (=) (Misc.to_string pp_jsval)
+    t1.points_to t2.points_to
