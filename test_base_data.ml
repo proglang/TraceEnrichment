@@ -1,5 +1,6 @@
 (** Basic data for tests. *)
 open Types
+open TraceTypes
 
 (** Common instances of JavaScript values - base instances. *)
 let vundef = OUndefined
@@ -216,10 +217,9 @@ let foldi f init array =
   done;
   !acc
 
-let get_facts_for objtab =
-  let open LocalFacts in
-  let add_facts idx desc acc =
-    Misc.StringMap.fold (fun field desc (local_facts, points_to) ->
+let get_facts_for (objtab: objectspec array) =
+  let add_facts idx (desc: objectspec) acc =
+    Misc.StringMap.fold (fun field (desc: fieldspec) (local_facts, points_to) ->
         let ref = Reference.reference_of_field (OObject idx) field in
         ({ local_facts with
            versions = Reference.ReferenceMap.add ref 0 local_facts.versions },
@@ -239,41 +239,41 @@ let (local_facts_3, points_to_3) = get_facts_for objtab3
 
 (** A all-inclusive, well-bracketed trace exercising all (significant) cases.
  * It is built for object table 1. *)
-let trace1 = let open Trace in
+let trace1 = 
   [
-    ForIn { iid = 1; value = obj1_simp2 };
-    With { iid = 2; value = obj1_simp2 };
+    ForIn (1, obj1_simp2);
+    With (2, obj1_simp2);
     ScriptEnter;
-    Throw { iid = 4; value = obj1_simp2 };
+    Throw (4, obj1_simp2);
     ScriptExc obj1_simp2;
-    Declare { iid = 6; name = "e"; value = obj1_simp2; argument = None; isCatchParam = true };
+    Declare (6, { name = "e"; value = obj1_simp2; argument = None; isCatchParam = true  });
     EndExpression 7;
-    Literal { iid = 8; value = vtrue; hasGetterSetter = false };
-    Write { iid = 9; name = "x"; lhs = vundef; value = vtrue; isGlobal = true; isScriptLocal = true };
-    Read { iid = 10; name = "x"; value = vtrue; isGlobal = true; isScriptLocal = true };
-    FunPre { iid = 11; f = obj1_fun1; base = obj1_cyc1; args = obj1_simp1; isConstructor = false; isMethod = true };
-    FunEnter { iid = 12; f = obj1_fun1; this = obj1_cyc1; args = obj1_simp1 };
-    Declare { iid = 12; name = "arguments"; value = obj1_simp1; argument = (Some (-1)); isCatchParam = false };
-    Declare { iid = 12; name = "x"; value = vundef; argument = Some 0; isCatchParam = false };
-    Return { iid = 13; value = vfalse };
-    FunExit { iid = 14; Trace.ret = vfalse; exc = vundef };
-    FunPost { iid = 15; f = obj1_fun1; args = obj1_simp1; isConstructor = false; isMethod = true; result = vfalse; base = obj1_cyc1 };
+    Literal (8, { value = vtrue; hasGetterSetter = false  });
+    Write (9, { name = "x"; lhs = vundef; value = vtrue; isGlobal = true; isScriptLocal = true  });
+    Read (10, { name = "x"; value = vtrue; isGlobal = true; isScriptLocal = true  });
+    FunPre (11, { f = obj1_fun1; base = obj1_cyc1; args = obj1_simp1; isConstructor = false; isMethod = true  });
+    FunEnter (12, { f = obj1_fun1; this = obj1_cyc1; args = obj1_simp1  });
+    Declare (12, { name = "arguments"; value = obj1_simp1; argument = (Some (-1)); isCatchParam = false  });
+    Declare (12, { name = "x"; value = vundef; argument = Some 0; isCatchParam = false  });
+    Return (13, vfalse );
+    FunExit (14, { ret = vfalse; exc = vundef  });
+    FunPost (15, { f = obj1_fun1; args = obj1_simp1; isConstructor = false; isMethod = true; result = vfalse; base = obj1_cyc1  });
     ScriptEnter;
-    BinPre { iid = 16; op = "+"; left = v0; right = v1; isOpAssign = false; isSwitchCaseComparison = false; isComputed = false };
-    BinPost { iid = 16; op = "+"; left = v0; right = v1; isOpAssign = false; isSwitchCaseComparison = false; isComputed = false; result = v1 };
-    UnaryPre { iid = 17; op = "-"; arg = v0 };
-    UnaryPost { iid = 17; op = "-"; arg = v0; result = v0 };
+    BinPre (16, { op = "+"; left = v0; right = v1; isOpAssign = false; isSwitchCaseComparison = false; isComputed = false  });
+    BinPost (16, { op = "+"; left = v0; right = v1; isOpAssign = false; isSwitchCaseComparison = false; isComputed = false; result = v1  });
+    UnaryPre (17, { op = "-"; arg = v0  });
+    UnaryPost (17, { op = "-"; arg = v0; result = v0  });
     ScriptExit;
-    GetFieldPre { iid =18; base = obj1_simp1; offset = "marker"; isComputed = false; isOpAssign = false; isMethodCall = false };
-    GetField { iid =18; base = obj1_simp1; offset = "marker"; isComputed = false; isOpAssign = false; isMethodCall = false; value = vundef };
-    PutFieldPre { iid =19; base = obj1_simp1; offset = "marker"; isOpAssign = false; isComputed =false; value = vundef };
-    PutField { iid =19; base = obj1_simp1; offset = "marker"; isOpAssign = false; isComputed =false; value = vundef };
-    Literal { iid = 20; value = obj1_simp2; hasGetterSetter = false };
-    Declare { iid = 21; name = "y"; value = obj1_simp2; argument = None; isCatchParam = false };
-    Conditional { iid = 22; value = vfalse }
+    GetFieldPre (18, { base = obj1_simp1; offset = "marker"; isComputed = false; isOpAssign = false; isMethodCall = false });
+    GetField (18, { base = obj1_simp1; offset = "marker"; isComputed = false; isOpAssign = false; isMethodCall = false; value = vundef });
+    PutFieldPre (19, { base = obj1_simp1; offset = "marker"; isOpAssign = false; isComputed =false; value = vundef });
+    PutField (19, { base = obj1_simp1; offset = "marker"; isOpAssign = false; isComputed =false; value = vundef });
+    Literal (20, { value = obj1_simp2; hasGetterSetter = false  });
+    Declare (21, { name = "y"; value = obj1_simp2; argument = None; isCatchParam = false  });
+    Conditional vfalse
   ]
 
-let tracefile1: Trace.tracefile = (functab1, objtab1, trace1, globals, true)
+let tracefile1: tracefile = (functab1, objtab1, trace1, globals, true)
 
 let cleantrace1 = [
   CForIn obj1_simp2;
@@ -472,7 +472,7 @@ let cleantrace1_facts =
     let t1 = List.combine cleantrace1_args cleantrace1_updates
     and t2 = List.combine cleantrace1_versions cleantrace1_aliases in
     List.combine t1 t2
-  in let open LocalFacts in
+  in
   List.map (fun ((la, lu), (v, a)) -> { last_arguments = la; last_update = lu; versions = v; aliases = a }) fact_tuple
 
 let argtrace1 = List.combine cleantrace1 cleantrace1_args
@@ -670,7 +670,7 @@ let cleantrace2_facts =
     let t1 = List.combine cleantrace2_args cleantrace2_updates
     and t2 = List.combine cleantrace2_versions cleantrace2_aliases in
     List.combine t1 t2
-  in let open LocalFacts in
+  in
   List.map (fun ((la, lu), (v, a)) -> { last_arguments = la; last_update = lu; versions = v; aliases = a }) fact_tuple
 
 let trace2_pointsto =
@@ -727,7 +727,7 @@ let test_data = let open MatchObjects in {
 }
 *)
 
-let test_rt1 = let open RichTrace in { 
+let test_rt1 = { 
     funcs = functab1;
     objs = objtab1;
     trace = [];
@@ -736,7 +736,7 @@ let test_rt1 = let open RichTrace in {
     points_to = points_to_1
   }
 
-let test_rt2 = let open RichTrace in { 
+let test_rt2 = { 
     funcs = functab2;
     objs = objtab2;
     trace = [];
