@@ -84,7 +84,7 @@ let provide_write (objects: objects) ref state =
       (* If the field is not writable, do nothing. *)
       begin try
           let objid = get_object_id obj in
-          let fldspec = StringMap.find fld objects.(objid) in
+          let fldspec = StringMap.find fld (ExtArray.get objects objid) in
           if fldspec.writable && fldspec.set = None then
             increment_reference state ref
           else if fldspec.set = None then
@@ -126,7 +126,7 @@ let provide_object (objects: objects) state obj =
            state
          else
            increment_reference state ref |> recurse_value field.value)
-      objects.(get_object_id obj) state
+      (ExtArray.get objects (get_object_id obj)) state
   and recurse_value field state = match field with
     | OObject _ | OOther _ | OFunction _ -> recurse (objectid_of_jsval field) state
     | _ -> state
@@ -135,7 +135,7 @@ let provide_object (objects: objects) state obj =
 let provide_argument_alias objects state name arguments i =
   let field = string_of_int i in
   match arguments with
-  | Some params when StringMap.mem field objects.(params) ->
+  | Some params when StringMap.mem field (ExtArray.get objects params) ->
     { state with aliases =
                    StringMap.add name (Object params, field) state.aliases }
   | Some _ ->

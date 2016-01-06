@@ -11,9 +11,10 @@ XOCamlbuildExtraArgs: -use-ocamlfind
 Library "js-enrichment"
   Path:       .
   BuildTools: ocamlbuild
+  Install:    true
   Modules:    CalculatePointsTo, CalculateVersions, CleanTrace, FormatHelper,
     LocalFacts, Misc, PointsTo, Reference, RichTrace, Streaming, Trace,
-    TraceTypes, Types
+    TraceTypes, Types, ExtArray
   
 Executable "calculatePointsTo_unit"
   BuildTools: ocamlbuild

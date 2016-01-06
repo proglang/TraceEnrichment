@@ -27,11 +27,11 @@ let funcapply = External 100
 let funccall = External 101
 let functostring = External 102
 
-let functab1 = [| funcapply; funccall; functostring; funcin1; funcin2; funcstd; funcext1 |]
+let functab1 = [| funcapply; funccall; functostring; funcin1; funcin2; funcstd; funcext1 |] |> ExtArray.of_array
 (** functab2 is a cyclic permutation of functab1 *)
-let functab2 = [| funcapply; funccall; functostring; funcin2; funcstd; funcext1; funcin1 |]
+let functab2 = [| funcapply; funccall; functostring; funcin2; funcstd; funcext1; funcin1 |] |> ExtArray.of_array
 (** functab3 is distinct from functab1 and functab2 *)
-let functab3 = [| funcapply; funccall; functostring; funcin1; funcin3; funcstd; funcext2 |]
+let functab3 = [| funcapply; funccall; functostring; funcin1; funcin3; funcstd; funcext2 |] |> ExtArray.of_array
 
 (* Indices:*
  * 0		apply			apply			apply
@@ -106,7 +106,7 @@ let objtab1 = [|
   obj1desc_fun1; obj1desc_fun2;
   obj1desc_fun3; obj1desc_fun4;
   obj1desc_simp1; obj1desc_simp2; obj1desc_special
-|]
+|] |> ExtArray.of_array
 
 (** Object table 2 - it contains one cyclic structure, one list structure, one special object and six
  * simple objects, including the functions defined above. *)
@@ -155,7 +155,7 @@ let objtab2 = [|
   obj2desc_fun3; obj2desc_fun4;
   obj2desc_fun1; obj2desc_fun2;
   obj2desc_special; obj2desc_simp2; obj2desc_simp1
-|]
+|] |> ExtArray.of_array
 
 (** Object table 3 - similar to object table 1, but with subtle differences
  * in the objects themselves. *)
@@ -204,20 +204,13 @@ let objtab3 = [|
   obj3desc_fun1; obj3desc_fun2;
   obj3desc_fun3; obj3desc_fun4;
   obj3desc_simp1; obj3desc_simp2; obj3desc_special
-|]
+|] |> ExtArray.of_array
 
 (** Global maps for the above object arrays. *)
 let globals = let open Misc.StringMap in empty |> add "Function" (OObject 0)
 
 (** Facts and points-to maps that represent the object tables from above. *)
-let foldi f init array =
-  let acc = ref init in
-  for i = 0 to Array.length array - 1 do
-    acc := f i array.(i) !acc
-  done;
-  !acc
-
-let get_facts_for (objtab: objectspec array) =
+let get_facts_for (objtab: objects) =
   let add_facts idx (desc: objectspec) acc =
     Misc.StringMap.fold (fun field (desc: fieldspec) (local_facts, points_to) ->
         let ref = Reference.reference_of_field (OObject idx) field in
@@ -231,7 +224,7 @@ let get_facts_for (objtab: objectspec array) =
     aliases = Misc.StringMap.empty;
     versions = Reference.ReferenceMap.empty
   } in
-  foldi add_facts (empty_facts, Reference.VersionReferenceMap.empty) objtab 
+  ExtArray.foldi add_facts objtab (empty_facts, Reference.VersionReferenceMap.empty)
 
 let (local_facts_1, points_to_1) = get_facts_for objtab1
 let (local_facts_2, points_to_2) = get_facts_for objtab2
@@ -760,13 +753,15 @@ module AssertVersionedReferenceMap =
        let to_string = (Misc.to_string Reference.pp_versioned_reference)
      end)
 
+let make_equal_extarray eq prn x y =
+  Kaputt.Assertion.make_equal_array eq prn (ExtArray.to_array x) (ExtArray.to_array y)
 let same_jsval = Kaputt.Assertion.make_equal (=) (Misc.to_string pp_jsval)
 let same_fieldspec = Kaputt.Assertion.make_equal (=) (Misc.to_string pp_fieldspec)
 let same_objectspec = AssertStringMap.make_equal (=) (Misc.to_string pp_fieldspec)
-let same_objects = Kaputt.Assertion.make_equal_array
+let same_objects = make_equal_extarray
                      (Misc.StringMap.equal (=)) (Misc.to_string pp_objectspec)
 let same_funcspec = Kaputt.Assertion.make_equal (=) (Misc.to_string pp_funcspec)
-let same_functions = Kaputt.Assertion.make_equal_array (=) (Misc.to_string pp_funcspec)
+let same_functions = make_equal_extarray (=) (Misc.to_string pp_funcspec)
 let same_globals = AssertStringMap.make_equal (=) (Misc.to_string pp_jsval)
 let same_objectid = Kaputt.Assertion.make_equal (=) (Misc.to_string pp_objectid)
 let same_fieldref = Kaputt.Assertion.make_equal (=) (Misc.to_string pp_fieldref)

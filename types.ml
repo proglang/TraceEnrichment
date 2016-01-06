@@ -20,11 +20,11 @@ type fieldspec = {
 }
 
 type objectspec = fieldspec Misc.StringMap.t
-type objects = objectspec array
+type objects = objectspec ExtArray.extarray
 
 type local_funcspec = { from_toString : string; from_jalangi : string option }
 type funcspec = Local of local_funcspec | External of int
-type functions = funcspec array
+type functions = funcspec ExtArray.extarray
 
 type globals = jsval Misc.StringMap.t
 
@@ -70,7 +70,7 @@ let pp_objectspec pp spec =
 let pp_objects pp arr =
   let open Format in
   pp_open_vbox pp 0;
-  Array.iteri (fun i s -> fprintf pp "%i: %a;@ " i pp_objectspec s) arr;
+  ExtArray.iteri (fun i s -> fprintf pp "%i: %a;@ " i pp_objectspec s) arr;
   pp_close_box pp ()
 let pp_local_funcspec pp s = match s.from_jalangi with
   | Some body -> Format.fprintf pp "@[<hov>@ from_jalangi code: @[<hov>%s@]@]" body
@@ -80,7 +80,7 @@ let pp_funcspec pp = function
   | External id -> Format.fprintf pp "(external code, id=%d)" id
 let pp_functions pp arr = let open Format in
   pp_open_vbox pp 0;
-  Array.iteri (fun i s -> fprintf pp "%i: %a;@ " i pp_funcspec s) arr;
+  ExtArray.iteri (fun i s -> fprintf pp "%i: %a;@ " i pp_funcspec s) arr;
   pp_close_box pp ()
 let pp_global_spec pp id = pp_jsval pp id
 let pp_globals pp spec = let open Format in

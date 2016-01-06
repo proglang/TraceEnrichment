@@ -75,7 +75,7 @@ let global_object = OObject 0
 
 let get_object (objects: objects) objval fieldname =
   try
-    objects.(get_object objval)
+    ExtArray.get objects (get_object objval)
     |> Misc.StringMap.find fieldname
     |> fun { value } -> value
   with Not_found -> OUndefined
@@ -117,7 +117,7 @@ let apply_stackop stack = function
 let is_instrumented funcs f =
   match f with
   | OFunction (_, fid) ->
-    begin match funcs.(fid) with
+    begin match ExtArray.get funcs fid with
       | Local { from_jalangi = Some _ } -> true
       | _ -> false
     end
