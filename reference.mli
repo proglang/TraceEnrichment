@@ -56,11 +56,12 @@ val pp_points_to_map: Format.formatter -> points_to_map -> unit
 
 (* For streaming *)
 open Types
+(* Nota bene: functions and objects are, in fact, mutable internally. *)
 type initials = {
-  mutable functions: functions;
-  mutable objects: objects;
-  mutable globals: globals;
-  mutable globals_are_properties: bool;
+  functions: functions;
+  objects: objects;
+  globals: globals;
+  globals_are_properties: bool;
   mutable points_to: points_to_map
 }
 

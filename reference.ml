@@ -77,10 +77,10 @@ let pp_points_to_map =
 (* For streaming *)
 open Types
 type initials = {
-  mutable functions: functions;
-  mutable objects: objects;
-  mutable globals: globals;
-  mutable globals_are_properties: bool;
+  functions: functions;
+  objects: objects;
+  globals: globals;
+  globals_are_properties: bool;
   mutable points_to: points_to_map
 }
 
