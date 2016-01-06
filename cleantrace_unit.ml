@@ -157,5 +157,4 @@ let test4 =
         CFunPost  { f = obj1_fun4; base = v0; args = v1; result = vtrue; call_type = Function };
       ] cleantrace)
 
-let _ =
-  Test.run_tests [ test1; test2; test3; test4 ]
+let tests = [ test1; test2; test3; test4 ]

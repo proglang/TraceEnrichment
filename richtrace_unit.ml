@@ -84,5 +84,5 @@ let test2 = Test.make_simple_test ~title:"calculate_rich_tracefile" (fun () ->
       (Misc.to_string (FormatHelper.pp_print_pair pp_rich_operation pp_local_facts))
       richtrace1 rt.trace)
 
-let _ = Test.run_tests [ test1; test2 ]
+let tests = [ test1; test2 ]
 

@@ -17,4 +17,4 @@ let test_find_object_facts =
          |> Misc.StringMap.add "toString" (OFunction (0,2)))
         facts)
 
-let _ = Test.run_tests [ test_find_object_facts ]
+let tests = [ test_find_object_facts ]

@@ -15,4 +15,4 @@ let test_calculate_pointsTo =
         trace1_pointsto !pt;
       same_facts_tracefile tf1 tf2)
 
-let _ = Test.run_tests [ test_calculate_pointsTo ]
+let tests = [ test_calculate_pointsTo ]

@@ -66,4 +66,4 @@ let test8 =
          ~msg:(Format.asprintf "Expected 'Local \"x\"', but got '%a'" pp_reference ref)
          (match ref with LocalVariable "x" -> true | _ -> false))
 
-let _ = Test.run_tests [test1; test2; test3; test4; test5; test6; test7; test8]
+let tests = [test1; test2; test3; test4; test5; test6; test7; test8]

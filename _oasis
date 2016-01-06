@@ -16,68 +16,14 @@ Library "js-enrichment"
     LocalFacts, Misc, PointsTo, Reference, RichTrace, Streaming, Trace,
     TraceTypes, Types, ExtArray
   
-Executable "calculatePointsTo_unit"
-  BuildTools: ocamlbuild
-  MainIs:     calculatePointsTo_unit.ml
+Executable "unittests"
   Path:       .
-
-Test "calculatePointsTo-unit"
-  Command:    ./calculatePointsTo_unit.byte
-  Run:        true
-  
-Executable "calculateVersions_unit"
   BuildTools: ocamlbuild
-  MainIs:     calculateVersions_unit.ml
-  Path:       .
+  Install:    false
+  Build$:     flag(tests)
+  MainIs:     unittests.ml
 
-Test "calculateVersions-unit"
-  Command:    ./calculateVersions_unit.byte
-  Run:        true
-  
-Executable "cleantrace_unit"
-  BuildTools: ocamlbuild
-  MainIs:     cleantrace_unit.ml
-  Path:       .
-
-Test "cleantrace-unit"
-  Command:    ./cleantrace_unit.byte
-  Run:        true
-  
-Executable "localFacts_unit"
-  BuildTools: ocamlbuild
-  MainIs:     localFacts_unit.ml
-  Path:       .
-
-Test "localFacts-unit"
-  Command:    ./localFacts_unit.byte
-  Run:        true
-
-  
-Executable "pointsTo_unit"
-  BuildTools: ocamlbuild
-  MainIs:     pointsTo_unit.ml
-  Path:       .
-
-Test "pointsTo-unit"
-  Command:    ./pointsTo_unit.byte
-  Run:        true
-
-  
-Executable "reference_unit"
-  BuildTools: ocamlbuild
-  MainIs:     reference_unit.ml
-  Path:       .
-
-Test "reference-unit"
-  Command:    ./reference_unit.byte
-  Run:        true
-  
-Executable "richtrace_unit"
-  BuildTools: ocamlbuild
-  MainIs:     richtrace_unit.ml
-  Path:       .
-
-Test "richtrace-unit"
-  Command:    ./richtrace_unit.byte
+Test "unittests"
+  Command:    $unittests
   Run:        true
 

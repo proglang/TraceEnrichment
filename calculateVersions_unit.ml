@@ -11,4 +11,4 @@ let test_calculate_versions =
         (CalculateVersions.collect_versions_trace
            (functab1, objtab1, argtrace1, globals, true)))
 
-let _ = Test.run_tests [ test_calculate_versions ]
+let tests = [ test_calculate_versions ]

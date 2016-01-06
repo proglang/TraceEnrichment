@@ -82,6 +82,6 @@ let test_make_versioned =
         (Misc.to_string Reference.pp_versioned_reference)
         (ref0, 42) (make_versioned alias_map ref0))
 
-let _ = Test.run_tests [
+let tests = [
     test_collect_arguments_and_parameters; test_calculate_arguments_and_parameters;
     test1; test2; test3; test4; test5; test_make_versioned ] 
