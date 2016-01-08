@@ -7,5 +7,6 @@ let _ = Test.run_tests
            LocalFacts_unit.tests @
            PointsTo_unit.tests @
            Reference_unit.tests @
-           Richtrace_unit.tests)
+           Richtrace_unit.tests @
+           Trace_unit.tests)
 
