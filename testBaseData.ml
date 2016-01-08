@@ -274,26 +274,31 @@ let cleantrace1 = [
   CScriptEnter;
   CThrow obj1_simp2;
   CScriptExc obj1_simp2;
+
   CDeclare { name = "e"; value = obj1_simp2; declaration_type = CatchParam };
   CEndExpression;
   CLiteral { value = vtrue; hasGetterSetter = false };
   CWrite { name = "x"; lhs = vundef; value = vtrue; isGlobal = true; isSuccessful = true };
   CRead { name = "x"; value = vtrue; isGlobal = true };
+
   CFunPre { f = obj1_fun1; base = obj1_cyc1; args = obj1_simp1; call_type = Method };
   CFunEnter { f = obj1_fun1; this = obj1_cyc1; args = obj1_simp1 };
   CDeclare { name = "arguments"; value = obj1_simp1; declaration_type = ArgumentArray };
   CDeclare { name = "x"; value = vundef; declaration_type = ArgumentBinding 0 };
   CReturn vfalse;
+
   CFunExit { ret = vfalse; exc = vundef };
   CFunPost { f = obj1_fun1; args = obj1_simp1; call_type = Method; result = vfalse; base = obj1_cyc1 };
   CScriptEnter;
   CBinary { op = "+"; left = v0; right = v1; result = v1 };
   CUnary { op = "-"; arg = v0; result = v0 };
+
   CScriptExit;
   CGetField { base = obj1_simp1; offset = "marker"; value = vundef };
   CPutField { base = obj1_simp1; offset = "marker"; value = vundef };
   CLiteral { value = obj1_simp2; hasGetterSetter = false };
   CDeclare { name = "y"; value = obj1_simp2; declaration_type = Var };
+
   CConditional vfalse
 ]
 
@@ -303,26 +308,31 @@ let cleantrace1_args = [
   None;
   None;
   None;
+
   None;
   None;
   None;
   None;
   None;
+
   None;
   Some (get_object obj1_simp1);
   Some (get_object obj1_simp1);
   Some (get_object obj1_simp1);
   Some (get_object obj1_simp1);
+
   None;
   None;
   None;
   None;
   None;
+
   None;
   None;
   None;
   None;
   None;
+
   None
 ]
 
@@ -344,26 +354,31 @@ let cleantrace1_updates =
     Some (init, 0);
     Some (init, 0);
     Some (init, 0);
+
     Some (ct1_l_e, 0);
     Some (ct1_l_e, 0);
     Some (ct1_l_e, 0);
     Some (ct1_g_x, 0);
     Some (ct1_g_x, 0);
+
     Some (ct1_toString, 0);
     Some (ct1_this, 0);
     Some (ct1_args, 0);
     Some (ct1_args, 0);
     Some (ct1_args, 0);
+
     Some (ct1_args, 0);
     Some (ct1_args, 0);
     Some (ct1_args, 0);
     Some (ct1_args, 0);
     Some (ct1_args, 0);
+
     Some (ct1_args, 0);
     Some (ct1_f_simp1_marker, 0);
     Some (ct1_f_simp1_marker, 0);
     Some (ct1_toString', 0);
     Some (ct1_l_y, 0);
+
     Some (ct1_l_y, 0)
   ]
 
@@ -405,26 +420,31 @@ let cleantrace1_versions =
     ct1ver_init;
     ct1ver_init;
     ct1ver_init;
+
     ct1ver_e;
     ct1ver_e;
     ct1ver_e;
     ct1ver_x;
     ct1ver_x;
+
     ct1ver_funpre;
     ct1ver_enter;
     ct1ver_args;
     ct1ver_arg0;
     ct1ver_arg0;
+
     ct1ver_funpre;
     ct1ver_funpre;
     ct1ver_funpre;
     ct1ver_funpre;
     ct1ver_funpre;
+
     ct1ver_funpre;
     ct1ver_f;
     ct1ver_f';
     ct1ver_simp2;
     ct1ver_y;
+
     ct1ver_y
   ]
 
@@ -437,63 +457,168 @@ let cleantrace1_aliases = [
   ct1al_emp;
   ct1al_emp;
   ct1al_emp;
+
   ct1al_emp;
   ct1al_emp;
   ct1al_emp;
   ct1al_emp;
   ct1al_emp;
+
   ct1al_emp;
   ct1al_emp;
   ct1al_emp;
   ct1al_x;
   ct1al_x;
+
   ct1al_emp;
   ct1al_emp;
   ct1al_emp;
   ct1al_emp;
   ct1al_emp;
+
   ct1al_emp;
   ct1al_emp;
   ct1al_emp;
   ct1al_emp;
   ct1al_emp;
+
   ct1al_emp
 ]
 
+let rec combine_facts args updates versions aliases pointsto =
+  match args, updates, versions, aliases, pointsto with
+    | last_arguments::args, last_update::updates, versions::versions', aliases::aliases', points_to::points_to' ->
+        { last_arguments; last_update; versions; aliases; points_to } ::
+        combine_facts args updates versions' aliases' points_to'
+    | [], [], [], [], [] -> []
+    | _ -> invalid_arg "Lengths do not match"
+
+module VRM = Reference.VersionReferenceMap
+let add_simple_fields (obj: objectid) (fields: (string * jsval) list) ptm =
+  List.fold_left
+    (fun ptm (fld, value) -> VRM.add (Reference.reference_of_fieldref (obj, fld), 0) value ptm)
+    ptm fields
+let add_func obj ptm =
+  add_simple_fields obj
+    [ ("Function", OObject 0); ("apply", OFunction(0,0)); ("call", OFunction(0,1)); ("prototype", OObject 0); ("toString", OFunction(0,2)) ]
+    ptm
+
+let ref_this = Reference.reference_of_local_name "this"
+
+let trace1_ptinit =
+  VRM.empty
+    |> add_func (Function (0, 0))
+    |> add_func (Function (0, 1))
+    |> add_func (Function (0, 2))
+    |> add_func (Object 0)
+    |> VRM.add (ref_this, 0) (OObject 0)
+
+let trace1_pte = VRM.add (ct1_l_e, 0) obj1_simp2 trace1_ptinit
+let trace1_ptx = VRM.add (ct1_g_x, 0) vtrue trace1_pte
+let trace1_pto11_1 = add_simple_fields (Object 11) [ "0", vnull; "1", vundef; "toString", (OFunction (0, 2)) ] trace1_ptx
+let trace1_pt_this = (*VRM.add (ref_this, 1) obj1_cyc1 *) trace1_pto11_1 (* TODO why is this not added??? *)
+let trace1_pt_arguments = VRM.add (ct1_args, 0) obj1_simp1 trace1_pt_this
+let trace1_pt_arg0 = VRM.add (ct1_arg0, 0) vnull trace1_pt_arguments
+let trace1_pto11_1_marker = add_simple_fields (Object 11) [ "marker", vundef ] trace1_pt_arg0
+let trace1_pto11_1_marker' = VRM.add (Reference.reference_of_fieldref (Object 11, "marker"), 1) vundef trace1_pto11_1_marker
+let trace1_pto12 = add_simple_fields (Object 12) [ "toString", (OFunction (0, 2)) ] trace1_pto11_1_marker'
+let trace1_pty = VRM.add (ct1_l_y, 0) obj1_simp2 trace1_pto12
+
+let trace1_pointsto = trace1_pty
+
+let cleantrace1_pointsto =
+  [
+    trace1_ptinit;
+    trace1_ptinit;
+    trace1_ptinit;
+    trace1_ptinit;
+    trace1_ptinit;
+
+    trace1_pte;
+    trace1_pte;
+    trace1_pte;
+    trace1_ptx;
+    trace1_ptx;
+
+    trace1_pto11_1;
+    trace1_pt_this;
+    trace1_pt_arguments;
+    trace1_pt_arg0;
+    trace1_pt_arg0;
+
+    trace1_pt_arg0;
+    trace1_pt_arg0;
+    trace1_pt_arg0;
+    trace1_pt_arg0;
+    trace1_pt_arg0;
+
+    trace1_pt_arg0;
+    trace1_pto11_1_marker;
+    trace1_pto11_1_marker';
+    trace1_pto12;
+    trace1_pty;
+
+    trace1_pty
+  ]
+ 
 let cleantrace1_facts =
-  let fact_tuple = 
-    let t1 = List.combine cleantrace1_args cleantrace1_updates
-    and t2 = List.combine cleantrace1_versions cleantrace1_aliases in
-    List.combine t1 t2
-  in
-  List.map (fun ((la, lu), (v, a)) -> { last_arguments = la; last_update = lu; versions = v; aliases = a }) fact_tuple
+  combine_facts cleantrace1_args cleantrace1_updates cleantrace1_versions cleantrace1_aliases cleantrace1_pointsto
 
 let argtrace1 = List.combine cleantrace1 cleantrace1_args
 let facttrace1 = List.combine cleantrace1 cleantrace1_facts
 
-let trace1_pointsto =
-  let open Reference.VersionReferenceMap in
-  let add_simple_fields (obj: objectid) (fields: (string * jsval) list) ptm =
-    List.fold_left
-      (fun ptm (fld, value) -> add (Reference.reference_of_fieldref (obj, fld), 0) value ptm)
-      ptm fields in
-  let add_func obj ptm =
-    add_simple_fields obj
-      [ ("Function", OObject 0); ("apply", OFunction(0,0)); ("call", OFunction(0,1)); ("prototype", OObject 0); ("toString", OFunction(0,2)) ]
-      ptm in
-  empty
-  |> add_func (Function (0, 0))
-  |> add_func (Function (0, 1)) 
-  |> add_func (Function (0, 2))
-  |> add_func (Object 0)
-  |> add (ct1_l_e, 0) obj1_simp2
-  |> add (ct1_g_x, 0) vtrue
-  |> add (ct1_args, 0) obj1_simp1
-  |> add_simple_fields (Object 11) [ "0", vnull; "1", vundef; "marker", vundef; "toString", (OFunction (0, 2)) ]
-  |> add (ct1_f_simp1_marker, 1) vundef
-  |> add (ct1_l_y, 0) obj1_simp2
-  |> add (Reference.reference_of_local_name "this", 0) (OObject 0)
-  |> add_simple_fields (Object 12) [ "toString", (OFunction (0, 2)) ]
+let facts_init = { last_arguments = None; last_update = None; versions = ct1ver_init; aliases = ct1al_emp; points_to = trace1_ptinit }
+let facts_catch = { last_arguments = None; last_update = Some (ct1_l_e, 0); versions = ct1ver_e; aliases = ct1al_emp ; points_to = trace1_pte }
+let facts_write1 = { last_arguments = None; last_update = Some (ct1_g_x, 0); versions = ct1ver_x; aliases = ct1al_emp ; points_to = trace1_ptx }
+let facts_funpre = { last_arguments = None; last_update = Some (ct1_args, 0); versions = ct1ver_funpre; aliases = ct1al_emp; points_to = trace1_pto11_1 }
+let facts_funenter = { last_arguments = Some (get_object obj1_simp1); last_update = Some (ct1_args, 0); versions = ct1ver_enter; aliases = ct1al_emp; points_to = trace1_pt_this }
+let facts_arguments = { last_arguments = Some (get_object obj1_simp1); last_update = Some (ct1_args, 0); versions = ct1ver_args; aliases = ct1al_emp; points_to = trace1_pt_arguments }
+let facts_arg0 = { last_arguments = Some (get_object obj1_simp1); last_update = Some (ct1_args, 0); versions = ct1ver_arg0; aliases = ct1al_x; points_to = trace1_pt_arg0 }
+let facts_exit = { last_arguments = None; last_update = Some (ct1_args, 0); versions = ct1ver_funpre; aliases = ct1al_emp; points_to = trace1_pt_arg0 }
+let facts_post = { last_arguments = None; last_update = Some (ct1_args, 0); versions = ct1ver_funpre; aliases = ct1al_emp; points_to = trace1_pt_arg0 }
+let facts_write2 = { last_arguments = None; last_update = Some (ct1_f_simp1_marker, 0); versions = ct1ver_f; aliases = ct1al_emp; points_to = trace1_pto11_1_marker }
+let facts_write3 = { last_arguments = None; last_update = Some (ct1_f_simp1_marker, 0); versions = ct1ver_f'; aliases = ct1al_emp; points_to = trace1_pto11_1_marker' }
+let facts_literal = { last_arguments = None; last_update = Some (ct1_f_simp1_marker, 0); versions = ct1ver_simp2; aliases = ct1al_emp; points_to = trace1_pto12 }
+let facts_local = { last_arguments = None; last_update = Some (ct1_l_y, 0); versions = ct1ver_y; aliases = ct1al_emp; points_to = trace1_pty }
+
+
+let richtrace1 = [
+    RForIn obj1_simp2, facts_init;
+    RWith obj1_simp2, facts_init; (* FIXME handle with properly *)
+    RScriptEnter, facts_init;
+    RThrow obj1_simp2, facts_init;
+    RScriptExc obj1_simp2, facts_init;
+
+    RCatch { name = "e"; ref = (ct1_l_e, 0) }, facts_catch;
+    RWrite { ref = (ct1_l_e, 0); oldref = (ct1_l_e, 0); value = obj1_simp2; success = true }, facts_catch;
+    REndExpression, facts_catch;
+    RLiteral { value = vtrue; hasGetterSetter = false }, facts_catch;
+    RWrite { ref = (ct1_g_x, 0); oldref = (ct1_g_x, 0); value = vtrue; success = true }, facts_write1;
+
+    RRead { ref = (ct1_g_x, 0); value = vtrue }, facts_write1;
+    RFunPre { f = obj1_fun1; base = obj1_cyc1; args = obj1_simp1; call_type = Method }, facts_funpre;
+    RFunEnter { f = obj1_fun1; this = obj1_cyc1; args = obj1_simp1 }, facts_funenter;
+    RLocal { name = "arguments"; ref = (ct1_args, 0) }, facts_arguments;
+    RWrite { ref = (ct1_args, 0); oldref = (ct1_args, 0); value = obj1_simp1; success = true }, facts_arguments;
+
+    RAlias { name = "x"; ref = (ct1_arg0, 0); source = Argument 0 }, facts_arg0;
+    RReturn vfalse, facts_arg0;
+    RFunExit { ret = vfalse; exc = vundef }, facts_exit;
+    RFunPost { f = obj1_fun1; args = obj1_simp1; result = vfalse; base = obj1_cyc1; call_type = Method }, facts_post;
+    RScriptEnter, facts_post;
+
+    RBinary { op = "+"; left = v0; right = v1; result = v1 }, facts_post;
+    RUnary { op = "-"; arg = v0; result = v0 }, facts_post;
+    RScriptExit, facts_post;
+    RRead { ref = (ct1_f_simp1_marker, 0); value = vundef }, facts_write2;
+    RWrite { ref = (ct1_f_simp1_marker, 1); oldref = (ct1_f_simp1_marker, 0); value = vundef; success = true }, facts_write3;
+
+    RLiteral { value = obj1_simp2; hasGetterSetter = false }, facts_literal;
+    RLocal { name = "y"; ref = (ct1_l_y, 0) }, facts_local;
+    RWrite { ref = (ct1_l_y, 0); oldref = (ct1_l_y, 0); value = obj1_simp2; success = true }, facts_local;
+    RConditional vfalse, facts_local;
+  ]
+
 
 let ct2_l_e = Reference.reference_of_local_name "e"
 and ct2_g_x = Reference.reference_of_name true Misc.StringMap.empty true "x"
@@ -544,26 +669,31 @@ let cleantrace2_versions =
     ct2ver_init;
     ct2ver_init;
     ct2ver_init;
+
     ct2ver_e;
     ct2ver_e;
     ct2ver_e;
     ct2ver_x;
     ct2ver_x;
+
     ct2ver_funpre;
     ct2ver_enter;
     ct2ver_args;
     ct2ver_arg0;
     ct2ver_arg0;
+
     ct2ver_funpre;
     ct2ver_funpre;
     ct2ver_funpre;
     ct2ver_funpre;
     ct2ver_funpre;
+
     ct2ver_funpre;
     ct2ver_f;
     ct2ver_f';
     ct2ver_simp2;
     ct2ver_y;
+
     ct2ver_y
   ]
 
@@ -576,26 +706,31 @@ let cleantrace2_aliases = [
   ct2al_emp;
   ct2al_emp;
   ct2al_emp;
+
   ct2al_emp;
   ct2al_emp;
   ct2al_emp;
   ct2al_emp;
   ct2al_emp;
+
   ct2al_emp;
   ct2al_emp;
   ct2al_emp;
   ct2al_x;
   ct2al_x;
+
   ct2al_emp;
   ct2al_emp;
   ct2al_emp;
   ct2al_emp;
   ct2al_emp;
+
   ct2al_emp;
   ct2al_emp;
   ct2al_emp;
   ct2al_emp;
   ct2al_emp;
+
   ct2al_emp
 ]
 
@@ -605,26 +740,31 @@ let cleantrace2_args = [
   None;
   None;
   None;
+
   None;
   None;
   None;
   None;
   None;
+
   None;
   Some (get_object obj2_simp1);
   Some (get_object obj2_simp1);
   Some (get_object obj2_simp1);
   Some (get_object obj2_simp1);
+
   None;
   None;
   None;
   None;
   None;
+
   None;
   None;
   None;
   None;
   None;
+
   None
 ]
 
@@ -635,60 +775,91 @@ let cleantrace2_updates =
     Some (init, 0);
     Some (init, 0);
     Some (init, 0);
+
     Some (ct2_l_e, 0);
     Some (ct2_l_e, 0);
     Some (ct2_l_e, 0);
     Some (ct2_g_x, 0);
     Some (ct2_g_x, 0);
+
     Some (ct2_g_x, 0);
     Some (ct2_g_x, 0);
     Some (ct2_args, 0);
     Some (ct2_arg0, 0);
     Some (ct2_arg0, 0);
+
     Some (ct2_arg0, 0);
     Some (ct2_arg0, 0);
     Some (ct2_arg0, 0);
     Some (ct2_arg0, 0);
     Some (ct2_arg0, 0);
+
     Some (ct2_arg0, 0);
     Some (ct2_arg0, 0);
     Some (ct2_f_simp1_marker, 1);
     Some (ct2_f_simp1_marker, 1);
     Some (ct2_l_y, 0);
+
     Some (ct2_l_y, 0)
   ]
 
-let cleantrace2_facts =
-  let fact_tuple = 
-    let t1 = List.combine cleantrace2_args cleantrace2_updates
-    and t2 = List.combine cleantrace2_versions cleantrace2_aliases in
-    List.combine t1 t2
-  in
-  List.map (fun ((la, lu), (v, a)) -> { last_arguments = la; last_update = lu; versions = v; aliases = a }) fact_tuple
+let trace2_ptinit =
+  VRM.empty
+    |> add_func (Function (0, 0))
+    |> add_func (Function (0, 1))
+    |> add_func (Function (0, 2))
+    |> add_func (Object 0)
+    |> VRM.add (ref_this, 0) (OObject 0)
 
-let trace2_pointsto =
-  let open Reference.VersionReferenceMap in
-  let add_simple_fields (obj: objectid) (fields: (string * jsval) list) ptm =
-    List.fold_left
-      (fun ptm (fld, value) -> add (Reference.reference_of_fieldref (obj, fld), 0) value ptm)
-      ptm fields in
-  let add_func obj ptm =
-    add_simple_fields obj
-      [ ("Function", OObject 0); ("apply", OFunction(0,0)); ("call", OFunction(0,1)); ("prototype", OObject 0); ("toString", OFunction(0,2)) ]
-      ptm in
-  empty
-  |> add_func (Function (0, 0))
-  |> add_func (Function (0, 1)) 
-  |> add_func (Function (0, 2))
-  |> add_func (Object 0)
-  |> add (ct2_l_e, 0) obj1_simp2
-  |> add (ct2_g_x, 0) vtrue
-  |> add (ct2_args, 0) obj1_simp1
-  |> add_simple_fields (Object 12) [ "0", vnull; "1", vundef; "marker", vundef; "toString", (OFunction (0, 2)) ]
-  |> add (ct2_f_simp1_marker, 1) vundef
-  |> add (ct2_l_y, 0) obj1_simp2
-  |> add (Reference.reference_of_local_name "this", 0) (OObject 0)
-  |> add_simple_fields (Object 13) [ "toString", (OFunction (0, 2)) ]
+let trace2_pte = VRM.add (ct2_l_e, 0) obj1_simp2 trace1_ptinit
+let trace2_ptx = VRM.add (ct2_g_x, 0) vtrue trace1_pte
+let trace2_pto11_1 = add_simple_fields (Object 12) [ "0", vnull; "1", vundef; "toString", (OFunction (0, 2)) ] trace1_ptx
+let trace2_pt_this = (*VRM.add (ref_this, 1) obj1_cyc1*) trace1_pto11_1 (* TODO why is this not added??? *)
+let trace2_pt_arguments = VRM.add (ct2_args, 0) obj1_simp1 trace2_pt_this
+let trace2_pt_arg0 = VRM.add (ct2_arg0, 0) vnull trace2_pt_arguments
+let trace2_pto11_1_marker = add_simple_fields (Object 12) [ "marker", vundef ] trace2_pt_arg0
+let trace2_pto11_1_marker' = VRM.add (Reference.reference_of_fieldref (Object 11, "marker"), 1) vundef trace2_pto11_1_marker
+let trace2_pto12 = add_simple_fields (Object 13) [ "toString", (OFunction (0, 2)) ] trace2_pto11_1_marker'
+let trace2_pty = VRM.add (ct2_l_y, 0) obj1_simp2 trace2_pto12
+
+let trace2_pointsto = trace2_pty
+
+let cleantrace2_pointsto =
+  [
+    trace2_ptinit;
+    trace2_ptinit;
+    trace2_ptinit;
+    trace2_ptinit;
+    trace2_ptinit;
+
+    trace2_pte;
+    trace2_pte;
+    trace2_pte;
+    trace2_ptx;
+    trace2_ptx;
+
+    trace2_pto11_1;
+    trace2_pt_this;
+    trace2_pt_arguments;
+    trace2_pt_arg0;
+    trace2_pt_arg0;
+
+    trace2_pt_arg0;
+    trace2_pt_arg0;
+    trace2_pt_arg0;
+    trace2_pt_arg0;
+    trace2_pt_arg0;
+
+    trace2_pt_arg0;
+    trace2_pto11_1_marker;
+    trace2_pto11_1_marker';
+    trace2_pto12;
+    trace2_pty;
+
+    trace2_pty
+  ]
+let cleantrace2_facts =
+  combine_facts cleantrace2_args cleantrace2_updates cleantrace2_versions cleantrace2_aliases cleantrace2_pointsto
 
 let (|?) x d = match x with Some x -> x | None -> d
 
@@ -753,15 +924,15 @@ module AssertVersionedReferenceMap =
        let to_string = (Misc.to_string Reference.pp_versioned_reference)
      end)
 
-let make_equal_extarray eq prn x y =
-  Kaputt.Assertion.make_equal_array eq prn (ExtArray.to_array x) (ExtArray.to_array y)
+let make_equal_extarray ~msg eq prn x y =
+  Kaputt.Assertion.make_equal_array ~msg:msg eq prn (ExtArray.to_array x) (ExtArray.to_array y)
 let same_jsval = Kaputt.Assertion.make_equal (=) (Misc.to_string pp_jsval)
 let same_fieldspec = Kaputt.Assertion.make_equal (=) (Misc.to_string pp_fieldspec)
 let same_objectspec = AssertStringMap.make_equal (=) (Misc.to_string pp_fieldspec)
-let same_objects = make_equal_extarray
+let same_objects = make_equal_extarray ~msg:"objects"
                      (Misc.StringMap.equal (=)) (Misc.to_string pp_objectspec)
 let same_funcspec = Kaputt.Assertion.make_equal (=) (Misc.to_string pp_funcspec)
-let same_functions = make_equal_extarray (=) (Misc.to_string pp_funcspec)
+let same_functions = make_equal_extarray ~msg:"functions" (=) (Misc.to_string pp_funcspec)
 let same_globals = AssertStringMap.make_equal (=) (Misc.to_string pp_jsval)
 let same_objectid = Kaputt.Assertion.make_equal (=) (Misc.to_string pp_objectid)
 let same_fieldref = Kaputt.Assertion.make_equal (=) (Misc.to_string pp_fieldref)

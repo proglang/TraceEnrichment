@@ -1,6 +1,6 @@
 open Kaputt.Abbreviations
 open Types
-open Test_base_data
+open TestBaseData
 
 let (|>) = Pervasives.(|>)
 

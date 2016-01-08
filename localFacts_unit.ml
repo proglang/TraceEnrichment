@@ -1,6 +1,6 @@
 open LocalFacts
 open Kaputt.Abbreviations
-open Test_base_data
+open TestBaseData
 open Types
 open TraceTypes
 

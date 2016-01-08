@@ -2,7 +2,7 @@ open Kaputt.Abbreviations
 open Types
 open Trace
 open TraceTypes
-open Test_base_data
+open TestBaseData
 
 let (|>) = Pervasives.(|>)
 
