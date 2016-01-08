@@ -240,19 +240,23 @@ type local_facts = {
   last_arguments: int option;
   last_update: Reference.versioned_reference option;
   versions: int Reference.ReferenceMap.t;
-  aliases: fieldref Misc.StringMap.t
+  aliases: fieldref Misc.StringMap.t;
+  points_to: Reference.points_to_map
 }
 
 type 'a enriched_trace = (clean_operation * 'a) list
 type 'a enriched_tracefile = functions * objects * 'a enriched_trace * globals * bool
 type facts_trace = local_facts enriched_trace
 type facts_tracefile = local_facts enriched_tracefile
+type full_facts_trace = local_facts enriched_trace
+type full_facts_tracefile = local_facts enriched_tracefile
 type unit_trace = unit enriched_trace
 type unit_tracefile = unit enriched_tracefile
 type arguments_trace = int option enriched_trace
 type arguments_tracefile = int option enriched_tracefile
 type 'a enriched_stream = (clean_operation * 'a) Streaming.Stream.t
 type facts_stream = local_facts enriched_stream
+type full_facts_stream = local_facts enriched_stream
 type arguments_stream = int option enriched_stream
 
 (** Events that make use of the facts calculated by the [LocalFacts] module
@@ -487,18 +491,20 @@ let pp_rich_operation pp = let open Format in function
     | RConditional value -> fprintf pp "RConditional(value=%a)" pp_jsval value
 
 let pp_local_facts pp
-    { last_arguments; last_update; versions; aliases } =
+    { last_arguments; last_update; versions; aliases; points_to } =
   Format.fprintf pp "@[< v >\
                      Last callee-side argument object: %a@ \
                      Last update: %a@ \
                      Versions: @[< hov 2 >%a@]@ \
-                     Aliases: @[< hov 2 >%a@]@ @]"
+                     Aliases: @[< hov 2 >%a@]@ \
+                     Points-to map: @[< hov 2 >%a@]@ @]"
     (FormatHelper.pp_print_option Format.pp_print_int) last_arguments
     (FormatHelper.pp_print_option Reference.pp_versioned_reference) last_update
     (Reference.pp_reference_map Format.pp_print_int) versions
     (Misc.StringMapFormat.pp_print_map "" "" ","
        (fun pp name fr ->
           Format.fprintf pp "%s -> %a" name pp_fieldref fr)) aliases
+    Reference.pp_points_to_map points_to
 
 let pp_enriched_trace fmt =
   FormatHelper.pp_print_list_lines

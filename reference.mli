@@ -62,7 +62,6 @@ type initials = {
   objects: objects;
   globals: globals;
   globals_are_properties: bool;
-  mutable points_to: points_to_map
 }
 
 

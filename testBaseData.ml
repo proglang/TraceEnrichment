@@ -222,7 +222,8 @@ let get_facts_for (objtab: objects) =
     last_arguments = None;
     last_update = None;
     aliases = Misc.StringMap.empty;
-    versions = Reference.ReferenceMap.empty
+    versions = Reference.ReferenceMap.empty;
+    points_to = Reference.VersionReferenceMap.empty
   } in
   ExtArray.foldi add_facts objtab (empty_facts, Reference.VersionReferenceMap.empty)
 

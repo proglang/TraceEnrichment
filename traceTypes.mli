@@ -275,6 +275,8 @@ type local_facts = {
   versions: int Reference.ReferenceMap.t;
   (** All currently-existing aliases. *)
   aliases: Types.fieldref Misc.StringMap.t;
+  (** The current state of the points-to map. *)
+  points_to: Reference.points_to_map
 }
 
 (** Traces and tracefiles enrichted with local facts. *)
@@ -284,6 +286,9 @@ type 'a enriched_stream = (clean_operation * 'a) Streaming.Stream.t
 type facts_trace = local_facts enriched_trace
 type facts_tracefile = local_facts enriched_tracefile
 type facts_stream = local_facts enriched_stream
+type full_facts_trace = local_facts enriched_trace
+type full_facts_tracefile = local_facts enriched_tracefile
+type full_facts_stream = local_facts enriched_stream
 type arguments_trace = int option enriched_trace
 type arguments_tracefile = int option enriched_tracefile
 type arguments_stream = int option enriched_stream

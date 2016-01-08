@@ -114,39 +114,33 @@ let globals_points_to (objects: objects) globals versions pt =
   in
   ReferenceMap.fold step versions pt
 
-let init_points_to init =
+let initial_pointsto init =
   let open Reference in
   let versions =
     CalculateVersions.initial_versions
       init.objects init.globals init.globals_are_properties
-  in init.points_to <- (VersionReferenceMap.empty
-                        |> VersionReferenceMap.add (Reference.reference_of_local_name "this", 0) (OObject 0)
-                        |> globals_points_to init.objects init.globals versions)
+  in (VersionReferenceMap.empty
+        |> VersionReferenceMap.add (Reference.reference_of_local_name "this", 0) (OObject 0)
+        |> globals_points_to init.objects init.globals versions)
 
 open Reference
-let update_points_to init (op, lf) =
-  init.points_to <-
-    collect_pointsto_step init.globals_are_properties
-      init.objects
-      init.points_to
-      lf
-      op
+let update_points_to init points_to (op, lf) =
+  let points_to' =
+    collect_pointsto_step init.globals_are_properties init.objects points_to lf op
+  in ((op, { lf with points_to = points_to' }), points_to')
 
 module GenericPointsTo(S: Streaming.Transformers) = struct
   let calculate init tr =
-    init_points_to init;
-    S.observe (fun op -> update_points_to init op) tr
-
+    S.map_state (initial_pointsto init) (update_points_to init) tr
 end;;
 
 module ListPointsTo = GenericPointsTo(Streaming.ListTransformers);;
 module StreamPointsTo = GenericPointsTo(Streaming.StreamTransformers);;
 
-let calculate_pointsto pmap (functions, objects, trace, globals, globals_are_properties) =
+let calculate_pointsto (functions, objects, trace, globals, globals_are_properties) =
   let init = 
-    { functions; objects; globals_are_properties; globals; points_to = !pmap }
+    { functions; objects; globals_are_properties; globals }
   in let trace' = ListPointsTo.calculate init trace
-  in pmap := init.points_to;
-  (functions, objects, trace', globals, globals_are_properties)
+  in (functions, objects, trace', globals, globals_are_properties)
 
 let collect_pointsto_stream = StreamPointsTo.calculate

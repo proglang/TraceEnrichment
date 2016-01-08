@@ -76,22 +76,26 @@ module StreamEnrich = GenericEnrich(Streaming.StreamTransformers)
 
 let calculate_rich_tracefile
       (funcs, objs, trace, globals, globals_are_properties) =
-  { funcs; objs; globals; globals_are_properties;
-    trace = ListEnrich.to_rich_tracefile globals_are_properties trace;
-    points_to = Reference.VersionReferenceMap.empty }
+  let trace = ListEnrich.to_rich_tracefile globals_are_properties trace in
+  let points_to = match List.rev trace with
+    | [] ->
+        let open Reference in
+        CalculatePointsTo.initial_pointsto
+          { functions = funcs; objects = objs; globals; globals_are_properties }
+    | (_, { points_to }) :: _ -> points_to
+  in
+  { funcs; objs; globals; globals_are_properties; trace; points_to }
 
 let calculate_rich_stream init stream =
   StreamEnrich.to_rich_tracefile init.Reference.globals_are_properties stream
 
 let tracefile_to_rich_tracefile trace =
-  let points_to = ref Reference.VersionReferenceMap.empty in
   trace
     |> CleanTrace.clean_tracefile
     |> LocalFacts.collect_arguments_tracefile
     |> CalculateVersions.collect_versions_trace
-    |> CalculatePointsTo.calculate_pointsto points_to
+    |> CalculatePointsTo.calculate_pointsto
     |> calculate_rich_tracefile
-    |> fun rtf -> { rtf with points_to = !points_to }
 
 let trace_stream_to_rich_stream init stream =
   stream
