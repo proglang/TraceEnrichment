@@ -19,6 +19,15 @@ Library "js-enrichment"
     LocalFacts, Misc, PointsTo, Reference, RichTrace, Streaming, Trace,
     TraceTypes, Types, ExtArray
   
+Library "js-enrichment.test"
+  Path:       .
+  BuildTools: ocamlbuild
+  Install:    true
+  XMETAEnable: true
+  XMETADescription: Trace enrichment for JavaScript traces - test data
+  BuildDepends: yojson, str, lwt, kaputt, js-enrichment
+  Modules:    TestBaseData
+
 Executable "unittests"
   Path:       .
   BuildTools: ocamlbuild
