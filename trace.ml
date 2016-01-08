@@ -157,7 +157,7 @@ let parse_operation json =
         right = get_jsval "right";
         isOpAssign = get_bool "isOpAssign";
         isSwitchCaseComparison =
-          get_bool "isSwitchComparison";
+          get_bool "isSwitchCaseComparison";
         isComputed = get_bool "isComputed"
       })
     | "binarypost" -> BinPost (get_int "iid", {
@@ -166,7 +166,7 @@ let parse_operation json =
         right = get_jsval "right";
         isOpAssign = get_bool "isOpAssign";
         isSwitchCaseComparison =
-          get_bool "isSwitchComparison";
+          get_bool "isSwitchCaseComparison";
         isComputed = get_bool "isComputed";
         result = get_jsval "result"
       })
@@ -270,7 +270,7 @@ let format_funcspec = function
   | Local { from_toString; from_jalangi = None } ->
       `Assoc [("instrumented", `String from_toString)]
   | External id ->
-      `Assoc [("instrumented", `String "function () { [native] }"); ("obj", `Int id)]
+      `Assoc [("instrumented", `String "[native code]"); ("obj", `Int id)]
 
 let string_of_funcspec funs = format_funcspec funs |> Yojson.Basic.to_string
 
@@ -341,11 +341,11 @@ let format_event = function
               ("val", format_jsval value); ("step", `String "putpost") ]
   | Read (iid, {name; value; isGlobal; isScriptLocal}) ->
       `Assoc [("step", `String "read"); ("iid", `Int iid);
-              ("name", `String name); ("value", format_jsval value);
+              ("name", `String name); ("val", format_jsval value);
               ("isScriptLocal", `Bool isScriptLocal); ("isGlobal", `Bool isGlobal)]
   | Write (iid, {name; value; lhs; isGlobal; isScriptLocal}) ->
       `Assoc [("step", `String "write"); ("iid", `Int iid);
-              ("name", `String name); ("value", format_jsval value);
+              ("name", `String name); ("val", format_jsval value);
               ("lhs", format_jsval lhs);
               ("isScriptLocal", `Bool isScriptLocal); ("isGlobal", `Bool isGlobal)]
   | Return (iid, value) ->
@@ -383,7 +383,7 @@ let format_event = function
       `Assoc [("step", `String "unarypre"); ("iid", `Int iid);
               ("op", `String op); ("left", format_jsval arg)]
   | UnaryPost (iid, {op; arg; result}) ->
-      `Assoc [("step", `String "unarypre"); ("iid", `Int iid);
+      `Assoc [("step", `String "unarypost"); ("iid", `Int iid);
               ("op", `String op); ("left", format_jsval arg);
               ("result", format_jsval result)]
   | EndExpression iid -> `Assoc [("step", `String "exprend"); ("iid", `Int iid)]
