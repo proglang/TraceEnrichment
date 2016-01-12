@@ -157,7 +157,7 @@ let parse_operation json =
         right = get_jsval "right";
         isOpAssign = get_bool "isOpAssign";
         isSwitchCaseComparison =
-          get_bool "isSwitchCaseComparison";
+          get_bool "isSwitchComparison";
         isComputed = get_bool "isComputed"
       })
     | "binarypost" -> BinPost (get_int "iid", {
@@ -166,7 +166,7 @@ let parse_operation json =
         right = get_jsval "right";
         isOpAssign = get_bool "isOpAssign";
         isSwitchCaseComparison =
-          get_bool "isSwitchCaseComparison";
+          get_bool "isSwitchComparison";
         isComputed = get_bool "isComputed";
         result = get_jsval "result"
       })
@@ -369,7 +369,7 @@ let format_event = function
               ("op", `String op); ("left", format_jsval left);
               ("right", format_jsval right);
               ("isOpAssign", `Bool isOpAssign);
-              ("isSwitchCaseComparison", `Bool isSwitchCaseComparison);
+              ("isSwitchComparison", `Bool isSwitchCaseComparison);
               ("isComputed", `Bool isComputed) ]
   | BinPost (iid, {op; left; right; isOpAssign;
                    isSwitchCaseComparison; isComputed; result }) ->
@@ -377,7 +377,7 @@ let format_event = function
               ("op", `String op); ("left", format_jsval left);
               ("right", format_jsval right);
               ("isOpAssign", `Bool isOpAssign);
-              ("isSwitchCaseComparison", `Bool isSwitchCaseComparison);
+              ("isSwitchComparison", `Bool isSwitchCaseComparison);
               ("isComputed", `Bool isComputed); ("result", format_jsval result) ]
   | UnaryPre (iid, {op; arg}) ->
       `Assoc [("step", `String "unarypre"); ("iid", `Int iid);
