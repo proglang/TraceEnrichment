@@ -28,6 +28,34 @@ Library "js-enrichment.test"
   BuildDepends: yojson, str, lwt, kaputt, js-enrichment
   Modules:    TestBaseData
 
+Flag prettyprint
+  Description: build the pretty-printers for traces.
+  Default:     false
+
+Executable "pptrace"
+  Path:         .
+  BuildTools:   ocamlbuild
+  MainIs:       pptrace.ml
+  Install$:     flag(prettyprint)
+  BuildDepends: js-enrichment
+  CompiledObject: best
+
+Executable "pprichtrace"
+  Path:         .
+  BuildTools:   ocamlbuild
+  MainIs:       pprichtrace.ml
+  Install$:     flag(prettyprint)
+  BuildDepends: js-enrichment
+  CompiledObject: best
+
+Executable "ppcleantrace"
+  Path:         .
+  BuildTools:   ocamlbuild
+  MainIs:       ppcleantrace.ml
+  Install$:     flag(prettyprint)
+  BuildDepends: js-enrichment
+  CompiledObject: best
+
 Executable "unittests"
   Path:       .
   BuildTools: ocamlbuild
@@ -40,3 +68,20 @@ Test "unittests"
   Command:    $unittests
   Run:        true
 
+Executable "cleantrace_test"
+  Install:    false
+  Build$:     flag(tests)
+  MainIs:     cleantrace_test.ml
+  BuildDepends: js-enrichment
+  Path:       .
+  BuildTools: ocamlbuild
+  CompiledObject: best
+
+Executable "richtrace_test"
+  Install:    false
+  Build$:     flag(tests)
+  MainIs:     richtrace_test.ml
+  BuildDepends: js-enrichment
+  Path:       .
+  BuildTools: ocamlbuild
+  CompiledObject: best
