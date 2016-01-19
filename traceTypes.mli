@@ -189,6 +189,8 @@ type clean_operation =
   | CLiteral of literal
   | CForIn of jsval
   | CDeclare of declare
+  | CGetFieldPre of (jsval * string)
+  | CPutFieldPre of accessfield
   | CGetField of accessfield
   | CPutField of accessfield
   | CRead of read

@@ -187,6 +187,8 @@ type clean_operation =
   | CLiteral of literal
   | CForIn of jsval
   | CDeclare of declare
+  | CGetFieldPre of (jsval * string)
+  | CPutFieldPre of accessfield
   | CGetField of accessfield
   | CPutField of accessfield
   | CRead of read
@@ -393,6 +395,10 @@ let pp_clean_operation pp = function
   | CDeclare { name; value; declaration_type } ->
     fprintf pp "CDeclare(name=%s, value=%a, declaration_type=%a"
       name pp_jsval value pp_declaration_type declaration_type
+  | CGetFieldPre (base, offset) ->
+    fprintf pp "CGetFieldPre(base=%a, offset=%s)" pp_jsval base offset
+  | CPutFieldPre { base; offset; value } ->
+    fprintf pp "CPutFieldPre(base=%a, offset=%s, value=%a)" pp_jsval base offset pp_jsval value
   | CGetField { base; offset; value } ->
     fprintf pp "CGetField(base=%a, offset=%s, value=%a)" pp_jsval base offset pp_jsval value
   | CPutField { base; offset; value } ->

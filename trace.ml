@@ -435,6 +435,12 @@ let format_clean_event = function
   | CPutField { base; offset; value } ->
       `Assoc [("step", `String "putfield"); ("base", format_jsval base);
               ("offset", `String offset); ("val", format_jsval value)]
+  | CGetFieldPre (base, offset) ->
+      `Assoc [("step", `String "getfieldpre"); ("base", format_jsval base);
+              ("offset", `String offset)]
+  | CPutFieldPre { base; offset; value } ->
+      `Assoc [("step", `String "putfieldpre"); ("base", format_jsval base);
+              ("offset", `String offset); ("val", format_jsval value)]
   | CRead { name; value; isGlobal } ->
       `Assoc [("step", `String "read"); ("name", `String name);
               ("value", format_jsval value); ("isGlobal", `Bool isGlobal)]
