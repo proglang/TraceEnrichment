@@ -14,6 +14,7 @@ module type Transformers = sig
   val observe: ('a -> unit) -> 'a sequence -> 'a sequence
   val map: ('a -> 'b) -> 'a sequence -> 'b sequence
   val map_list: ('a -> 'b list) -> 'a sequence -> 'b sequence
+  val validation: ('a -> 's -> 's) -> 's -> 'a sequence -> 'a sequence
 end;;
 
 module StreamTransformers: Transformers

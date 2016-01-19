@@ -14,6 +14,7 @@ module type Transformers = sig
   val observe: ('a -> unit) -> 'a sequence -> 'a sequence
   val map: ('a -> 'b) -> 'a sequence -> 'b sequence
   val map_list: ('a -> 'b list) -> 'a sequence -> 'b sequence
+  val validation: ('a -> 's -> 's) -> 's -> 'a sequence -> 'a sequence
 end;;
 
 module StreamTransformers = struct
@@ -47,6 +48,9 @@ module StreamTransformers = struct
   let map = Stream.map
 
   let map_list = Stream.map_list
+
+  let validation f init str =
+    Stream.fold f (Stream.clone str) init |> ignore; str
 end;;
 
 module ListTransformers = struct
@@ -82,5 +86,8 @@ module ListTransformers = struct
   let rec map_list f = function
     | [] -> []
     | x::l -> f x @ map_list f l
+
+  let validation f init l =
+    List.fold_left (fun s o -> f o s) init l |> ignore; l
 end
 
