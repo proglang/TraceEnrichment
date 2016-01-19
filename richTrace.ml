@@ -33,6 +33,8 @@ let enrich_step globals_are_properties (op, facts) =
       let ref = Reference.reference_of_local_name name |> LocalFacts.make_versioned facts in
       [RLocal { name; ref };
        RWrite { ref; oldref = ref; value; success = true } ]
+    | CGetFieldPre _ -> Debug.debug "Unexpected get_field_pre@."; []
+    | CPutFieldPre _ -> Debug.debug "Unexpected put_field_pre@."; []
     | CGetField { base; offset; value } ->
       [RRead { ref = mkfieldref base offset; value }]
     | CPutField { base; offset; value } ->
