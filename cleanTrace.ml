@@ -41,14 +41,14 @@ let clean_impl_cases stack locals globals =
       Simple (CLiteral { value; hasGetterSetter })
     | ForIn (_, value) -> Simple (CForIn value)
     | Declare (_, decl) -> AddLocal (decl.name, (encode_decl decl))
-    | GetFieldPre _ -> Drop
+    | GetFieldPre (_, { base; offset }) -> Simple (CGetFieldPre (base, offset))
     | GetField (_, { base; offset; value }) ->
       Simple (CGetField { base; offset; value })
     | Read (_, { name; value }) ->
       (* Throw away Jalangi2's isGlobal and isScriptLocal - they turn out to be useless *)
       let (locals', globals', isGlobal) = check_global locals globals name in
       UpdateLocalGlobals (locals', globals', CRead { name; value; isGlobal })
-    | PutFieldPre _ -> Drop
+    | PutFieldPre (_, { base; offset; value }) -> Simple (CPutFieldPre { base; offset; value })
     | PutField (_, { base; offset; value }) -> Simple (CPutField { base; offset; value })
     | Write (_, { name; lhs; value }) ->
       let (locals', globals', isGlobal) = check_global locals globals name in
@@ -73,46 +73,89 @@ let clean_impl_cases stack locals globals =
 
 let global_object = OObject 0
 
-let get_object (objects: objects) objval fieldname =
+exception ObjectNotFound
+let get_object ?(required=false) (objects: objects) objval fieldname =
   try
     ExtArray.get objects (get_object objval)
     |> Misc.StringMap.find fieldname
     |> fun { value } -> value
-  with Not_found -> OUndefined
+  with Not_found ->
+    Debug.debug "Could not find object %a, field %s@."
+      pp_jsval objval fieldname;
+    if required then
+      raise ObjectNotFound
+    else
+      OUndefined
 
-let get_object_array objects objval index =
-  get_object objects objval (string_of_int index)
+let get_object_array ?(required=false) objects objval index =
+  get_object objects objval (string_of_int index) ~required
 
-let lookup globals (objs: objects) path = match path with
+let lookup globals (objs: objects) path =
+  try
+  match path with
   | [] -> global_object
   | objname :: path ->
-    List.fold_left (get_object objs)
+    List.fold_left (get_object ~required:true objs)
       (Misc.StringMap.find objname globals)
       path
+  with
+      Not_found ->
+        Format.eprintf "Can't find %a@."
+          (FormatHelper.pp_print_gen_list "" "" "." Format.pp_print_string)
+          path;
+        raise Not_found
 
+let has_field objs obj fld =
+  Misc.StringMap.mem fld (ExtArray.get objs (Types.get_object obj))
+let has_index objs obj idx = has_field objs obj (string_of_int idx)
+
+let debug_get_array objects base =
+  try
+    let rec get n objs =
+      if has_index objects base n then
+        get (n+1) (get_object_array ~required:true objects base n :: objs)
+      else
+        List.rev objs
+    in get 0 []
+  with ObjectNotFound ->
+    Debug.debug "Not a proper array: %a, containing @[<hov 2>%a@]@." pp_jsval base
+      pp_objectspec (ExtArray.get objects (Types.get_object base));
+    raise ObjectNotFound
+      
 let resolve_call objects function_apply function_call f base args call_type =
+  Debug.debug "Resolving call to %s with arguments %a"
+    (if f = function_apply then "apply"
+     else if f = function_call then "call"
+     else "some random function")
+    (FormatHelper.pp_print_list pp_jsval) (debug_get_array objects args);
   let rec resolve f base args argsidx =
     if f = function_apply then
       resolve base
-        (get_object_array objects args argsidx)
-        (get_object_array objects args (argsidx + 1))
+        (get_object_array ~required:true objects args argsidx)
+        (get_object_array ~required:true objects args (argsidx + 1))
         0
     else if f = function_call then
       resolve base
-        (get_object_array objects args argsidx)
+        (get_object_array ~required:true objects args argsidx)
         args
         (argsidx + 1)
     else
       { f=f; base=base; args=args; call_type=call_type }
-  in resolve f base args 0  
+  in try
+    resolve f base args 0  
+  with
+      ObjectNotFound ->
+        Debug.debug "Cannot resolve call due to objects not being found@.";
+        { f=f; base=base; args=args; call_type = call_type }
 
-type stackop = Push of funpre option | Keep | Pop | Replace of funpre option | Pop2
+type 'a stackop = Push of 'a | Keep | Pop | Replace of 'a | Pop2 | PopReplace of 'a
 let apply_stackop stack = function
   | Push tos -> tos :: stack
   | Keep -> stack
   | Pop -> List.tl stack
   | Pop2 -> List.tl (List.tl stack)
   | Replace tos -> tos :: List.tl stack
+  | PopReplace tos -> tos :: List.tl (List.tl stack)
 
 let is_instrumented funcs f =
   match f with
@@ -123,60 +166,95 @@ let is_instrumented funcs f =
     end
   | _ -> false
 
-let synthesize_events_step funcs op (stack: funpre option list) =
+type func_type =
+  | IntFunc of funpre
+  | ExtFunc of jsval
+  | ExtFuncExc of jsval * jsval
+
+let synthesize_events_step funcs op (stack: func_type list) =
   match op, stack with
   (* drop clearly bad traces *)
-  | _, None :: None :: _ ->
+  | _, ExtFunc _ :: ExtFunc _ :: _ ->
     failwith "Trace witnessing function calls in uninstrumented code, should not happen!"
   (* Function exit handling - regular or general exits *)
   (* instrumented -> instrumented *)
-  | CFunExit _, Some _ :: Some _ :: _ ->
+  | CFunExit _, IntFunc _ :: IntFunc _ :: _ ->
     (Pop, [ op ])
   (* instrumented -> uninstrumented *)
   | CFunExit { ret = ret; exc =OUndefined},
-    Some { f; base=this; args; call_type } :: None :: _ ->
+    IntFunc { f; base=this; args; call_type } :: ExtFunc _ :: _ ->
     (Pop, [ op; CFunPost { f; base=this; args; call_type; result = ret } ])
-  (* uninstrumented failes with exception into instrumented. Whee! *)
+  (* uninstrumented fails with exception into instrumented. Whee! *)
   | CFunExit { ret = OUndefined; exc = exc },
-    None :: Some _ :: _ when exc <> OUndefined ->
+    ExtFunc _ :: IntFunc _ :: _ when exc <> OUndefined ->
     (Pop2, [ op; op ])
   (* bad case *)
   | CFunExit _, [] ->
     failwith "Trace witnessing an exit from the toplevel, should not happen!"
   (* uninstrumented -> instrumented *)
-  | CFunPost { result }, None :: _ ->
+  | CFunPost { result }, ExtFunc _ :: _ ->
     (Pop, [ CFunExit { ret = result; exc = OUndefined }; op ])
   (* post inside instrumented code *)
-  | CFunPost _, Some _ :: _ ->
+  | CFunPost _, IntFunc _ :: _ ->
     (Keep, [ op ])
   (* Function call handling *)
-  | CFunPre _, None :: _ ->
+  | CFunPre _, ExtFunc _ :: _ ->
     failwith "Trace witnessing a call in uninstrumented code, should not happen!"
   | CFunPre ({ f; base=this; args } as e), _ when is_instrumented funcs f ->
-    (Push (Some e), [ op ])
+    (Push (IntFunc e), [ op ])
   | CFunPre ({ f; base=this; args }), _ when not (is_instrumented funcs f) ->
-    (Push None, [ op; CFunEnter { f; this; args } ])
+    (Push (ExtFunc f), [ op; CFunEnter { f; this; args } ])
   | CFunEnter _, [] ->
     failwith "Trace witnessing function entry into toplevel code, should not happen!"
-  | CFunEnter _, Some _ :: _ ->
+  | CFunEnter _, IntFunc _ :: _ ->
     (Keep, [ op ])
-  | CFunEnter { f; this; args }, None :: _ ->
+  | CFunEnter { f; this; args }, ExtFunc _ :: _ ->
     let call_type = if this = OObject 0 then Function else Method in
     let e = { f; base=this; args; call_type } in
-    (Push (Some e), [ CFunPre e; op ])
+    (Push (IntFunc e), [ CFunPre e; op ])
   (* Function exit handling - exception exits to instrumented code *)
-  | CDeclare { declaration_type = CatchParam; value }, None :: _ ->
+  | CDeclare { declaration_type = CatchParam; value }, ExtFunc _ :: _ ->
     (Pop, [ CFunExit { ret = OUndefined; exc = value }; op ])
-  | CScriptExc exc, None :: _ ->
+  | CScriptExc exc, ExtFunc _ :: _ ->
     (Pop, [ CFunExit { ret = OUndefined; exc }; op ])
   (* Function exit handling - exception exits to uninstrumented code *)
-  | CFunExit _, Some _ :: None :: _ ->
-    failwith "Cannot handle exception exits to higher-order code yet"
+  | CFunExit { ret; exc }, IntFunc _ :: ExtFunc id :: _ ->
+      if ret <> OUndefined then
+        failwith "Trace with a return value and an exception";
+    (PopReplace (ExtFuncExc (id, exc)), [ op ])
+  (* Higher-order code in exception mode *)
+  (* First part: Exit to exception handling; the nice case that just re-throws. *)
+  | CScriptExc exc, ExtFuncExc (_, exc') :: _
+  | CDeclare { value=exc; declaration_type = CatchParam }, ExtFuncExc (_, exc') :: _
+  | CFunExit { exc }, ExtFuncExc (_, exc') :: _
+                      when exc = exc' ->
+      (Pop, [ CFunExit { exc; ret = OUndefined }; op ])
+  (* Second part: Exit to exception handling; changing the exception. *)
+  | CScriptExc exc, ExtFuncExc (_, exc') :: _
+  | CDeclare { value=exc; declaration_type = CatchParam }, ExtFuncExc (_, exc') :: _
+  | CFunExit { exc }, ExtFuncExc (_, exc') :: _ ->
+      (Pop, [ CDeclare { name = "$e"; value = exc'; declaration_type = CatchParam };
+              CThrow exc;
+              CFunExit { exc; ret = OUndefined };
+              op ])
+  (* Third part: Entering another function. Pretend that the exception was caught
+   * and handled. *)
+  | CFunEnter { f; this; args }, ExtFuncExc (_, exc) :: _ ->
+    let call_type = if this = OObject 0 then Function else Method in
+    let e = { f; base=this; args; call_type } in
+    (Push (IntFunc e), [ CDeclare { name = "$e"; value = exc;
+                                    declaration_type = CatchParam };
+                         CFunPre e;
+                         op ])
   (* All cases handled for uninstrumented code *)
-  | _, None :: _ ->
-    failwith "Unhandled event in uninstrumented code"
+  | _, ExtFunc _ :: _ ->
+    failwith ("Unhandled event in uninstrumented code: " ^ Misc.to_string pp_clean_operation op)
+  | _, ExtFuncExc _ :: _ ->
+    failwith ("Unhandled event in uninstrumented code (with exception): " ^
+              Misc.to_string pp_clean_operation op)
   (* All other cases: non-function handling and inside instrumented code, pass through *)
-  | _, _ ->
+  | _, []
+  | _, IntFunc _ :: _ ->
     (Keep, [ op ])
 
 module CleanGeneric = functor(S: Transformers) -> struct
@@ -193,6 +271,7 @@ module CleanGeneric = functor(S: Transformers) -> struct
          | Drop -> ([]), (stack, locals, globals))
 
   let normalize_calls globals (objs: objects) =
+    Debug.debug "Normalizing calls@.";
     let function_apply = lookup globals objs ["Function"; "prototype"; "apply"]
     and function_call = lookup globals objs ["Function"; "prototype"; "call"] in 
     S.map (function
@@ -201,6 +280,71 @@ module CleanGeneric = functor(S: Transformers) -> struct
           CFunPre
             (resolve_call objs function_apply function_call f base args call_type)
         | ev -> ev)
+
+  let normalize_function_constructor globals objs =
+    Debug.debug "Normalizing function constructor@.";
+    let function_constructor = lookup globals objs ["Function"] in
+    S.map_list_state false
+      (fun in_constructor op ->
+         match in_constructor, op with
+           | true, CScriptEnter -> ([op], true)
+           | true, CScriptExit -> ([op], true)
+           | true, CEndExpression -> ([op], true)
+           | true, CLiteral _ -> ([op], true)
+           | true, CDeclare { declaration_type = CatchParam; value } ->
+               ([CThrow value; CFunExit { exc=value; ret=OUndefined }; op], false)
+           | true, CScriptExc exc ->
+               ([CThrow exc; CFunExit { exc; ret=OUndefined }; op], false)
+           | true, CFunExit { exc; ret=OUndefined } when exc <> OUndefined ->
+               ([CThrow exc; op; op], false)
+           | true, CFunPost { result = value } ->
+               ([CReturn value; CFunExit { ret=value; exc=OUndefined }; op], false)
+           | true, _ ->
+               prerr_endline "Bad event in a Function constructor body";
+               ([op], true)
+           | false, CFunPre { f; base; args } when f = function_constructor ->
+               ([op; CFunEnter { f; this=base; args }], true)
+           | false, _ -> ([op], false))
+
+  (* Note that, for once, this is not a function call stack, but a eval context stack. *)
+  let normalize_eval_step eval (frame_stack, special, last_call) op = match frame_stack, op with
+    | true :: frames, CScriptExit -> ([op], (frames, true, None))
+    | true :: frames, CScriptExc exc -> ([op; CFunExit { ret=OUndefined; exc }], (frames, false, None))
+    | frames, CScriptEnter ->
+        begin match special, last_call with
+          | true, Some (f, this, args) ->
+              ([CFunEnter {f; this; args}; op], (true::frames, false, None))
+          | false, _ -> ([op], (false:: frames, false, None))
+          | true, None ->
+              begin
+                prerr_endline "Cannot synthesize proper entry to eval, no call!";
+                ([CFunEnter { f=eval; this=OObject 0; args=OObject 0}; op], (true::frames, false, None))
+              end
+        end
+    | false :: frames, CScriptExit -> ([op], (frames, false, None))
+    | false :: frames, CScriptExc exc -> ([op], (frames, false, None))
+    | [], CScriptExit
+    | [], CScriptExc _ ->
+        prerr_endline "Exiting from a script that has not been entered";
+        ([op], ([], false, None))
+    | frames, CFunPost { result } ->
+        if special then
+          ([CFunExit { ret = result; exc = OUndefined }; op], (frames, false, None))
+        else
+          ([op], (frames, false, None))
+    | frames, CFunPre { f; base; args } when f = eval ->
+        if special then
+          prerr_endline "Unexpected special handling request when calling eval";
+        ([op], (frames, true, Some (f, base, args)))
+    | frames, op ->
+        if special then
+          prerr_endline "Unexpected special handling request when handling regular event";
+        ([op], (frames, false, None))
+
+  let normalize_eval globals objs =
+    Debug.debug "Normalizing eval constructor@.";
+    let eval = lookup globals objs ["global"; "eval"] in
+    S.map_list_state ([], false, None) (normalize_eval_step eval)
 
   let synthesize_events funcs trace =
     S.map_list_state []
@@ -222,12 +366,230 @@ module CleanGeneric = functor(S: Transformers) -> struct
          | None, _ -> ([op], None))
       trace
 
+  type mode = Neither | Read | Write
+  let synthesize_getters_and_setters_step op mode stack =
+    match op, mode, stack with
+      | CGetFieldPre _, _, _ -> (Keep, Read, [])
+      | CPutFieldPre _, _, _ -> (Keep, Write, [])
+      | CFunEnter { f; this; args }, Read, _ ->
+          (Push (Some (f, this, args)), Neither,
+           [CFunPre { f; base=this; args; call_type = Method }; op])
+      | CFunEnter { f; this; args }, Write, _ ->
+          (Push (Some (f, this, args)), Neither,
+           [CFunPre { f; base=this; args; call_type = Method }; op])
+      | CFunEnter _, Neither, _ -> (Push None, Neither, [op])
+      | CFunExit { ret; exc=OUndefined }, _, Some (f, base, args) :: _ ->
+          (Pop, Neither,
+           [op; CFunPost { f; base; args; call_type = Method; result=ret }])
+      | CFunExit _, _, _ -> (Pop, Neither, [op])
+      | _, _, _ -> (Keep, Neither, [op])
+
+  let synthesize_getters_and_setters trace =
+    S.map_list_state (Neither, [])
+      (fun (mode, stack) op ->
+         let (stackop, mode, ops') = synthesize_getters_and_setters_step op mode stack in
+           (ops', (mode, apply_stackop stack stackop)))
+      trace
+
+  type exit_type = None | Value | Exception
+  type validate_state = {
+    stack: (jsval * jsval * jsval * jsval option) list;
+    saw_use_strict: bool;
+    saw_fun_pre: bool;
+    saw_fun_exit: exit_type;
+  }
+
+  type validate_level = Basic | NoUseStrict | NormalizedCalls | SynthesizedEvents
+  let validate_step level function_call function_apply op state =
+    let is_function = function
+      | OFunction _ -> ()
+      | v -> Format.eprintf "Not a function: %a@." pp_jsval v
+    and is_object = function
+      | OObject _ | OFunction _ | OOther _ -> ()
+      | v -> Format.eprintf "Not an object: %a@." pp_jsval v
+    and is_top_f f = match state with
+      | { stack = (f', _, _, _) :: _ } when f = f' -> ()
+      | { stack = (f', _, _, _) :: _ } ->
+          Format.eprintf "Top-of-stack f is %a, not %a@." pp_jsval f' pp_jsval f
+      | _ -> Format.eprintf "Top-of-stack f is not %a, stack empty@." pp_jsval f
+    and is_top_base base = match state with
+      | { stack = (_, base', _, _) :: _ } when base = base' -> ()
+      | { stack = (_, base', _, _) :: _ } ->
+          Format.eprintf "Top-of-stack f is %a, not %a@." pp_jsval base' pp_jsval base
+      | _ -> Format.eprintf "Top-of-stack base is not %a, stack empty@." pp_jsval base
+    and is_top_args args = match state with
+      | { stack = (_, _, args', _) :: _ } when args = args' -> ()
+      | { stack = (_, _, args', _) :: _ } ->
+          Format.eprintf "Top-of-stack args is %a, not %a@." pp_jsval args' pp_jsval args
+      | _ -> Format.eprintf "Top-of-stack base is not %a, stack empty@." pp_jsval args
+    and is_top_result result = match state with
+      | { stack = (_, _, _, Some result') :: _ } when result = result' -> ()
+      | { stack = (_, _, _, Some result') :: _ } ->
+          Format.eprintf "Top-of-stack result is %a, not %a@." pp_jsval result' pp_jsval result
+      | { stack = (_, _, _, None) :: _ } ->
+          Format.eprintf "Top-of-stack result is not %a, result unknown" pp_jsval result
+      | _ -> Format.eprintf "Top-of-stack result is not %a, stack empty@." pp_jsval result
+    and is_normalized f =
+      if f = function_call || f = function_apply then begin
+        Format.eprintf "Unnormalized call@."
+      end
+    and calls_stacked = level = SynthesizedEvents
+    and calls_normalized =
+      level = SynthesizedEvents || level = NormalizedCalls
+    in
+      Debug.debug "Operation: %a@." pp_clean_operation op;
+    let state' = match op with
+    | CFunPre { f; base; args; call_type } ->
+        is_function f;
+        is_object base;
+        is_object args;
+        begin if calls_normalized then is_normalized f end;
+        { state with stack = (f, base, args, None) :: state.stack }
+    | CFunPost { f; base; args; call_type; result } ->
+        is_top_f f;
+        is_top_base base;
+        is_top_args args;
+        begin if calls_stacked then is_top_result result end;
+        { state with stack = List.tl state.stack }
+    | CFunEnter { f; this; args } ->
+        if calls_stacked then begin
+          is_top_f f;
+          is_top_base this;
+          (* args is different *)
+        end;
+        state
+    | CFunExit { exc = OUndefined; ret } ->
+        begin
+          match state.stack with
+            | (f, this, args, None) :: stack ->
+                { state with stack = (f, this, args, Some ret) :: stack }
+            | _ :: _ ->
+                prerr_endline "Double function exit";
+                state
+            | [] ->
+                prerr_endline "Exit from top level";
+                state
+        end
+      | CFunExit { exc; ret = OUndefined } ->
+          { state with stack = List.tl state.stack }
+      | CFunExit _ ->
+          prerr_endline "Exit with both value and exception@.";
+          { state with stack = List.tl state.stack }
+      | CLiteral _ -> state (* use strict handling is seperate *)
+      | CForIn value -> is_object value; state
+      | CDeclare _ -> state (* no clean-up has been done here *)
+      | CGetField _ -> state (* check later? *)
+      | CPutField _ -> state (* check later? *)
+      | CGetFieldPre _ ->
+          if calls_stacked then
+            prerr_endline "GetFieldPre still remaining";
+          state
+      | CPutFieldPre _ ->
+          if calls_stacked then
+            prerr_endline "PutFieldPre still remaining";
+          state
+      | CRead _ -> state (* check later? *)
+      | CWrite _ -> state (* check later? *)
+      | CReturn _ -> state
+      | CThrow OUndefined -> prerr_endline "Throwing an undefined value";
+                             state
+      | CThrow _ -> state
+      | CWith v -> is_object v; state
+      | CScriptEnter -> state
+      | CScriptExit -> state
+      | CScriptExc _ -> state
+      | CBinary _ -> state
+      | CUnary _ -> state
+      | CEndExpression -> state
+      | CConditional _ -> state
+    in let state' = match op with
+      | CLiteral { value = OString "use strict" } ->
+          { state' with saw_use_strict = true }
+      | CEndExpression ->
+          begin 
+            if level <> Basic && state'.saw_use_strict then begin
+              prerr_endline "use strict found"
+            end
+          end;
+          { state' with saw_use_strict = false }
+      | _ ->
+          { state' with saw_use_strict = false }
+    in let state' = match op with
+      | CFunPre _ ->
+          if state'.saw_fun_pre then
+            prerr_endline "Double funpre encountered";
+          { state' with saw_fun_pre = true }
+      | CFunEnter _ ->
+          if calls_normalized && not state'.saw_fun_pre then
+            prerr_endline "funenter without funpre";
+          { state' with saw_fun_pre = false }
+      | _ ->
+          if calls_normalized && state'.saw_fun_pre then
+            prerr_endline "funpre without funenter";
+          { state' with saw_fun_pre = false }
+    in let state' = match op, state.saw_fun_exit with
+      | CFunExit { exc = OUndefined }, None ->
+          { state' with saw_fun_exit = Value }
+      | CFunExit _, None ->
+          { state' with saw_fun_exit = Exception }
+      | CFunExit { exc = OUndefined }, _ ->
+          if calls_normalized then
+            prerr_endline "double funexit";
+          { state' with saw_fun_exit = Value }
+      | CFunExit _, Exception ->
+          state' (* Cascading exits due to exception *)
+      | CFunExit _, _ ->
+          if calls_normalized then
+            prerr_endline "double funexit";
+          { state' with saw_fun_exit = Exception }
+      | CFunPost _, Value ->
+          { state' with saw_fun_exit = None }
+      | CScriptExc _, Exception ->
+          state'
+      | CDeclare { declaration_type = CatchParam }, Exception ->
+          { state' with saw_fun_exit = None }
+      | CThrow _, None ->
+          { state' with saw_fun_exit = Exception }
+      | _, Exception ->
+          prerr_endline "Exception passed through instruction";
+          state'
+      | _, Value ->
+          if calls_normalized then
+            prerr_endline "function return through instruction";
+          { state' with saw_fun_exit = None }
+      | _, None ->
+          state'
+    in state'
+
+
+  let validate level globals objs trace =
+    Debug.debug "Validating trace, level: %s@."
+      (match level with
+           Basic -> "basic"
+         | NoUseStrict -> "no use strict"
+         | NormalizedCalls -> "calls normalized, removing apply and call"
+         | SynthesizedEvents -> "call framing completed");
+    let function_apply = lookup globals objs ["Function"; "prototype"; "apply"]
+    and function_call = lookup globals objs ["Function"; "prototype"; "call"] in 
+      if Debug.is_validate () then begin
+        let init = { stack = []; saw_use_strict = false; saw_fun_pre = false; saw_fun_exit = None } in
+          S.validation (validate_step level function_apply function_call)  init trace
+      end else
+        trace
+
   let clean_trace globals funcs objs trace =
     trace
     |> clean
+    |> validate Basic globals objs 
     |> remove_use_strict
+    |> validate NoUseStrict globals objs 
     |> normalize_calls globals objs
+    |> normalize_function_constructor globals objs
+    |> normalize_eval globals objs
+    |> validate NormalizedCalls globals objs 
+    |> synthesize_getters_and_setters
     |> synthesize_events funcs
+    |> validate SynthesizedEvents globals objs 
 end;;
 
 module CleanStream = CleanGeneric(StreamTransformers)
