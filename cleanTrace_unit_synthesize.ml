@@ -161,16 +161,81 @@ type stack_entry =
   | Func of funpre
   | Script
 
-let valid trace = true (* TODO *)
+let valid trace =
+  let rec check_no_exc stack = function
+      | [] -> stack = []
+      | CFunPre funpre :: CFunEnter funenter :: trace ->
+              funpre.f = funenter.f &&
+              funpre.base = funenter.this &&
+              check_no_exc (Func funpre :: stack) trace
+      | CFunExit { exc = OUndefined; ret } :: CFunPost funpost :: trace ->
+              begin
+                  match stack with
+                  | Func funpre :: stack ->
+                          funpre.f = funpost.f &&
+                          funpre.base = funpost.base &&
+                          funpre.args = funpost.args &&
+                          funpre.call_type = funpost.call_type &&
+                          funpost.result = ret &&
+                          check_no_exc stack trace
+                  | _ -> false
+              end
+      | CScriptEnter :: trace ->
+              check_no_exc (Script :: stack) trace
+      | CScriptExit :: trace ->
+              begin
+                  match stack with
+                  | Script :: stack ->
+                          check_no_exc stack trace
+                  | _ -> false
+              end
+      | CLiteral _ :: trace
+      | CForIn _ :: trace
+      | CGetFieldPre _ :: trace
+      | CPutFieldPre _ :: trace
+      | CGetField _ :: trace
+      | CPutField _ :: trace
+      | CRead _ :: trace
+      | CWrite _ :: trace
+      | CReturn _ :: trace
+      | CWith _ :: trace
+      | CBinary _ :: trace
+      | CUnary _ :: trace
+      | CEndExpression :: trace
+      | CConditional _ :: trace -> check_no_exc stack trace
+      | CThrow exc :: trace -> check_exc stack exc trace
+      | CDeclaration { call_type = CatchParam } :: _ -> false
+      | CDeclaration _ :: trace -> check_no_exc stack trace
+      | _ -> false
+  and check_exc stack exc = function
+      | CFunExit { exc=exc'; ret = OUndefined } :: trace ->
+              begin
+                  match stack with
+                  | Func _ :: stack ->
+                          exc = exc' && check_exc stack exc trace
+                  | _ -> false
+              end
+      | CScriptErr exc' :: trace ->
+              begin
+                  match stack with
+                  | Script :: stack ->
+                          exc = exc' && check_exc stack exc trace
+                  | _ -> false
+              end
+      | CDeclaration { call_type = CatchParam; value } :: trace ->
+              exc = value && check_no_exc stack trace
+      | _ -> false
+  in check_no_exc [] trace
 
-let check ((funcs, trace), trace') =
-  trace = drop funcs trace' && valid trace'
+      
+      let check ((funcs, trace), trace') =
+  drop funcs trace = drop funcs trace' && valid trace'
 
 let test_synthesize_events =
   Test.make_random_test
-    (gen_synthesize_inputs 20)
-    (fun (funcs, trace) -> synthesize_events funcs (drop funcs trace))
+    (gen_synthesize_inputs 40)
+    (fun (funcs, trace) -> Printexc.print (synthesize_events funcs) (drop funcs trace))
     [ Kaputt.Specification.always => check ]
-    ~nb_runs:10000 ~title:"Specification-based test for synthesize_events"
+    ~nb_runs:100000 ~title:"Specification-based test for synthesize_events"
 
 let _ = Test.run_tests ( [ test_synthesize_events ] )

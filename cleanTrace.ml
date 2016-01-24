@@ -148,7 +148,7 @@ let resolve_call objects function_apply function_call f base args call_type =
         Debug.debug "Cannot resolve call due to objects not being found@.";
         { f=f; base=base; args=args; call_type = call_type }
 
-type 'a stackop = Push of 'a | Keep | Pop | Replace of 'a | Pop2 | PopReplace of 'a
+type 'a stackop = Push of 'a | Keep | Pop | Replace of 'a | Pop2 | PopReplace of 'a | PushReplace of 'a * 'a
 let apply_stackop stack = function
   | Push tos -> tos :: stack
   | Keep -> stack
@@ -156,6 +156,7 @@ let apply_stackop stack = function
   | Pop2 -> List.tl (List.tl stack)
   | Replace tos -> tos :: List.tl stack
   | PopReplace tos -> tos :: List.tl (List.tl stack)
+  | PushReplace (tos1, tos2) -> tos1 :: tos2 :: List.tl stack
 
 let is_instrumented funcs f =
   match f with
@@ -216,9 +217,9 @@ let synthesize_events_step funcs op stack = match op, stack with
   | CFunEnter funenter, ExtFunc _ :: _ ->
       let funpre = make_funpre funenter in
       (Push (IntFunc funpre), [ CFunPre funpre; op ])
-  | CFunEnter funenter, ExtFuncExc (_, exc) :: _ ->
+  | CFunEnter funenter, ExtFuncExc (f, exc) :: _ ->
       let funpre = make_funpre funenter in
-      (Push (IntFunc funpre), [ make_silent_catch exc; CFunPre funpre; op ])
+      (PushReplace (IntFunc funpre, ExtFunc f), [ make_silent_catch exc; CFunPre funpre; op ])
   | CFunEnter _, [] ->
       failwith "enter on empty stack"
   | CFunExit { exc = OUndefined; ret }, IntFunc _ :: (IntFunc _ :: _ | []) ->
