@@ -171,6 +171,106 @@ type func_type =
   | ExtFunc of jsval
   | ExtFuncExc of jsval * jsval
 
+let make_silent_catch exc =
+  CDeclare { name = ""; value = exc;
+             declaration_type = CatchParam }
+let make_funpre ({ f; this; args }: funenter) =
+  { f; base=this; args; call_type = Method }
+
+let synthesize_events_step funcs op stack = match op, stack with
+  | _, (ExtFunc _ | ExtFuncExc _) :: (ExtFunc _ | ExtFuncExc _) ::_ ->
+      failwith "Bad stack"
+  | CFunPre ({ f; base; args } as funpre), (IntFunc _ :: _ | []) ->
+      if is_instrumented funcs f then
+        (Push (IntFunc funpre), [ op ])
+      else
+        (Push (ExtFunc f), [ op; CFunEnter { f; this=base; args }])
+  | CFunPre _, (ExtFunc _ | ExtFuncExc _) :: _ ->
+      failwith "pre seen in external code"
+  | CFunPost { f }, ((IntFunc _ :: _) | []) ->
+      if is_instrumented funcs f then
+        (Keep, [ op ])
+      else
+        failwith "post for external with internal TOS"
+  | CFunPost { f; result }, ExtFunc f' :: _ ->
+      if f <> f' then
+        failwith "post for an unexpected function"
+      else if is_instrumented funcs f then
+        failwith "internal code treated as external"
+      else
+        (Pop, [ CFunExit { ret = result; exc = OUndefined }; op ])
+  | CFunPost { f; result }, ExtFuncExc (f', exc) :: _ ->
+      if f <> f' then
+        failwith "post for an unexpected function"
+      else if is_instrumented funcs f then
+        failwith "internal code treated as external"
+      else
+        (Pop, [ make_silent_catch exc;
+                CFunExit { ret = result; exc = OUndefined };
+                op ])
+  | CFunEnter { f }, IntFunc { f=f' } :: _ ->
+      if f <> f' then
+        failwith "enter for an unexpected function"
+      else
+        (Keep, [ op ])
+  | CFunEnter funenter, ExtFunc _ :: _ ->
+      let funpre = make_funpre funenter in
+      (Push (IntFunc funpre), [ CFunPre funpre; op ])
+  | CFunEnter funenter, ExtFuncExc (_, exc) :: _ ->
+      let funpre = make_funpre funenter in
+      (Push (IntFunc funpre), [ make_silent_catch exc; CFunPre funpre; op ])
+  | CFunEnter _, [] ->
+      failwith "enter on empty stack"
+  | CFunExit { exc = OUndefined; ret }, IntFunc _ :: (IntFunc _ :: _ | []) ->
+      (Pop, [ op ])
+  | CFunExit { exc = OUndefined; ret }, IntFunc { f; base; args } :: ExtFunc _ :: _ ->
+      (Pop, [ op; CFunPost { f; base; args; result = ret; call_type = Method } ])
+  | CFunExit { exc = OUndefined }, IntFunc _ :: ExtFuncExc _ :: _ ->
+      failwith "exit into external error frame"
+  | CFunExit { exc = OUndefined }, [] ->
+      failwith "exit in the top frame"
+  | CFunExit { exc = OUndefined }, (ExtFunc _ | ExtFuncExc _) :: _ ->
+      failwith "exit seen in external frame"
+  | CFunExit { ret = OUndefined; exc }, IntFunc _ :: (IntFunc _ :: _ | []) ->
+      (Pop, [ op ])
+  | CFunExit { ret = OUndefined; exc }, IntFunc _ :: ExtFunc f :: _ ->
+      (PopReplace (ExtFuncExc (f, exc)), [ op ])
+  | CFunExit { ret = OUndefined }, IntFunc _ :: ExtFuncExc _ :: _ ->
+      failwith "exit into external error frame"
+  | CFunExit { ret = OUndefined }, [] ->
+      failwith "exit in the top frame"
+  | CFunExit { ret = OUndefined; exc }, ExtFunc _ :: _ ->
+      (Pop2, [ CThrow exc; op; op ])
+  | CFunExit { ret = OUndefined; exc }, ExtFuncExc (_, exc') :: _ ->
+      if exc = exc' then
+        (Pop2, [ op; op ])
+      else
+        (Pop2, [ make_silent_catch exc'; CThrow exc; op; op])
+  | CFunExit _, _ ->
+      failwith "invalid exit: both return value and exception"
+  | _, (IntFunc _ :: _ | []) ->
+      (Keep, [ op ])
+  | CScriptExc exc, ExtFunc f :: _ ->
+      (Pop, [ CThrow exc; CFunExit { ret = OUndefined; exc }; op ])
+  | CScriptExc exc, ExtFuncExc (f, exc') :: _ ->
+      if exc = exc' then
+        (Pop, [ CFunExit { exc; ret = OUndefined }; op ])
+      else
+        (Pop, [ make_silent_catch exc'; CThrow exc; CFunExit { exc; ret = OUndefined }; op ])
+  | CDeclare { value = exc; declaration_type= CatchParam }, ExtFunc f :: _ ->
+      (Pop, [ CThrow exc; CFunExit { ret = OUndefined; exc }; op ])
+  | CDeclare { value = exc; declaration_type= CatchParam }, ExtFuncExc (f, exc') :: _ ->
+      if exc = exc' then
+        (Pop, [ CFunExit { exc; ret = OUndefined }; op ])
+      else
+        (Pop, [ make_silent_catch exc'; CThrow exc; CFunExit { exc; ret = OUndefined }; op ])
+  | _, (ExtFunc _ | ExtFuncExc _) :: _ ->
+      failwith "Bad event in external frame"
+
+
+
+
+ (* 
 let synthesize_events_step funcs op (stack: func_type list) =
   match op, stack with
   (* drop clearly bad traces *)
@@ -256,6 +356,7 @@ let synthesize_events_step funcs op (stack: func_type list) =
   | _, []
   | _, IntFunc _ :: _ ->
     (Keep, [ op ])
+  *)
 
 module CleanGeneric = functor(S: Transformers) -> struct
   let clean =
@@ -464,7 +565,8 @@ module CleanGeneric = functor(S: Transformers) -> struct
             | (f, this, args, None) :: stack ->
                 { state with stack = (f, this, args, Some ret) :: stack }
             | _ :: _ ->
-                prerr_endline "Double function exit";
+                if calls_stacked then
+                  prerr_endline "Double function exit";
                 state
             | [] ->
                 prerr_endline "Exit from top level";
@@ -520,11 +622,11 @@ module CleanGeneric = functor(S: Transformers) -> struct
             prerr_endline "Double funpre encountered";
           { state' with saw_fun_pre = true }
       | CFunEnter _ ->
-          if calls_normalized && not state'.saw_fun_pre then
+          if calls_stacked && not state'.saw_fun_pre then
             prerr_endline "funenter without funpre";
           { state' with saw_fun_pre = false }
       | _ ->
-          if calls_normalized && state'.saw_fun_pre then
+          if calls_stacked && state'.saw_fun_pre then
             prerr_endline "funpre without funenter";
           { state' with saw_fun_pre = false }
     in let state' = match op, state.saw_fun_exit with
@@ -550,6 +652,8 @@ module CleanGeneric = functor(S: Transformers) -> struct
           { state' with saw_fun_exit = None }
       | CThrow _, None ->
           { state' with saw_fun_exit = Exception }
+      | CEndExpression, Exception ->
+          state' (* Special case: Throw is followed by EndExpression *)
       | _, Exception ->
           prerr_endline "Exception passed through instruction";
           state'
@@ -594,6 +698,9 @@ end;;
 
 module CleanStream = CleanGeneric(StreamTransformers)
 module CleanList = CleanGeneric(ListTransformers)
+
+let synthesize_events funcs trace =
+  CleanList.synthesize_events funcs trace
 
 let clean_tracefile (funs, objs, rawtr, globals, gap) =
   (funs, objs, CleanList.clean_trace globals funs objs rawtr, globals, gap)
