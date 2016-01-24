@@ -10,7 +10,7 @@ let gen_synthesize_inputs max_ht =
      let build_string len =
        fst (Kaputt.Generator.string
               (Kaputt.Generator.make_int 1 len)
-              Kaputt.Generator.char) r in
+              Kaputt.Generator.letter) r in
      let build_function_spec r =
        if Random.State.bool r then
          External (Random.State.bits r)
@@ -26,29 +26,29 @@ let gen_synthesize_inputs max_ht =
        let idx = Random.State.int r (ExtArray.length funcs + 1) in
          if idx = ExtArray.length funcs then
            ExtArray.append funcs (build_function_spec r);
-         (funcs, OFunction (Random.State.int r max_int, idx))
+         (funcs, OFunction (Random.State.int r 65536, idx))
      and build_jsval r =
        match Random.State.int r 10 with
          | 0 -> OUndefined
          | 1 -> ONull
          | 2 -> OBoolean (Random.State.bool r)
-         | 3 -> ONumberInt (Random.State.int r max_int)
+         | 3 -> ONumberInt (Random.State.int r 65536)
          | 4 -> OString (build_string 128)
          | 5 -> OSymbol (build_string 16)
-         | 6 -> OObject (Random.State.int r max_int)
-         | 7 -> OFunction (Random.State.int r max_int, Random.State.int r max_int)
-         | 8 -> OOther (build_string 16, Random.State.int r max_int)
+         | 6 -> OObject (Random.State.int r 65536)
+         | 7 -> OFunction (Random.State.int r 65536, Random.State.int r 65536)
+         | 8 -> OOther (build_string 16, Random.State.int r 65536)
          | _ -> ONumberFloat (Random.State.float r 10.0)
      and build_jsval_defined r =
        match Random.State.int r 9 with
          | 1 -> ONull
          | 2 -> OBoolean (Random.State.bool r)
-         | 3 -> ONumberInt (Random.State.int r max_int)
+         | 3 -> ONumberInt (Random.State.int r 65536)
          | 4 -> OString (build_string 128)
          | 5 -> OSymbol (build_string 16)
-         | 6 -> OObject (Random.State.int r max_int)
-         | 7 -> OFunction (Random.State.int r max_int, Random.State.int r max_int)
-         | 8 -> OOther (build_string 16, Random.State.int r max_int)
+         | 6 -> OObject (Random.State.int r 65536)
+         | 7 -> OFunction (Random.State.int r 65536, Random.State.int r 65536)
+         | 8 -> OOther (build_string 16, Random.State.int r 65536)
          | _ -> ONumberFloat (Random.State.float r 10.0)
      and build_call_type r =
        match Random.State.int r 3 with
@@ -134,7 +134,7 @@ let gen_synthesize_inputs max_ht =
              let (funcs, u) = build_unwind ht funcs exc in
                (funcs, t @ u)
      in build_trace 0 (ExtArray.of_list [])),
-  (Misc.to_string (FormatHelper.pp_print_pair pp_functions pp_clean_trace))
+  (fun x -> Misc.to_string (FormatHelper.pp_print_pair pp_functions pp_clean_trace) x ^ "\n")
 
 let is_instrumented funcs f =
   match ExtArray.get funcs f with
@@ -173,5 +173,4 @@ let test_synthesize_events =
     [ Kaputt.Specification.always => check ]
     ~nb_runs:10000 ~title:"Specification-based test for synthesize_events"
 
-
-let _ = Test.run_test test_synthesize_events
+let _ = Test.run_tests ( [ test_synthesize_events ] )
