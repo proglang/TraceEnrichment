@@ -389,6 +389,11 @@ module CleanGeneric = functor(S: Transformers) -> struct
           when f = function_apply || f = function_call ->
           CFunPre
             (resolve_call objs function_apply function_call f base args call_type)
+        | CFunPost { f; base; args; call_type; result }
+          when f = function_apply || f = function_call ->
+            let ({ f; args; base; call_type }: funpre) =
+              resolve_call objs function_apply function_call f base args call_type
+            in CFunPost { f; base; args; call_type; result }
         | ev -> ev)
 
   let normalize_function_constructor globals objs =
