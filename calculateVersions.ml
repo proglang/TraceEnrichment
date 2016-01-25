@@ -154,6 +154,9 @@ let provide_literal (objs: objects) state = function
 let collect_versions_step (objects: objects) globals_are_properties state arguments op =
   let nameref isGlobal =
     reference_of_name globals_are_properties state.aliases isGlobal in
+  let declare_local name state =
+    save_version state name
+      |> provide_write objects (reference_of_local_name name) in
   let res = match op with
     | CFunPre { args } ->
       provide_literal objects state args
@@ -162,8 +165,7 @@ let collect_versions_step (objects: objects) globals_are_properties state argume
     | CDeclare { name; declaration_type = ArgumentBinding i } ->
       provide_argument_alias objects (save_version state name) name arguments i
     | CDeclare { name } ->
-      save_version state name |>
-      provide_write objects (reference_of_local_name name)
+        declare_local name state
     | CGetField { base; offset } ->
       provide_read (reference_of_field base offset) state
     | CPutField { base; offset } ->
@@ -174,8 +176,7 @@ let collect_versions_step (objects: objects) globals_are_properties state argume
       provide_write objects (nameref isGlobal name) state
     | CFunEnter { args } ->
       provide_literal objects (push state) args |>
-      fun state -> save_version state "this" |>
-                   provide_write objects (reference_of_local_name "this")
+        declare_local "this"
     | CFunExit _ ->
       pop state
     | _ ->
@@ -211,8 +212,8 @@ module GenericCollectVersions = functor (S: Transformers) -> struct
   let collect_versions objects globals_are_properties globals tr =
     S.map_state
       (initial_refs objects globals_are_properties globals)
-      (fun state (op, arguments) ->
-         collect_versions_step objects globals_are_properties state arguments op)
+      (fun state (op, facts) ->
+         collect_versions_step objects globals_are_properties state facts op)
       tr
 end;;
 
