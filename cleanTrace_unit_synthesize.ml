@@ -133,7 +133,7 @@ let gen_synthesize_inputs max_ht =
              let (funcs, t) = build_trace ht funcs in
              let (funcs, u) = build_unwind ht funcs exc in
                (funcs, t @ u)
-     in build_trace 0 (ExtArray.of_list [])),
+     in Printexc.print (build_trace 0) (ExtArray.of_list [])),
   (fun x -> Misc.to_string (FormatHelper.pp_print_pair pp_functions pp_clean_trace) x ^ "\n")
 
 let is_instrumented funcs f =
@@ -163,79 +163,92 @@ type stack_entry =
 
 let valid trace =
   let rec check_no_exc stack = function
-      | [] -> stack = []
-      | CFunPre funpre :: CFunEnter funenter :: trace ->
-              funpre.f = funenter.f &&
-              funpre.base = funenter.this &&
-              check_no_exc (Func funpre :: stack) trace
-      | CFunExit { exc = OUndefined; ret } :: CFunPost funpost :: trace ->
-              begin
-                  match stack with
-                  | Func funpre :: stack ->
-                          funpre.f = funpost.f &&
-                          funpre.base = funpost.base &&
-                          funpre.args = funpost.args &&
-                          funpre.call_type = funpost.call_type &&
-                          funpost.result = ret &&
-                          check_no_exc stack trace
-                  | _ -> false
-              end
-      | CScriptEnter :: trace ->
-              check_no_exc (Script :: stack) trace
-      | CScriptExit :: trace ->
-              begin
-                  match stack with
-                  | Script :: stack ->
-                          check_no_exc stack trace
-                  | _ -> false
-              end
-      | CLiteral _ :: trace
-      | CForIn _ :: trace
-      | CGetFieldPre _ :: trace
-      | CPutFieldPre _ :: trace
-      | CGetField _ :: trace
-      | CPutField _ :: trace
-      | CRead _ :: trace
-      | CWrite _ :: trace
-      | CReturn _ :: trace
-      | CWith _ :: trace
-      | CBinary _ :: trace
-      | CUnary _ :: trace
-      | CEndExpression :: trace
-      | CConditional _ :: trace -> check_no_exc stack trace
-      | CThrow exc :: trace -> check_exc stack exc trace
-      | CDeclaration { call_type = CatchParam } :: _ -> false
-      | CDeclaration _ :: trace -> check_no_exc stack trace
-      | _ -> false
-  and check_exc stack exc = function
-      | CFunExit { exc=exc'; ret = OUndefined } :: trace ->
-              begin
-                  match stack with
-                  | Func _ :: stack ->
-                          exc = exc' && check_exc stack exc trace
-                  | _ -> false
-              end
-      | CScriptErr exc' :: trace ->
-              begin
-                  match stack with
-                  | Script :: stack ->
-                          exc = exc' && check_exc stack exc trace
-                  | _ -> false
-              end
-      | CDeclaration { call_type = CatchParam; value } :: trace ->
-              exc = value && check_no_exc stack trace
-      | _ -> false
+    | [] -> stack = []
+    | CFunPre funpre :: CFunEnter funenter :: trace ->
+        funpre.f = funenter.f &&
+        funpre.base = funenter.this &&
+        check_no_exc (Func funpre :: stack) trace
+    | CFunExit { exc = OUndefined; ret } :: CFunPost funpost :: trace ->
+        begin
+          match stack with
+            | Func funpre :: stack ->
+                funpre.f = funpost.f &&
+                funpre.base = funpost.base &&
+                funpre.args = funpost.args &&
+                funpre.call_type = funpost.call_type &&
+                funpost.result = ret &&
+                check_no_exc stack trace
+            | _ -> false
+        end
+    | CScriptEnter :: trace ->
+        check_no_exc (Script :: stack) trace
+    | CScriptExit :: trace ->
+        begin
+          match stack with
+            | Script :: stack ->
+                check_no_exc stack trace
+            | _ -> false
+        end
+    | CLiteral _ :: trace
+    | CForIn _ :: trace
+    | CGetFieldPre _ :: trace
+    | CPutFieldPre _ :: trace
+    | CGetField _ :: trace
+    | CPutField _ :: trace
+    | CRead _ :: trace
+    | CWrite _ :: trace
+    | CReturn _ :: trace
+    | CWith _ :: trace
+    | CBinary _ :: trace
+    | CUnary _ :: trace
+    | CEndExpression :: trace
+    | CConditional _ :: trace -> check_no_exc stack trace
+    | CThrow exc :: trace -> check_exc stack exc trace
+    | CDeclare { declaration_type = CatchParam } :: _ -> false
+    | CDeclare _ :: trace -> check_no_exc stack trace
+    | _ -> false
+   and check_exc stack exc = function
+     | CFunExit { exc=exc'; ret = OUndefined } :: trace ->
+         begin
+           match stack with
+             | Func _ :: stack ->
+                 exc = exc' && check_exc stack exc trace
+             | _ -> false
+         end
+     | CScriptExc exc' :: trace ->
+         begin
+           match stack with
+             | Script :: stack ->
+                 exc = exc' && check_exc stack exc trace
+             | _ -> false
+         end
+     | CDeclare { declaration_type = CatchParam; value } :: trace ->
+         exc = value && check_no_exc stack trace
+     | _ -> false
   in check_no_exc [] trace
 
-      
-      let check ((funcs, trace), trace') =
-  drop funcs trace = drop funcs trace' && valid trace'
+
+let check ((funcs, trace), trace') =
+  let dtrace = drop funcs trace
+  and dtrace' = drop funcs trace'
+  in if dtrace <> dtrace' then begin
+    Format.eprintf "Mismatch between dropped traces: @[<v 2>@ %a@ @] vs. @[<v 2>@ %a@]@."
+      pp_clean_trace dtrace pp_clean_trace dtrace';
+    false
+  end else if not (valid trace') then begin
+    Format.eprintf "@[<v>Not a valid trace: @[<v 2>@ %a@]@ Generated from @[<v 2>@ %a@]@ by@[<v 2>@ %a@]@."
+      pp_clean_trace trace' pp_clean_trace trace pp_clean_trace dtrace;
+    false
+  end else
+    true
 
 let test_synthesize_events =
   Test.make_random_test
     (gen_synthesize_inputs 40)
-    (fun (funcs, trace) -> Printexc.print (synthesize_events funcs) (drop funcs trace))
-    [ Kaputt.Specification.always => check ]
+    (fun (funcs, trace) -> Printexc.print (synthesize_events funcs) (Printexc.print (drop funcs) trace))
+    [ Kaputt.Specification.always => Printexc.print check ]
     ~nb_runs:100000 ~title:"Specification-based test for synthesize_events"
 
-let _ = Test.run_tests ( [ test_synthesize_events ] )
+let _ =
+  Printexc.record_backtrace true;
+  Test.run_tests ( [ test_synthesize_events ] )
