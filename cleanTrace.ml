@@ -148,7 +148,7 @@ let resolve_call objects function_apply function_call f base args call_type =
         Debug.debug "Cannot resolve call due to objects not being found@.";
         { f=f; base=base; args=args; call_type = call_type }
 
-type 'a stackop = Push of 'a | Keep | Pop | Replace of 'a | Pop2 | PopReplace of 'a | PushReplace of 'a * 'a
+type 'a stackop = Push of 'a | Keep | Pop | Replace of 'a | Pop2 | PopReplace of 'a | PushReplace of 'a * 'a | Pop2Replace of 'a
 let apply_stackop stack = function
   | Push tos -> tos :: stack
   | Keep -> stack
@@ -157,6 +157,7 @@ let apply_stackop stack = function
   | Replace tos -> tos :: List.tl stack
   | PopReplace tos -> tos :: List.tl (List.tl stack)
   | PushReplace (tos1, tos2) -> tos1 :: tos2 :: List.tl stack
+  | Pop2Replace tos -> tos :: List.tl (List.tl (List.tl stack))
 
 let is_instrumented funcs f =
   match f with
@@ -240,6 +241,13 @@ let synthesize_events_step funcs op stack = match op, stack with
       failwith "exit into external error frame"
   | CFunExit { ret = OUndefined }, [] ->
       failwith "exit in the top frame"
+  | CFunExit { ret = OUndefined; exc }, ExtFunc _ :: IntFunc _ :: ExtFunc f :: _ ->
+      (Pop2Replace (ExtFuncExc (f, exc)), [ CThrow exc; op; op ])
+  | CFunExit { ret = OUndefined; exc }, ExtFuncExc (_, exc') :: IntFunc _ :: ExtFunc f :: _ ->
+      if exc = exc' then
+        (Pop2Replace (ExtFuncExc (f, exc)), [ op; op ])
+      else
+        (Pop2Replace (ExtFuncExc (f, exc)), [ make_silent_catch exc'; CThrow exc; op; op ])
   | CFunExit { ret = OUndefined; exc }, ExtFunc _ :: _ ->
       (Pop2, [ CThrow exc; op; op ])
   | CFunExit { ret = OUndefined; exc }, ExtFuncExc (_, exc') :: _ ->
