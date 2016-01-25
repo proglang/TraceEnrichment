@@ -5,17 +5,19 @@ module VersionReferenceMap = Reference.VersionReferenceMap
 module ReferenceMap = Reference.ReferenceMap
 type points_to_map = Reference.points_to_map
 
-let add_write facts state ref value: points_to_map =
+let add_write facts state ref value may_be_known: points_to_map =
   let vref = LocalFacts.make_versioned facts ref in
-  if VersionReferenceMap.mem vref state then begin
-    (* This write was dropped; most likely, the field was marked
-     * "not writable". *)
-    Format.eprintf
-      "Weirdness detected: Write of %a failed@."
-      Reference.pp_reference ref;
-    state
-  end else
-    VersionReferenceMap.add vref value state
+    if VersionReferenceMap.mem vref state then begin
+      (* This write was dropped; most likely, the field was marked
+       * "not writable". *)
+      if not may_be_known then
+        Format.eprintf
+          "Weirdness detected: Write of %a failed (ref: %a)@."
+          Reference.pp_reference ref
+          Reference.pp_versioned_reference vref;
+      state
+    end else
+      VersionReferenceMap.add vref value state
 
 let add_read facts state ref value: points_to_map =
   let vref = LocalFacts.make_versioned facts ref in
@@ -34,11 +36,12 @@ let add_read facts state ref value: points_to_map =
 let add_known_new_object objects facts state obj =
   Debug.debug "Adding known object %a@." pp_jsval obj;
   let id = objectid_of_jsval obj in
+  let may_be_known = (Some (get_object_id id) = facts.last_arguments) in
   StringMap.fold
     (fun name (objspec: fieldspec) state ->
        add_write facts state
          (Reference.reference_of_fieldref (id, name))
-         objspec.value)
+         objspec.value may_be_known)
     (ExtArray.get objects(get_object_id id))
     state
 
@@ -64,8 +67,15 @@ let add_literal objects facts state value =
 
 let is_alias { aliases } name = StringMap.mem name aliases
 
+let pp_versions =
+  let module Fmt = FormatHelper.MapFormat(ReferenceMap) in
+    Fmt.pp_print_map_default Reference.pp_reference Format.pp_print_int
+
 let collect_pointsto_step globals_are_properties objects state facts =
-  fun step -> Debug.debug "points-to collection step: %a@." pp_clean_operation step; step |>
+  fun step -> Debug.debug "points-to collection step: %a, %a@."
+                pp_clean_operation step
+                pp_versions facts.versions;
+              step |>
   function
   | CFunPre { args } ->
     add_known_new_object objects facts state args
@@ -77,11 +87,11 @@ let collect_pointsto_step globals_are_properties objects state facts =
   | CDeclare { name; value } ->
     (* Note that this also catches ArgumentBinding cases where the name is *)
     (* not an alias. *)
-    add_write facts state (Reference.reference_of_local_name name) value
+    add_write facts state (Reference.reference_of_local_name name) value false
   | CGetField { base; offset; value } ->
     add_read facts state (Reference.reference_of_field base offset) value
   | CPutField { base; offset; value } ->
-    add_write facts state (Reference.reference_of_field base offset) value
+    add_write facts state (Reference.reference_of_field base offset) value false
   | CRead { name; value; isGlobal } ->
     let ref =
       LocalFacts.reference_of_variable globals_are_properties facts isGlobal name
@@ -89,10 +99,10 @@ let collect_pointsto_step globals_are_properties objects state facts =
   | CWrite { name; value; isGlobal } ->
     let ref =
       LocalFacts.reference_of_variable globals_are_properties facts isGlobal name
-    in add_write facts state ref value
+    in add_write facts state ref value false
   | CFunEnter { args; this } ->
     let state = add_known_new_object objects facts state args
-    in add_write facts state (Reference.reference_of_local_name "this") this
+    in add_write facts state (Reference.reference_of_local_name "this") this true
   | _ -> state
 
 let globals_points_to (objects: objects) globals versions pt =
