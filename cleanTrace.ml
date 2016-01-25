@@ -681,9 +681,9 @@ module CleanGeneric = functor(S: Transformers) -> struct
       | _, Exception ->
           prerr_endline "Exception passed through instruction";
           state'
-      | _, Value ->
-          if calls_normalized then
-            prerr_endline "function return through instruction";
+      | op, Value ->
+          if calls_stacked then
+            Format.eprintf "function return through instruction %a" pp_clean_operation op;
           { state' with saw_fun_exit = None }
       | _, None ->
           state'
