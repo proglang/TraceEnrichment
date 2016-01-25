@@ -425,7 +425,12 @@ module CleanGeneric = functor(S: Transformers) -> struct
 
   type validate_level = Basic | NoUseStrict | NormalizedCalls | SynthesizedEvents
   let validate_step level function_call function_apply op state =
-    let is_function = function
+    let eqval v1 v2 =
+      match v1, v2 with
+        | ONumberFloat f1, ONumberFloat f2 ->
+            f1 = f2 || (classify_float f1 = FP_nan && classify_float f2 = FP_nan)
+        | _, _ -> v1 = v2
+    in let is_function = function
       | OFunction _ -> ()
       | v -> Format.eprintf "Not a function: %a@." pp_jsval v
     and is_object = function
@@ -436,19 +441,20 @@ module CleanGeneric = functor(S: Transformers) -> struct
       | { stack = (f', _, _, _, _) :: _ } ->
           Format.eprintf "Top-of-stack f is %a, not %a@." pp_jsval f' pp_jsval f
       | _ -> Format.eprintf "Top-of-stack f is not %a, stack empty@." pp_jsval f
-    and is_top_base base = match state with
+    and is_top_base_enter base = match state with
       | { stack = (_, OObject 0, _, _, Constructor) :: _ }-> ()
-      | { stack = (_, base', _, _, _) :: _ } when base = base' -> ()
+      | { stack = (_, (OUndefined | ONull | OBoolean _ | ONumberInt _ | ONumberFloat _ | OString _ | OSymbol _), _, _, _) :: _ }-> ()
+      | { stack = (_, base', _, _, _) :: _ } when eqval base base' -> ()
       | { stack = (_, base', _, _, _) :: _ } ->
           Format.eprintf "Top-of-stack base is %a, not %a@." pp_jsval base' pp_jsval base
       | _ -> Format.eprintf "Top-of-stack base is not %a, stack empty@." pp_jsval base
     and is_top_args args = match state with
-      | { stack = (_, _, args', _, _) :: _ } when args = args' -> ()
+      | { stack = (_, _, args', _, _) :: _ } when eqval args args' -> ()
       | { stack = (_, _, args', _, _) :: _ } ->
           Format.eprintf "Top-of-stack args is %a, not %a@." pp_jsval args' pp_jsval args
       | _ -> Format.eprintf "Top-of-stack args is not %a, stack empty@." pp_jsval args
     and is_top_result result = match state with
-      | { stack = (_, _, _, Some result', _) :: _ } when result = result' -> ()
+      | { stack = (_, _, _, Some result', _) :: _ } when eqval result result' -> ()
       | { stack = (_, _, _, Some result', _) :: _ } ->
           Format.eprintf "Top-of-stack result is %a, not %a@." pp_jsval result' pp_jsval result
       | { stack = (_, _, _, None, _) :: _ } ->
@@ -471,24 +477,26 @@ module CleanGeneric = functor(S: Transformers) -> struct
     let state' = match op with
     | CFunPre { f; base; args; call_type } ->
         is_function f;
-        is_object base;
+        (* Note that we don't check if base is an object.
+         * Why? Because we can Function.call with a non-object
+         * base. Bizzare but legal :) *)
         is_object args;
         begin if calls_normalized then is_normalized f end;
         { state with stack = (f, base, args, None, call_type) :: state.stack }
     | CFunPost { f; base; args; call_type; result } ->
-        is_top_f f;
-        is_top_args args;
-        is_top_call_type call_type;
-        begin if match state with
-          | { stack = (_, _, _, _, Constructor) :: _ } -> false
-          | _ -> calls_stacked then
-          is_top_result result
+        if calls_stacked then begin
+          is_top_f f;
+          is_top_args args;
+          is_top_call_type call_type;
+          match state with
+            | { stack = (_, _, _, _, Constructor) :: _ } -> ()
+            | _ -> is_top_result result
         end;
         { state with stack = List.tl state.stack }
     | CFunEnter { f; this; args } ->
         if calls_stacked then begin
           is_top_f f;
-          is_top_base this;
+          is_top_base_enter this;
           (* args is different *)
         end;
         state
@@ -502,7 +510,8 @@ module CleanGeneric = functor(S: Transformers) -> struct
                   prerr_endline "Double function exit";
                 state
             | [] ->
-                prerr_endline "Exit from top level";
+                if calls_stacked then
+                  prerr_endline "Exit from top level";
                 state
         end
       | CFunExit { exc; ret = OUndefined } ->
