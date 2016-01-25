@@ -247,7 +247,7 @@ let test_synthesize_events =
     (gen_synthesize_inputs 40)
     (fun (funcs, trace) -> Printexc.print (synthesize_events funcs) (Printexc.print (drop funcs) trace))
     [ Kaputt.Specification.always => Printexc.print check ]
-    ~nb_runs:100000 ~title:"Specification-based test for synthesize_events"
+    ~nb_runs:1000000 ~title:"Specification-based test for synthesize_events"
 
 let _ =
   Printexc.record_backtrace true;
