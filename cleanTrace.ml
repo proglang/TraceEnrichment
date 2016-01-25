@@ -508,7 +508,7 @@ module CleanGeneric = functor(S: Transformers) -> struct
 
   type exit_type = None | Value | Exception
   type validate_state = {
-    stack: (jsval * jsval * jsval * jsval option) list;
+    stack: (jsval * jsval * jsval * jsval option * call_type) list;
     saw_use_strict: bool;
     saw_fun_pre: bool;
     saw_fun_exit: exit_type;
@@ -523,27 +523,33 @@ module CleanGeneric = functor(S: Transformers) -> struct
       | OObject _ | OFunction _ | OOther _ -> ()
       | v -> Format.eprintf "Not an object: %a@." pp_jsval v
     and is_top_f f = match state with
-      | { stack = (f', _, _, _) :: _ } when f = f' -> ()
-      | { stack = (f', _, _, _) :: _ } ->
+      | { stack = (f', _, _, _, _) :: _ } when f = f' -> ()
+      | { stack = (f', _, _, _, _) :: _ } ->
           Format.eprintf "Top-of-stack f is %a, not %a@." pp_jsval f' pp_jsval f
       | _ -> Format.eprintf "Top-of-stack f is not %a, stack empty@." pp_jsval f
     and is_top_base base = match state with
-      | { stack = (_, base', _, _) :: _ } when base = base' -> ()
-      | { stack = (_, base', _, _) :: _ } ->
-          Format.eprintf "Top-of-stack f is %a, not %a@." pp_jsval base' pp_jsval base
+      | { stack = (_, OObject 0, _, _, Constructor) :: _ }-> ()
+      | { stack = (_, base', _, _, _) :: _ } when base = base' -> ()
+      | { stack = (_, base', _, _, _) :: _ } ->
+          Format.eprintf "Top-of-stack base is %a, not %a@." pp_jsval base' pp_jsval base
       | _ -> Format.eprintf "Top-of-stack base is not %a, stack empty@." pp_jsval base
     and is_top_args args = match state with
-      | { stack = (_, _, args', _) :: _ } when args = args' -> ()
-      | { stack = (_, _, args', _) :: _ } ->
+      | { stack = (_, _, args', _, _) :: _ } when args = args' -> ()
+      | { stack = (_, _, args', _, _) :: _ } ->
           Format.eprintf "Top-of-stack args is %a, not %a@." pp_jsval args' pp_jsval args
-      | _ -> Format.eprintf "Top-of-stack base is not %a, stack empty@." pp_jsval args
+      | _ -> Format.eprintf "Top-of-stack args is not %a, stack empty@." pp_jsval args
     and is_top_result result = match state with
-      | { stack = (_, _, _, Some result') :: _ } when result = result' -> ()
-      | { stack = (_, _, _, Some result') :: _ } ->
+      | { stack = (_, _, _, Some result', _) :: _ } when result = result' -> ()
+      | { stack = (_, _, _, Some result', _) :: _ } ->
           Format.eprintf "Top-of-stack result is %a, not %a@." pp_jsval result' pp_jsval result
-      | { stack = (_, _, _, None) :: _ } ->
+      | { stack = (_, _, _, None, _) :: _ } ->
           Format.eprintf "Top-of-stack result is not %a, result unknown" pp_jsval result
       | _ -> Format.eprintf "Top-of-stack result is not %a, stack empty@." pp_jsval result
+    and is_top_call_type call_type = match state with
+      | { stack = (_, _, _, _, call_type') :: _ } when call_type = call_type' -> ()
+      | { stack = (_, _, _, _, call_type') :: _ } ->
+          Format.eprintf "Top-of-stack call type is %a, not %a@." pp_call_type call_type' pp_call_type call_type
+      | _ -> Format.eprintf "Top-of-stack call type is not %a, stack empty@." pp_call_type call_type
     and is_normalized f =
       if f = function_call || f = function_apply then begin
         Format.eprintf "Unnormalized call@."
@@ -559,12 +565,16 @@ module CleanGeneric = functor(S: Transformers) -> struct
         is_object base;
         is_object args;
         begin if calls_normalized then is_normalized f end;
-        { state with stack = (f, base, args, None) :: state.stack }
+        { state with stack = (f, base, args, None, call_type) :: state.stack }
     | CFunPost { f; base; args; call_type; result } ->
         is_top_f f;
-        is_top_base base;
         is_top_args args;
-        begin if calls_stacked then is_top_result result end;
+        is_top_call_type call_type;
+        begin if match state with
+          | { stack = (_, _, _, _, Constructor) :: _ } -> false
+          | _ -> calls_stacked then
+          is_top_result result
+        end;
         { state with stack = List.tl state.stack }
     | CFunEnter { f; this; args } ->
         if calls_stacked then begin
@@ -576,8 +586,8 @@ module CleanGeneric = functor(S: Transformers) -> struct
     | CFunExit { exc = OUndefined; ret } ->
         begin
           match state.stack with
-            | (f, this, args, None) :: stack ->
-                { state with stack = (f, this, args, Some ret) :: stack }
+            | (f, this, args, None, call_type) :: stack ->
+                { state with stack = (f, this, args, Some ret, call_type) :: stack }
             | _ :: _ ->
                 if calls_stacked then
                   prerr_endline "Double function exit";
