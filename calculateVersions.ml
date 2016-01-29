@@ -158,8 +158,9 @@ let collect_versions_step (objects: objects) globals_are_properties state argume
     save_version state name
       |> provide_write objects (reference_of_local_name name) in
   let res = match op with
-    | CFunPre { args } ->
-      provide_literal objects state args
+    | CFunPre { base; args } ->
+        let state = provide_literal objects state args
+        in provide_literal objects state base
     | CLiteral { value } ->
       provide_literal objects state value
     | CDeclare { name; declaration_type = ArgumentBinding i } ->
@@ -174,9 +175,10 @@ let collect_versions_step (objects: objects) globals_are_properties state argume
       provide_read (nameref isGlobal name) state
     | CWrite { name; isGlobal } ->
       provide_write objects (nameref isGlobal name) state
-    | CFunEnter { args } ->
-      provide_literal objects (push state) args |>
-        declare_local "this"
+    | CFunEnter { this; args } ->
+        let state =  provide_literal objects (push state) args in
+        let state = provide_literal objects state this in
+          declare_local "this" state
     | CFunExit _ ->
       pop state
     | _ ->

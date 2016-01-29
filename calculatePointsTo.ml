@@ -61,7 +61,9 @@ let add_literal objects facts state value =
              StringMap.find field (ExtArray.get objects objid)
            in
            VersionReferenceMap.add vref value state
-         | _ -> failwith "Unexpected unmapped variable")
+         | Reference.LocalVariable name
+         | Reference.GlobalVariable name ->
+             failwith ("Unexpected unmapped variable " ^ name))
     facts.versions
     state
 
@@ -77,8 +79,9 @@ let collect_pointsto_step globals_are_properties objects state facts =
                 pp_versions facts.versions;
               step |>
   function
-  | CFunPre { args } ->
-    add_known_new_object objects facts state args
+  | CFunPre { base; args } ->
+      let state = add_known_new_object objects facts state args
+      in add_literal objects facts state base
   | CLiteral { value } ->
     add_literal objects facts state value
   | CDeclare { name; declaration_type = ArgumentBinding _ }
@@ -101,8 +104,9 @@ let collect_pointsto_step globals_are_properties objects state facts =
       LocalFacts.reference_of_variable globals_are_properties facts isGlobal name
     in add_write facts state ref value false
   | CFunEnter { args; this } ->
-    let state = add_known_new_object objects facts state args
-    in add_write facts state (Reference.reference_of_local_name "this") this true
+    let state = add_known_new_object objects facts state args in
+    let state = add_write facts state (Reference.reference_of_local_name "this") this true in
+      add_literal objects facts state this
   | _ -> state
 
 let globals_points_to (objects: objects) globals versions pt =
@@ -120,8 +124,8 @@ let globals_points_to (objects: objects) globals versions pt =
         begin try StringMap.find name globals
           with Not_found ->
             failwith ("Can't  find global variable "^ name) end
-      | LocalVariable _ ->
-        failwith "Unexpected local variable" in
+      | LocalVariable name ->
+        failwith ("Unexpected local variable " ^ name) in
     VersionReferenceMap.add vref value pt
   in
   ReferenceMap.fold step versions pt
