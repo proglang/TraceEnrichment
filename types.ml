@@ -28,14 +28,22 @@ type functions = funcspec ExtArray.extarray
 
 type globals = jsval Misc.StringMap.t
 
+let shorten s =
+  let len = String.length s in
+  try
+    let idx = String.index s '\n' in
+      String.sub s 0 (min idx 20) ^ "..."
+  with Not_found ->
+    if len < 20 then s else String.sub s 0 20 ^ "..."
+
 let pp_jsval pp = let open Format in function
     | OUndefined -> pp_print_string pp "undefined"
     | ONull -> pp_print_string pp "null"
     | OBoolean x -> fprintf pp "bool:%b" x
     | ONumberInt x -> fprintf pp "int:%d" x
     | ONumberFloat x -> fprintf pp "float:%f" x
-    | OString x -> fprintf pp "string:%s" x
-    | OSymbol x -> fprintf pp "symbol:%s" x
+    | OString x -> fprintf pp "string:%s" (shorten x)
+    | OSymbol x -> fprintf pp "symbol:%s" (shorten x)
     | OFunction (id, fid) -> fprintf pp "function:%d/%d" id fid
     | OObject id -> fprintf pp "object:%d" id
     | OOther (ty, id) -> fprintf pp "other:%s:%d" ty id
