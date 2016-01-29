@@ -220,7 +220,8 @@ let synthesize_events_step funcs op stack = match op, stack with
       (Push (IntFunc funpre), [ CFunPre funpre; op ])
   | CFunEnter funenter, ExtFuncExc (f, exc) :: _ ->
       let funpre = make_funpre funenter in
-      (PushReplace (IntFunc funpre, ExtFunc f), [ make_silent_catch exc; CFunPre funpre; op ])
+      (PushReplace (IntFunc funpre, ExtFunc f),
+       [ make_silent_catch exc; CFunPre funpre; op ])
   | CFunEnter _, [] ->
       failwith "enter on empty stack"
   | CFunExit { exc = OUndefined; ret }, IntFunc _ :: (IntFunc _ :: _ | []) ->
