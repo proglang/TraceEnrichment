@@ -14,13 +14,14 @@ let enrich_step globals_are_properties (op, facts) =
     | CFunPost { f; base; args; result; call_type } -> [RFunPost { f; base; args; result; call_type }]
     | CLiteral { value; hasGetterSetter } -> [RLiteral { value; hasGetterSetter }]
     | CForIn value -> [RForIn value]
-    | CDeclare { name; declaration_type = ArgumentBinding idx } ->
+    | CDeclare { name; value; declaration_type = ArgumentBinding idx } ->
       if Misc.StringMap.mem name facts.aliases then
-        [RAlias { name;
-                  ref = Misc.StringMap.find name facts.aliases
+        let ref = Misc.StringMap.find name facts.aliases
                         |> Reference.reference_of_fieldref
-                        |> LocalFacts.make_versioned facts;
-                  source = Argument idx }]
+                        |> LocalFacts.make_versioned facts
+        in
+          [RAlias { name; ref; source = Argument idx };
+           RWrite { ref; oldref = ref; value; success = true } ]
       else
         let ref = Reference.reference_of_local_name name |> LocalFacts.make_versioned facts in
         [RLocal { name; ref };

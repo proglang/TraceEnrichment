@@ -2,10 +2,11 @@ let files = ref [];;
 
 Arg.parse
   [("-D", Arg.Unit Debug.enable, "Debugging mode");
-   ("-V", Arg.Unit Debug.enable_validate, "Enable validation")
+   ("-V", Arg.Unit Debug.enable_validate, "Enable validation");
+   ("-f", Arg.Unit TraceTypes.enable_dump_facts, "Dump local facts")
   ]
   (fun file -> files := !files @ [file])
-  "ppcleantrace [-D] [-V] files";
+  "ppcleantrace [-D] [-V] [-f] files";
 
 List.iter (fun file -> file
              |> open_in

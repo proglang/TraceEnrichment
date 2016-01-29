@@ -529,13 +529,14 @@ let pp_enriched_tracefile fmt pp (f, o, t, g, gap) =
     gap pp_functions f pp_objects o pp_globals g (pp_enriched_trace fmt) t
 let pp_facts_tracefile = pp_enriched_tracefile pp_local_facts
 
+let dump_facts = ref false
+let enable_dump_facts () = dump_facts := true
 
 let pp_rich_operation_with_facts pp (op, facts) =
-  (*
-   if !dump_facts then
-   Format.fprintf pp "@[<v 2>%a@.%a@]" pp_rich_operation op LocalFacts.pp_local_facts facts
-   else*)
-  pp_rich_operation pp op
+  if !dump_facts then
+    Format.fprintf pp "@[<v 2>%a@.%a@]" pp_rich_operation op pp_local_facts facts
+  else
+    pp_rich_operation pp op
 let pp_rich_trace pp trace =
   FormatHelper.pp_print_list_lines pp_rich_operation_with_facts pp trace
 

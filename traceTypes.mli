@@ -334,4 +334,4 @@ val pp_rich_trace : Format.formatter -> rich_trace -> unit
 val pp_rich_tracefile : Format.formatter -> rich_tracefile -> unit
 val pp_local_facts: Format.formatter -> local_facts -> unit
 
-
+val enable_dump_facts: unit -> unit
