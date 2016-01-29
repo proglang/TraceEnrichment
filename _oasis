@@ -17,7 +17,7 @@ Library "js-enrichment"
   BuildDepends: yojson, str, lwt.ppx, lwt
   Modules:    CalculatePointsTo, CalculateVersions, CleanTrace, FormatHelper,
     LocalFacts, Misc, PointsTo, Reference, RichTrace, Streaming, Trace,
-    TraceTypes, Types, ExtArray
+    TraceTypes, Types, ExtArray, Debug
   
 Library "js-enrichment.test"
   Path:       .
