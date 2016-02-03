@@ -2,7 +2,6 @@ open Reference
 open Types
 open Streaming
 open TraceTypes
-module StringMap = Misc.StringMap
 
 type saved_variable =
   | Unknown
@@ -95,7 +94,7 @@ let provide_write (objects: objects) ref state =
              * unsoundness. *)
             let msg =
               Format.sprintf "Writing to %a@%s with set handler"
-                (fun () -> Misc.to_string pp_objectid) obj fld
+                (fun () -> Fmt.to_to_string pp_objectid) obj fld
             in warnings := msg :: !warnings;
             increment_reference state ref
           end
@@ -193,7 +192,7 @@ let collect_versions_step (objects: objects) globals_are_properties state argume
 let initial_refs objects globals_are_properties globals =
   let reference_of_global =
     reference_of_name globals_are_properties StringMap.empty true
-  in Misc.StringMap.fold
+  in StringMap.fold
     (fun var id refs ->
        let refs =
          if var = "global" then

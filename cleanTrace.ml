@@ -77,7 +77,7 @@ exception ObjectNotFound
 let get_object ?(required=false) (objects: objects) objval fieldname =
   try
     ExtArray.get objects (get_object objval)
-    |> Misc.StringMap.find fieldname
+    |> StringMap.find fieldname
     |> fun { value } -> value
   with Not_found ->
     Debug.debug "Could not find object %a, field %s@."
@@ -96,17 +96,17 @@ let lookup globals (objs: objects) path =
   | [] -> global_object
   | objname :: path ->
     List.fold_left (get_object ~required:true objs)
-      (Misc.StringMap.find objname globals)
+      (StringMap.find objname globals)
       path
   with
       Not_found ->
         Format.eprintf "Can't find %a@."
-          (FormatHelper.pp_print_gen_list "" "" "." Format.pp_print_string)
+          (Fmt.list ~sep:(Fmt.const Fmt.string ".") Fmt.string)
           path;
         raise Not_found
 
 let has_field objs obj fld =
-  Misc.StringMap.mem fld (ExtArray.get objs (Types.get_object obj))
+  StringMap.mem fld (ExtArray.get objs (Types.get_object obj))
 let has_index objs obj idx = has_field objs obj (string_of_int idx)
 
 let debug_get_array objects base =
@@ -127,7 +127,7 @@ let resolve_call objects function_apply function_call f base args call_type =
     (if f = function_apply then "apply"
      else if f = function_call then "call"
      else "some random function")
-    (FormatHelper.pp_print_list pp_jsval) (debug_get_array objects args);
+    (Fmt.list pp_jsval) (debug_get_array objects args);
   let rec resolve f base args argsidx =
     if f = function_apply then
       resolve base

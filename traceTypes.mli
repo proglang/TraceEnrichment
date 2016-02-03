@@ -276,7 +276,7 @@ type local_facts = {
   (** The current version of all known references. *)
   versions: int Reference.ReferenceMap.t;
   (** All currently-existing aliases. *)
-  aliases: Types.fieldref Misc.StringMap.t;
+  aliases: Types.fieldref StringMap.t;
   (** The current state of the points-to map. *)
   points_to: Reference.points_to_map
 }

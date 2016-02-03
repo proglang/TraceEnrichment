@@ -3,7 +3,7 @@ open Types
 open Kaputt.Abbreviations
 
 let (|>) = Pervasives.(|>)
-let alias_map = let open Misc.StringMap in
+let alias_map = let open StringMap in
   empty |> add "y" (Object 1, "a")
 
 let test1 =

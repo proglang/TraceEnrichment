@@ -25,7 +25,7 @@ type fieldspec = {
  *
  * Note that complete knowledge of object fields is not always available;
  * this comes up in [MatchObjects]. *)
-type objectspec = fieldspec Misc.StringMap.t
+type objectspec = fieldspec StringMap.t
 (** Description of all object initial states in the program. *)
 type objects = objectspec ExtArray.extarray
 (** Description of a local JavaScript function, i.e., a function that
@@ -48,7 +48,7 @@ type funcspec = Local of local_funcspec | External of int
 (** Description of all Javascript functions encountered in a trace. *)
 type functions = funcspec ExtArray.extarray
 (** The values of all (known) global variables. *)
-type globals = jsval Misc.StringMap.t
+type globals = jsval StringMap.t
 
 (** Object identifiers *)
 type objectid =

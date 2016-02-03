@@ -26,11 +26,12 @@ module Reference = struct
   let compare = reference_compare
 end;;
 module ReferenceMap = Map.Make(Reference)
-module ReferenceMapFormat = FormatHelper.MapFormat(ReferenceMap)
 
-let pp_reference_map fmt =
-  ReferenceMapFormat.pp_print_map "" "" ","
-    (fun pp ref data -> Format.fprintf pp "%a: %a" pp_reference ref fmt data)
+let map_sep = Fmt.prefix (Fmt.const Fmt.string ",") Fmt.cut
+
+let pp_reference_map fmtval =
+  let open Fmt in
+    using ReferenceMap.bindings (list (pair ~sep:map_sep pp_reference fmtval))
 
 let global_object = Types.Object 0
 let reference_of_name globals_are_properties aliases global name =
@@ -39,8 +40,8 @@ let reference_of_name globals_are_properties aliases global name =
       Field(global_object, name)
     else
       GlobalVariable name
-  else if Misc.StringMap.mem name aliases then
-    let (obj, fld) = Misc.StringMap.find name aliases in Field(obj, fld)
+  else if StringMap.mem name aliases then
+    let (obj, fld) = StringMap.find name aliases in Field(obj, fld)
   else LocalVariable name
 let reference_of_field base offset = Field (Types.objectid_of_jsval base, offset)
 let reference_of_fieldref (base, offset) = Field (base, offset)
@@ -56,8 +57,8 @@ let get_name = function
   | _ -> None
 
 type versioned_reference = reference * int
-let pp_versioned_reference pp (ref, ver) =
-  Format.fprintf pp "%a:%d" pp_reference ref ver
+let pp_versioned_reference =
+  let open Fmt in pair ~sep:(const string ":") pp_reference int
 
 module VersionReference = struct
   type t = versioned_reference
@@ -65,17 +66,19 @@ module VersionReference = struct
 end;;
 module VersionReferenceMap = Map.Make(VersionReference);;
 module VersionReferenceSet = Set.Make(VersionReference);;
-module VersionReferenceMapFormat = FormatHelper.MapFormat(VersionReferenceMap)
+let pp_versioned_reference_map fmtval =
+  let open Fmt in
+    using VersionReferenceMap.bindings (list (pair ~sep:map_sep pp_versioned_reference fmtval))
+let pp_versioned_reference_set =
+  let open Fmt in
+    using VersionReferenceSet.elements (list ~sep:map_sep pp_versioned_reference)
 
-type points_to_map = Types.jsval VersionReferenceMap.t
+open Types
+type points_to_map = jsval VersionReferenceMap.t
 
-let pp_points_to_map =
-  VersionReferenceMapFormat.pp_print_map "" "" ","
-    (FormatHelper.pp_print_map_entry pp_versioned_reference Types.pp_jsval)
-
+let pp_points_to_map = pp_versioned_reference_map pp_jsval
 
 (* For streaming *)
-open Types
 type initials = {
   functions: functions;
   objects: objects;

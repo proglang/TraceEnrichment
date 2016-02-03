@@ -28,7 +28,7 @@ val pp_reference_map: (Format.formatter -> 'a -> unit) ->
  * and the current alias map ([alias_map]).
 *)
 val reference_of_name:
-  bool -> Types.fieldref Misc.StringMap.t -> bool -> string -> reference
+  bool -> Types.fieldref StringMap.t -> bool -> string -> reference
 (** Transform a field access to a reference.
  *
  * Call as [reference_of_field base offset], where [base] must be a
@@ -48,6 +48,8 @@ type versioned_reference = reference * int
 module VersionReferenceMap : Map.S with type key = versioned_reference
 module VersionReferenceSet : Set.S with type elt = versioned_reference
 val pp_versioned_reference: Format.formatter -> versioned_reference -> unit
+val pp_versioned_reference_set: Format.formatter -> VersionReferenceSet.t -> unit
+val pp_versioned_reference_map: (Format.formatter -> 'a -> unit) -> Format.formatter -> 'a VersionReferenceMap.t -> unit
 
 (** A points-to map assigned a value to each versioned reference occuring in a trace. *)
 type points_to_map = Types.jsval VersionReferenceMap.t

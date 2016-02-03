@@ -48,7 +48,7 @@ let simplefields fields =
   ("toString", OFunction(0, 2)) :: fields
   |> List.map (fun (k, v) ->
       (k, { value = v;  writable = true; get = None; set = None; enumerable = true; configurable = true }))
-  |> List.fold_left (fun m (k, v) -> Misc.StringMap.add k v m) Misc.StringMap.empty
+  |> List.fold_left (fun m (k, v) -> StringMap.add k v m) StringMap.empty
 
 let funcfields = simplefields [ ("call", OFunction(0, 1)); ("apply", OFunction(0, 0)) ]
 
@@ -94,10 +94,10 @@ let obj1desc_fun4 = funcfields
 let obj1desc_simp1 = simplefields [ ("0", vnull); ("1", vundef) ]
 let obj1desc_simp2 = simplefields []
 let obj1desc_special =
-  Misc.StringMap.add "_getter"
+  StringMap.add "_getter"
     { value = vundef; get = Some obj1_fun1; set = Some obj1_fun1;
       configurable = false; enumerable = false; writable = true }
-    Misc.StringMap.empty
+    StringMap.empty
 
 let objtab1 = [|
   objglobal;
@@ -143,10 +143,10 @@ let obj2desc_fun4 = funcfields
 let obj2desc_simp1 = simplefields [ ("0", vnull); ("1", vundef) ]
 let obj2desc_simp2 = simplefields []
 let obj2desc_special =
-  Misc.StringMap.add "_getter"
+  StringMap.add "_getter"
     { value = vundef; get = Some obj2_fun1; set = Some obj2_fun1;
       configurable = false; enumerable = false; writable = true }
-    Misc.StringMap.empty
+    StringMap.empty
 
 let objtab2 = [|
   objglobal;
@@ -192,10 +192,10 @@ let obj3desc_fun4 = funcfields
 let obj3desc_simp1 = simplefields [ ("0", vtrue); ("1", vundef) ]
 let obj3desc_simp2 = simplefields []
 let obj3desc_special =
-  Misc.StringMap.add "_getter"
+  StringMap.add "_getter"
     { value = vnull; get = Some obj3_fun1; set = Some obj3_fun1;
       configurable = false; enumerable = false; writable = false }
-    Misc.StringMap.empty
+    StringMap.empty
 
 let objtab3 = [|
   objglobal;
@@ -207,12 +207,12 @@ let objtab3 = [|
 |] |> ExtArray.of_array
 
 (** Global maps for the above object arrays. *)
-let globals = let open Misc.StringMap in empty |> add "Function" (OObject 0)
+let globals = let open StringMap in empty |> add "Function" (OObject 0)
 
 (** Facts and points-to maps that represent the object tables from above. *)
 let get_facts_for (objtab: objects) =
   let add_facts idx (desc: objectspec) acc =
-    Misc.StringMap.fold (fun field (desc: fieldspec) (local_facts, points_to) ->
+    StringMap.fold (fun field (desc: fieldspec) (local_facts, points_to) ->
         let ref = Reference.reference_of_field (OObject idx) field in
         ({ local_facts with
            versions = Reference.ReferenceMap.add ref 0 local_facts.versions },
@@ -221,7 +221,7 @@ let get_facts_for (objtab: objects) =
   and empty_facts = {
     last_arguments = None;
     last_update = None;
-    aliases = Misc.StringMap.empty;
+    aliases = StringMap.empty;
     versions = Reference.ReferenceMap.empty;
     points_to = Reference.VersionReferenceMap.empty
   } in
@@ -338,7 +338,7 @@ let cleantrace1_args = [
 ]
 
 let ct1_l_e = Reference.reference_of_local_name "e"
-and ct1_g_x = Reference.reference_of_name true Misc.StringMap.empty true "x"
+and ct1_g_x = Reference.reference_of_name true StringMap.empty true "x"
 and ct1_args = Reference.reference_of_local_name "arguments"
 and ct1_arg0 = Reference.reference_of_field obj1_simp1 "0"
 and ct1_arg1 = Reference.reference_of_field obj1_simp1 "1"
@@ -449,8 +449,8 @@ let cleantrace1_versions =
     ct1ver_y
   ]
 
-let ct1al_emp = Misc.StringMap.empty
-let ct1al_x = Misc.StringMap.add "x" (objectid_of_jsval obj1_simp1, "0") ct1al_emp
+let ct1al_emp = StringMap.empty
+let ct1al_x = StringMap.add "x" (objectid_of_jsval obj1_simp1, "0") ct1al_emp
 
 let cleantrace1_aliases = [
   ct1al_emp;
@@ -622,7 +622,7 @@ let richtrace1 = [
 
 
 let ct2_l_e = Reference.reference_of_local_name "e"
-and ct2_g_x = Reference.reference_of_name true Misc.StringMap.empty true "x"
+and ct2_g_x = Reference.reference_of_name true StringMap.empty true "x"
 and ct2_args = Reference.reference_of_local_name "arguments"
 and ct2_arg0 = Reference.reference_of_field obj2_simp1 "0"
 and ct2_arg1 = Reference.reference_of_field obj2_simp1 "1"
@@ -698,8 +698,8 @@ let cleantrace2_versions =
     ct2ver_y
   ]
 
-let ct2al_emp = Misc.StringMap.empty
-let ct2al_x = Misc.StringMap.add "x" (objectid_of_jsval obj2_simp1, "0") ct2al_emp
+let ct2al_emp = StringMap.empty
+let ct2al_x = StringMap.add "x" (objectid_of_jsval obj2_simp1, "0") ct2al_emp
 
 let cleantrace2_aliases = [
   ct2al_emp;
@@ -880,18 +880,6 @@ let assert_is_Some ?prn ?msg =
 let test_lf1 = local_facts_1
 let test_lf2 = local_facts_2
 
-(*
-let test_data = let open MatchObjects in {
-	funs1 = functab1;
-	funs2 = functab2;
-	noneq = Misc.IntIntSet.empty;
-	pt1 = points_to_1;
-	pt2 = points_to_2;
-	facts1 = test_lf1;
-	facts2 = test_lf2
-}
-*)
-
 let test_rt1 = { 
     funcs = functab1;
     objs = objtab1;
@@ -911,42 +899,42 @@ let test_rt2 = {
   }
 
 module AssertStringMap =
-  Kaputt.Assertion.Map(Misc.StringMap)(struct type t = string let to_string x = x end)
+  Kaputt.Assertion.Map(StringMap)(struct type t = string let to_string x = x end)
 module AssertReferenceMap =
   Kaputt.Assertion.Map(Reference.ReferenceMap)
     (struct
        type t = Reference.reference
-       let to_string = (Misc.to_string Reference.pp_reference)
+       let to_string = (Fmt.to_to_string Reference.pp_reference)
      end)
 module AssertVersionedReferenceMap = 
   Kaputt.Assertion.Map(Reference.VersionReferenceMap)
     (struct
        type t = Reference.versioned_reference
-       let to_string = (Misc.to_string Reference.pp_versioned_reference)
+       let to_string = (Fmt.to_to_string Reference.pp_versioned_reference)
      end)
 
 let make_equal_extarray ~msg eq prn x y =
   Kaputt.Assertion.make_equal_array ~msg:msg eq prn (ExtArray.to_array x) (ExtArray.to_array y)
-let same_jsval = Kaputt.Assertion.make_equal (=) (Misc.to_string pp_jsval)
-let same_fieldspec = Kaputt.Assertion.make_equal (=) (Misc.to_string pp_fieldspec)
-let same_objectspec = AssertStringMap.make_equal (=) (Misc.to_string pp_fieldspec)
+let same_jsval = Kaputt.Assertion.make_equal (=) (Fmt.to_to_string pp_jsval)
+let same_fieldspec = Kaputt.Assertion.make_equal (=) (Fmt.to_to_string pp_fieldspec)
+let same_objectspec = AssertStringMap.make_equal (=) (Fmt.to_to_string pp_fieldspec)
 let same_objects = make_equal_extarray ~msg:"objects"
-                     (Misc.StringMap.equal (=)) (Misc.to_string pp_objectspec)
-let same_funcspec = Kaputt.Assertion.make_equal (=) (Misc.to_string pp_funcspec)
-let same_functions = make_equal_extarray ~msg:"functions" (=) (Misc.to_string pp_funcspec)
-let same_globals = AssertStringMap.make_equal (=) (Misc.to_string pp_jsval)
-let same_objectid = Kaputt.Assertion.make_equal (=) (Misc.to_string pp_objectid)
-let same_fieldref = Kaputt.Assertion.make_equal (=) (Misc.to_string pp_fieldref)
-let same_event = Kaputt.Assertion.make_equal (=) (Misc.to_string pp_operation)
-let same_trace = Kaputt.Assertion.make_equal_list (=) (Misc.to_string pp_operation)
+                     (StringMap.equal (=)) (Fmt.to_to_string pp_objectspec)
+let same_funcspec = Kaputt.Assertion.make_equal (=) (Fmt.to_to_string pp_funcspec)
+let same_functions = make_equal_extarray ~msg:"functions" (=) (Fmt.to_to_string pp_funcspec)
+let same_globals = AssertStringMap.make_equal (=) (Fmt.to_to_string pp_jsval)
+let same_objectid = Kaputt.Assertion.make_equal (=) (Fmt.to_to_string pp_objectid)
+let same_fieldref = Kaputt.Assertion.make_equal (=) (Fmt.to_to_string pp_fieldref)
+let same_event = Kaputt.Assertion.make_equal (=) (Fmt.to_to_string pp_operation)
+let same_trace = Kaputt.Assertion.make_equal_list (=) (Fmt.to_to_string pp_operation)
 let same_tracefile (f1, o1, t1, g1, p1) (f2, o2, t2, g2, p2) =
   same_functions f1 f2;
   same_objects o1 o2;
   same_trace t1 t2;
   same_globals g1 g2;
   Kaputt.Assertion.equal_bool ~msg:"globals are properties" p1 p2
-let same_clean_operation = Kaputt.Assertion.make_equal (=) (Misc.to_string pp_clean_operation)
-let same_clean_trace = Kaputt.Assertion.make_equal_list (=) (Misc.to_string pp_clean_operation)
+let same_clean_operation = Kaputt.Assertion.make_equal (=) (Fmt.to_to_string pp_clean_operation)
+let same_clean_trace = Kaputt.Assertion.make_equal_list (=) (Fmt.to_to_string pp_clean_operation)
 let same_clean_tracefile (f1, o1, t1, g1, p1) (f2, o2, t2, g2, p2) =
   same_functions f1 f2;
   same_objects o1 o2;
@@ -955,17 +943,17 @@ let same_clean_tracefile (f1, o1, t1, g1, p1) (f2, o2, t2, g2, p2) =
   Kaputt.Assertion.equal_bool ~msg:"globals are properties" p1 p2
 let same_local_facts f1 f2 =
   Kaputt.Assertion.make_equal ~msg:"last arguments don't match" (=)
-    (Misc.to_string (FormatHelper.pp_print_option Format.pp_print_int))
+    (Fmt.to_to_string (Fmt.option Fmt.int))
     f1.last_arguments f2.last_arguments;
   Kaputt.Assertion.make_equal ~msg:"last updates don't match" (=)
-    (Misc.to_string (FormatHelper.pp_print_option Reference.pp_versioned_reference))
+    (Fmt.to_to_string (Fmt.option Reference.pp_versioned_reference))
     f1.last_update f2.last_update;
   AssertReferenceMap.make_equal (=) string_of_int f1.versions f2.versions;
-  AssertStringMap.make_equal (=) (Misc.to_string pp_fieldref) f1.aliases f2.aliases
+  AssertStringMap.make_equal (=) (Fmt.to_to_string pp_fieldref) f1.aliases f2.aliases
 
 let same_enriched_trace eq_a pp_a tr1 tr2 =
   Kaputt.Assertion.make_equal_list (fun (op1, en1) (op2, en2) -> op1 = op2 && eq_a en1 en2)
-    (Misc.to_string (FormatHelper.pp_print_pair pp_clean_operation pp_a)) tr1 tr2
+    (Fmt.to_to_string (Fmt.pair pp_clean_operation pp_a)) tr1 tr2
 let same_enriched_trace_file eq_a pp_a (f1, o1, t1, g1, p1) (f2, o2, t2, g2, p2) =
   same_functions f1 f2;
   same_objects o1 o2;
@@ -977,19 +965,17 @@ let equal_local_facts f1 f2 =
   f1.last_arguments = f2.last_arguments &&
   f1.last_update = f2.last_update &&
   Reference.ReferenceMap.equal (=) f1.versions f2.versions &&
-  Misc.StringMap.equal (=) f1.aliases f2.aliases
+  StringMap.equal (=) f1.aliases f2.aliases
 
 let same_facts_trace = same_enriched_trace equal_local_facts pp_local_facts
 let same_facts_tracefile = same_enriched_trace_file equal_local_facts pp_local_facts
-let same_arguments_trace = same_enriched_trace (=)
-                             (FormatHelper.pp_print_option Format.pp_print_int)
-let same_arguments_tracefile = same_enriched_trace_file (=)
-                                 (FormatHelper.pp_print_option Format.pp_print_int)
+let same_arguments_trace = same_enriched_trace (=) (Fmt.option Fmt.int)
+let same_arguments_tracefile = same_enriched_trace_file (=) (Fmt.option Fmt.int)
 
 let same_rich_trace =
   Kaputt.Assertion.make_equal_list
     (fun (o1, f1) (o2, f2) -> o1 = o2 && equal_local_facts f1 f2)
-    (Misc.to_string (FormatHelper.pp_print_pair pp_rich_operation pp_local_facts))
+    (Fmt.to_to_string (Fmt.pair pp_rich_operation pp_local_facts))
 let same_rich_tracefile t1 t2 =
   same_functions t1.funcs t2.funcs;
   same_objects t1.objs t2.objs;
@@ -997,5 +983,5 @@ let same_rich_tracefile t1 t2 =
   same_globals t1.globals t2.globals;
   Kaputt.Assertion.equal_bool ~msg:"globals are properties"
     t1.globals_are_properties t2.globals_are_properties;
-  AssertVersionedReferenceMap.make_equal (=) (Misc.to_string pp_jsval)
+  AssertVersionedReferenceMap.make_equal (=) (Fmt.to_to_string pp_jsval)
     t1.points_to t2.points_to

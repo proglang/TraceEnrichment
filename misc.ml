@@ -1,18 +1,6 @@
 open Format
 
 (* BISECT-IGNORE-BEGIN *)
-(** Standard maps and sets. *)
-module IntMap = Map.Make(struct type t = int let compare = compare end)
-module StringMap = Map.Make(String)
-module IntIntMap = Map.Make(struct type t = int * int let compare = compare end)
-module IntIntSet = Set.Make(struct type t = int * int let compare = compare end)
-
-(** Formatting helpers for standard maps and sets. *)
-module IntMapFormat = FormatHelper.MapFormat(IntMap)
-module StringMapFormat = FormatHelper.MapFormat(StringMap)
-module IntIntMapFormat = FormatHelper.MapFormat(IntIntMap)
-module IntIntSetFormat = FormatHelper.SetFormat(IntIntSet)
-let pp_print_int_pair = FormatHelper.pp_print_pair pp_print_int pp_print_int
 
 (** Helper functions for options. *)
 module Option = struct
@@ -102,11 +90,6 @@ module Notations = struct
   let (?* ) = hd_err
   let (>>) x f = f x; x
 end;;
-
-(** Given a [Format]-style pretty printer, turn a value into a string. *)
-let to_string fmt x =
-  let str = Format.asprintf "%a" fmt x in
-  ignore (flush_str_formatter ()); str
 
 (** More list functions. *)
 module List = struct

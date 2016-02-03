@@ -14,10 +14,11 @@ Library "js-enrichment"
   Install:    true
   XMETAEnable: true
   XMETADescription: Trace enrichment for JavaScript traces
-  BuildDepends: yojson, str, lwt.ppx, lwt
-  Modules:    CalculatePointsTo, CalculateVersions, CleanTrace, FormatHelper,
+  BuildDepends: yojson, str, lwt.ppx, lwt, fmt
+  Modules:    CalculatePointsTo, CalculateVersions, CleanTrace, 
     LocalFacts, Misc, PointsTo, Reference, RichTrace, Streaming, Trace,
-    TraceTypes, Types, ExtArray, Debug
+    TraceTypes, Types, ExtArray, Debug, StringMap, IntMap, IntIntMap,
+    IntIntSet
   
 Library "js-enrichment.test"
   Path:       .
@@ -25,7 +26,7 @@ Library "js-enrichment.test"
   Install:    true
   XMETAEnable: true
   XMETADescription: Trace enrichment for JavaScript traces - test data
-  BuildDepends: yojson, str, lwt, kaputt, js-enrichment
+  BuildDepends: yojson, str, lwt, kaputt, js-enrichment, fmt, fmt
   Modules:    TestBaseData
 
 Flag prettyprint
@@ -62,7 +63,7 @@ Executable "unittests"
   Install:    false
   Build$:     flag(tests)
   MainIs:     unittests.ml
-  BuildDepends: kaputt, lwt, yojson, str
+  BuildDepends: kaputt, lwt, yojson, str, fmt
 
 Test "unittests"
   Command:    $unittests

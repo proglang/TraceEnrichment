@@ -11,10 +11,11 @@ let test_calculate_pointsTo =
       let points_to =
         let (_, _, trace, _, _) = tf2 in
           trace |> List.rev |> List.hd |> snd |> fun { TraceTypes.points_to } -> points_to in
-      let module VRFmt = FormatHelper.MapFormat(Reference.VersionReferenceMap) in
-      Assert.make_equal (Reference.VersionReferenceMap.equal (=))
-        (Misc.to_string (VRFmt.pp_print_map_default Reference.pp_versioned_reference pp_jsval))
-        trace1_pointsto points_to;
+      let open Fmt in
+      let open Reference in
+      let to_string m =
+        Fmt.to_to_string (using VersionReferenceMap.bindings (list (pair pp_versioned_reference pp_jsval))) m in
+      Assert.make_equal (Reference.VersionReferenceMap.equal (=)) to_string trace1_pointsto points_to;
       same_facts_tracefile tf1 tf2)
 
 let tests = [ test_calculate_pointsTo ]

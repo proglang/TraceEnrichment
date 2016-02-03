@@ -15,8 +15,8 @@ let enrich_step globals_are_properties (op, facts) =
     | CLiteral { value; hasGetterSetter } -> [RLiteral { value; hasGetterSetter }]
     | CForIn value -> [RForIn value]
     | CDeclare { name; value; declaration_type = ArgumentBinding idx } ->
-      if Misc.StringMap.mem name facts.aliases then
-        let ref = Misc.StringMap.find name facts.aliases
+      if StringMap.mem name facts.aliases then
+        let ref = StringMap.find name facts.aliases
                         |> Reference.reference_of_fieldref
                         |> LocalFacts.make_versioned facts
         in

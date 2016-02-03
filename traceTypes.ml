@@ -242,7 +242,7 @@ type local_facts = {
   last_arguments: int option;
   last_update: Reference.versioned_reference option;
   versions: int Reference.ReferenceMap.t;
-  aliases: fieldref Misc.StringMap.t;
+  aliases: fieldref StringMap.t;
   points_to: Reference.points_to_map
 }
 
@@ -318,7 +318,7 @@ let pp_operation pp = function
   | ForIn (_, value) -> fprintf pp "ForIn(value=%a)" pp_jsval value
   | Declare (_, { name; value; argument; isCatchParam }) ->
     fprintf pp "Declare(name=%s, value=%a, argument=%a, isCatchParam=%b)"
-      name pp_jsval value (FormatHelper.pp_print_option Format.pp_print_int) argument isCatchParam
+      name pp_jsval value (Fmt.option Fmt.int) argument isCatchParam
   | GetFieldPre (_, { base; offset; isOpAssign; isMethodCall }) ->
     fprintf pp "GetFieldPre(base=%a, offset=%s, isOpAssign=%b, isMethodCall=%b)"
       pp_jsval base offset isOpAssign isMethodCall
@@ -435,7 +435,7 @@ let pp_clean_operation pp = function
   | CConditional value ->
     fprintf pp "CConditonal(value=%a)" pp_jsval value
 
-let pp_clean_trace = FormatHelper.pp_print_list_lines pp_clean_operation
+let pp_clean_trace = Fmt.vbox (Fmt.list pp_clean_operation)
 let pp_clean_tracefile pp (f, o, t, g, gap) =
   fprintf pp "@[<v>Globals are properties: %b@ @[<hov>%a@]@ @[<hov>%a@]@ @[<hov>Globals:@ %a@]@ Trace:@ @[<hov>%a@]@]"
     gap pp_functions f pp_objects o pp_globals g pp_clean_trace t
@@ -447,7 +447,7 @@ let pp_funpre pp ({ f; base; args; call_type }: funpre) =
     pp_jsval args
     pp_call_type call_type
 
-let pp_synth_stack = FormatHelper.pp_print_list (FormatHelper.pp_print_option pp_funpre)
+let pp_synth_stack = Fmt.list (Fmt.option pp_funpre)
 
 let pp_alias_source pp = let open Format in function
     | Argument i -> fprintf pp "declaration of argument %d" i
@@ -504,20 +504,14 @@ let pp_local_facts pp
                      Versions: @[< hov 2 >%a@]@ \
                      Aliases: @[< hov 2 >%a@]@ \
                      Points-to map: @[< hov 2 >%a@]@ @]"
-    (FormatHelper.pp_print_option Format.pp_print_int) last_arguments
-    (FormatHelper.pp_print_option Reference.pp_versioned_reference) last_update
+    (Fmt.option Fmt.int) last_arguments
+    (Fmt.option Reference.pp_versioned_reference) last_update
     (Reference.pp_reference_map Format.pp_print_int) versions
-    (Misc.StringMapFormat.pp_print_map "" "" ","
-       (fun pp name fr ->
-          Format.fprintf pp "%s -> %a" name pp_fieldref fr)) aliases
+    (StringMap.pp ~sep:(Fmt.const Fmt.string " -> ") pp_fieldref) aliases
     Reference.pp_points_to_map points_to
 
 let pp_enriched_trace fmt =
-  FormatHelper.pp_print_list_lines
-    (fun pp (op, facts) ->
-       Format.fprintf pp "@[<v 2>%a@ %a@]"
-         pp_clean_operation op
-         fmt facts)
+  Fmt.vbox (Fmt.list (Fmt.vbox ~indent:2 (Fmt.append pp_clean_operation (Fmt.prefix Fmt.cut fmt))))
 let pp_facts_trace = pp_enriched_trace pp_local_facts
 
 let pp_enriched_tracefile fmt pp (f, o, t, g, gap) =
@@ -537,8 +531,7 @@ let pp_rich_operation_with_facts pp (op, facts) =
     Format.fprintf pp "@[<v 2>%a@.%a@]" pp_rich_operation op pp_local_facts facts
   else
     pp_rich_operation pp op
-let pp_rich_trace pp trace =
-  FormatHelper.pp_print_list_lines pp_rich_operation_with_facts pp trace
+let pp_rich_trace = Fmt.list pp_rich_operation_with_facts
 
 let pp_rich_tracefile pp
     { funcs; objs; trace; globals; globals_are_properties; points_to } =

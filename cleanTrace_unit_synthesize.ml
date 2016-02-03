@@ -134,7 +134,7 @@ let gen_synthesize_inputs max_ht =
              let (funcs, u) = build_unwind ht funcs exc in
                (funcs, t @ u)
      in Printexc.print (build_trace 0) (ExtArray.of_list [])),
-  (fun x -> Misc.to_string (FormatHelper.pp_print_pair pp_functions pp_clean_trace) x ^ "\n")
+  (fun x -> Fmt.to_to_string (Fmt.pair pp_functions pp_clean_trace) x ^ "\n")
 
 let is_instrumented funcs f =
   match ExtArray.get funcs f with

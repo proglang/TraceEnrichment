@@ -1,6 +1,5 @@
 open Types
 open TraceTypes
-module StringMap = Misc.StringMap
 module VersionReferenceMap = Reference.VersionReferenceMap
 module ReferenceMap = Reference.ReferenceMap
 type points_to_map = Reference.points_to_map
@@ -70,8 +69,8 @@ let add_literal objects facts state value =
 let is_alias { aliases } name = StringMap.mem name aliases
 
 let pp_versions =
-  let module Fmt = FormatHelper.MapFormat(ReferenceMap) in
-    Fmt.pp_print_map_default Reference.pp_reference Format.pp_print_int
+  let open Fmt in
+    using ReferenceMap.bindings (list (pair Reference.pp_reference int))
 
 let collect_pointsto_step globals_are_properties objects state facts =
   fun step -> Debug.debug "points-to collection step: %a, %a@."
@@ -118,7 +117,7 @@ let globals_points_to (objects: objects) globals versions pt =
           try (StringMap.find field (ExtArray.get objects (get_object_id obj))).value
           with Not_found ->
             failwith ("Can't find field " ^ field ^ " of " ^
-                      (Misc.to_string pp_objectid obj))
+                      (Fmt.to_to_string pp_objectid obj))
         end
       | GlobalVariable name ->
         begin try StringMap.find name globals

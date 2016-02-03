@@ -19,14 +19,14 @@ type fieldspec = {
   configurable: bool
 }
 
-type objectspec = fieldspec Misc.StringMap.t
+type objectspec = fieldspec StringMap.t
 type objects = objectspec ExtArray.extarray
 
 type local_funcspec = { from_toString : string; from_jalangi : string option }
 type funcspec = Local of local_funcspec | External of int
 type functions = funcspec ExtArray.extarray
 
-type globals = jsval Misc.StringMap.t
+type globals = jsval StringMap.t
 
 let shorten s =
   let len = String.length s in
@@ -64,14 +64,14 @@ let pp_fieldspec pp { value; set; get; writable; enumerable; configurable } =
       (if enumerable then "E" else "-")
       (if configurable then "C" else "-")
       pp_jsval value
-      (FormatHelper.pp_print_option pp_jsval) get
-      (FormatHelper.pp_print_option pp_jsval) set
+      (Fmt.option pp_jsval) get
+      (Fmt.option pp_jsval) set
 
 let pp_objectspec pp spec =
   let open Format in
   pp_open_hovbox pp 0;
   pp_print_string pp "{";
-  Misc.StringMap.iter (fun fld value -> fprintf pp "@[<hov>%s: %a;@]" fld pp_fieldspec value) spec;
+  StringMap.iter (fun fld value -> fprintf pp "@[<hov>%s: %a;@]" fld pp_fieldspec value) spec;
   pp_print_string pp "}";
   pp_close_box pp ()
 
@@ -94,7 +94,7 @@ let pp_global_spec pp id = pp_jsval pp id
 let pp_globals pp spec = let open Format in
   pp_open_hovbox pp 0;
   pp_print_string pp "{";
-  Misc.StringMap.iter (fun fld value -> fprintf pp "@[<hov>%s => %a;@]" fld pp_global_spec value) spec;
+  StringMap.iter (fun fld value -> fprintf pp "@[<hov>%s => %a;@]" fld pp_global_spec value) spec;
   pp_print_string pp "}";
   pp_close_box pp ()
 

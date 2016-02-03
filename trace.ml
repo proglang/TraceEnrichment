@@ -56,8 +56,8 @@ let parse_objectspec json =
     json |> to_assoc |>
     List.fold_left
       (fun spec (name, content) ->
-         Misc.StringMap.add name (parse_fieldspec content) spec)
-      Misc.StringMap.empty
+         StringMap.add name (parse_fieldspec content) spec)
+      StringMap.empty
   with ParseError -> report "Context" "objectspec" json
 
 let parse_operation json =
@@ -204,10 +204,10 @@ let parse_global_value json = (* Backwards compatibility! *)
 
 
 let parse_globals json: globals =
-  let module Extra = Misc.MapExtra(Misc.StringMap) in
+  let module Extra = Misc.MapExtra(StringMap) in
   try
     json |> to_assoc |> Extra.of_list |>
-    Misc.StringMap.map parse_global_value
+    StringMap.map parse_global_value
   with ParseError -> report "Context" "globals" json
 
 let parse_tracefile source =
@@ -255,7 +255,7 @@ let format_fieldspec { value; writable; get; set; enumerable; configurable } =
   in `Assoc fs
 
 let format_objectspec objs =
-  `Assoc (Misc.StringMap.fold (fun fld fs json -> (fld, format_fieldspec fs) :: json)
+  `Assoc (StringMap.fold (fun fld fs json -> (fld, format_fieldspec fs) :: json)
             objs [])
 
 let string_of_objectspec objs = format_objectspec objs |> Yojson.Basic.to_string
@@ -278,7 +278,7 @@ let format_functions funs =
   `List (ExtArray.to_list funs |> List.map format_funcspec)
 
 let format_globals globals =
-  `Assoc (Misc.StringMap.fold (fun name obj glob -> (name, format_jsval obj) :: glob)
+  `Assoc (StringMap.fold (fun name obj glob -> (name, format_jsval obj) :: glob)
             globals [])
 
 let format_objectid = function
@@ -496,7 +496,7 @@ let format_versions vers: json =
              (fun ref ver json -> `List [format_reference ref; `Int ver] :: json)
              vers [])
 let format_aliases aliases: json =
-  `Assoc (Misc.StringMap.fold
+  `Assoc (StringMap.fold
             (fun name vref json -> (name, format_fieldref vref) :: json)
             aliases [])
 

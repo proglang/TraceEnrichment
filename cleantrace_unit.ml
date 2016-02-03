@@ -10,11 +10,11 @@ let (|>) = Pervasives.(|>)
 let test1 =
   Test.make_simple_test ~title:"Basic trace cleanup" (fun () ->
       let (funs, objs, cleantrace, globals', gap) = CleanTrace.clean_tracefile tracefile1 in
-      Assert.make_equal (=) (Misc.to_string pp_functions) functab1 funs;
-      Assert.make_equal (=) (Misc.to_string pp_objects) objtab1 objs;
-      Assert.make_equal (=) (Misc.to_string pp_globals) globals globals';
+      Assert.make_equal (=) (Fmt.to_to_string pp_functions) functab1 funs;
+      Assert.make_equal (=) (Fmt.to_to_string pp_objects) objtab1 objs;
+      Assert.make_equal (=) (Fmt.to_to_string pp_globals) globals globals';
       Assert.equal_bool true gap;
-      Assert.make_equal (=) (Misc.to_string pp_clean_trace) cleantrace1 cleantrace)
+      Assert.make_equal (=) (Fmt.to_to_string pp_clean_trace) cleantrace1 cleantrace)
 
 (* Second test: Check that global calcuation works correctly. *)
 let test2 =
@@ -48,7 +48,7 @@ let test2 =
         Write (0, { name = "w2"; value = vundef; lhs = vundef; isGlobal = true; isScriptLocal = true }) 
       ] in
       let (_, _, cleantrace, _, _) = CleanTrace.clean_tracefile (functab1, objtab1, trace, globals, true) in
-      Assert.make_equal (=) (Misc.to_string pp_clean_trace) [
+      Assert.make_equal (=) (Fmt.to_to_string pp_clean_trace) [
         CRead { name = "r1"; value = vundef; isGlobal = true }; 
         CRead { name = "r2"; value = vundef; isGlobal = true }; 
         CWrite { name = "w1"; value = vundef; lhs = vundef; isGlobal = true; isSuccessful = true }; 
@@ -105,7 +105,7 @@ let test3 =
         Declare (0, { name = "x"; value = vundef; argument = Some (-1); isCatchParam = false });
       ]in
       let (_, _, cleantrace, _, _) = CleanTrace.clean_tracefile (functab1, objtab1, trace, globals, true) in
-      Assert.make_equal (=) (Misc.to_string pp_clean_trace) [
+      Assert.make_equal (=) (Fmt.to_to_string pp_clean_trace) [
         CFunPre { f = obj1_fun1; base = vundef; args = vundef; call_type = Function }; 
         CFunEnter { f = obj1_fun1; this = vundef; args = vundef }; 
         CFunPre { f = obj1_fun1; base = vundef; args = vundef; call_type = Method }; 
@@ -142,7 +142,7 @@ let test4 =
         FunPost  (0, { f = obj1_fun4; base = v0; args = v1; result = vtrue; isMethod = false; isConstructor = false });
       ] in
       let (_, _, cleantrace, _, _) = CleanTrace.clean_tracefile (functab1, objtab1, trace, globals, true) in
-      Assert.make_equal (=) (Misc.to_string pp_clean_trace) [
+      Assert.make_equal (=) (Fmt.to_to_string pp_clean_trace) [
         CFunPre { f = obj1_fun4; base = v0; args = v1; call_type = Function };
         CFunEnter { f = obj1_fun4; this = v0; args = v1 };
         CFunExit { ret = vtrue; exc = vundef };
