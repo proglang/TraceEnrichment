@@ -1,4 +1,3 @@
-open Misc.Notations
 open Types
 open Streaming
 open TraceTypes
@@ -11,7 +10,7 @@ module GenericCollectArguments = functor(S: Transformers) -> struct
            | CFunEnter { args } -> get_object args :: stack
            | CFunExit _ -> List.tl stack
            | _ -> stack
-         in ((op, Misc.hd_err stack'), stack'))
+         in ((op, BatList.Exceptionless.hd stack'), stack'))
 
 end;;
 

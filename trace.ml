@@ -204,9 +204,8 @@ let parse_global_value json = (* Backwards compatibility! *)
 
 
 let parse_globals json: globals =
-  let module Extra = Misc.MapExtra(StringMap) in
   try
-    json |> to_assoc |> Extra.of_list |>
+    json |> to_assoc |> StringMap.of_list |>
     StringMap.map parse_global_value
   with ParseError -> report "Context" "globals" json
 
