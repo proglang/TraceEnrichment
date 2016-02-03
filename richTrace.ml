@@ -42,7 +42,7 @@ let enrich_step globals_are_properties (op, facts) =
       (* FIXME success handling *)
       [RWrite {
           ref = mkfieldref base offset;
-          oldref = Misc.Option.some facts.last_update;
+          oldref = BatOption.get facts.last_update;
           value; success = true
         }]
     | CRead { name; value; isGlobal } ->
@@ -51,7 +51,7 @@ let enrich_step globals_are_properties (op, facts) =
       (* FIXME success handling *)
       [RWrite {
           ref = mkvarref isGlobal name;
-          oldref = Misc.Option.some facts.last_update;
+          oldref = BatOption.get facts.last_update;
           value;
           success = true
         }]
