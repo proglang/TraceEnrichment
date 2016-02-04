@@ -23,9 +23,9 @@ let gen_synthesize_inputs max_ht =
                      None }
      in
      let build_function funcs r =
-       let idx = Random.State.int r (ExtArray.length funcs + 1) in
-         if idx = ExtArray.length funcs then
-           ExtArray.append funcs (build_function_spec r);
+       let idx = Random.State.int r (BatDynArray.length funcs + 1) in
+         if idx = BatDynArray.length funcs then
+           BatDynArray.add funcs (build_function_spec r);
          (funcs, OFunction (Random.State.int r 65536, idx))
      and build_jsval r =
        match Random.State.int r 10 with
@@ -133,11 +133,11 @@ let gen_synthesize_inputs max_ht =
              let (funcs, t) = build_trace ht funcs in
              let (funcs, u) = build_unwind ht funcs exc in
                (funcs, t @ u)
-     in Printexc.print (build_trace 0) (ExtArray.of_list [])),
+     in Printexc.print (build_trace 0) (BatDynArray.of_list [])),
   (fun x -> Fmt.to_to_string (Fmt.pair pp_functions pp_clean_trace) x ^ "\n")
 
 let is_instrumented funcs f =
-  match ExtArray.get funcs f with
+  match BatDynArray.get funcs f with
     | Local { from_jalangi = Some _ } -> true
     | _ -> false
 

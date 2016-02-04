@@ -27,7 +27,7 @@ type fieldspec = {
  * this comes up in [MatchObjects]. *)
 type objectspec = fieldspec StringMap.t
 (** Description of all object initial states in the program. *)
-type objects = objectspec ExtArray.extarray
+type objects = objectspec BatDynArray.t
 (** Description of a local JavaScript function, i.e., a function that
  * consists of JavaScript code and not a native call.
  *
@@ -46,7 +46,7 @@ type local_funcspec = { from_toString : string; from_jalangi : string option }
  * identifier [fid]. *)
 type funcspec = Local of local_funcspec | External of int
 (** Description of all Javascript functions encountered in a trace. *)
-type functions = funcspec ExtArray.extarray
+type functions = funcspec BatDynArray.t
 (** The values of all (known) global variables. *)
 type globals = jsval StringMap.t
 

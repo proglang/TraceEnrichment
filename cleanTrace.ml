@@ -76,7 +76,7 @@ let global_object = OObject 0
 exception ObjectNotFound
 let get_object ?(required=false) (objects: objects) objval fieldname =
   try
-    ExtArray.get objects (get_object objval)
+    BatDynArray.get objects (get_object objval)
     |> StringMap.find fieldname
     |> fun { value } -> value
   with Not_found ->
@@ -106,7 +106,7 @@ let lookup globals (objs: objects) path =
         raise Not_found
 
 let has_field objs obj fld =
-  StringMap.mem fld (ExtArray.get objs (Types.get_object obj))
+  StringMap.mem fld (BatDynArray.get objs (Types.get_object obj))
 let has_index objs obj idx = has_field objs obj (string_of_int idx)
 
 let debug_get_array objects base =
@@ -119,7 +119,7 @@ let debug_get_array objects base =
     in get 0 []
   with ObjectNotFound ->
     Debug.debug "Not a proper array: %a, containing @[<hov 2>%a@]@." pp_jsval base
-      pp_objectspec (ExtArray.get objects (Types.get_object base));
+      pp_objectspec (BatDynArray.get objects (Types.get_object base));
     raise ObjectNotFound
       
 let resolve_call objects function_apply function_call f base args call_type =
@@ -162,7 +162,7 @@ let apply_stackop stack = function
 let is_instrumented funcs f =
   match f with
   | OFunction (_, fid) ->
-    begin match ExtArray.get funcs fid with
+    begin match BatDynArray.get funcs fid with
       | Local { from_jalangi = Some _ } -> true
       | _ -> false
     end

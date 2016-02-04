@@ -41,7 +41,7 @@ let add_known_new_object objects facts state obj =
        add_write facts state
          (Reference.reference_of_fieldref (id, name))
          objspec.value may_be_known)
-    (ExtArray.get objects(get_object_id id))
+    (BatDynArray.get objects(get_object_id id))
     state
 
 let add_literal objects facts state value =
@@ -57,7 +57,7 @@ let add_literal objects facts state value =
          | Reference.Field (obj, field) ->
            let objid = get_object_id obj in
            let ({ value }: fieldspec) =
-             StringMap.find field (ExtArray.get objects objid)
+             StringMap.find field (BatDynArray.get objects objid)
            in
            VersionReferenceMap.add vref value state
          | Reference.LocalVariable name
@@ -114,7 +114,7 @@ let globals_points_to (objects: objects) globals versions pt =
     and value = let open Reference in match ref with
       | Field (obj, field) ->
         begin
-          try (StringMap.find field (ExtArray.get objects (get_object_id obj))).value
+          try (StringMap.find field (BatDynArray.get objects (get_object_id obj))).value
           with Not_found ->
             failwith ("Can't find field " ^ field ^ " of " ^
                       (Fmt.to_to_string pp_objectid obj))

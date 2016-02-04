@@ -185,11 +185,11 @@ let parse_operation json =
   with ParseError -> report "Context" "event" json
 
 let parse_functions json =
-  try json |> convert_each parse_funcspec |> ExtArray.of_list
+  try json |> convert_each parse_funcspec |> BatDynArray.of_list
   with ParseError -> report "Context" "functions" json
 
 let parse_objects json =
-  try json |> convert_each parse_objectspec |> ExtArray.of_list
+  try json |> convert_each parse_objectspec |> BatDynArray.of_list
   with ParseError -> report "Context" "objects" json
 
 let parse_trace json =
@@ -260,7 +260,7 @@ let format_objectspec objs =
 let string_of_objectspec objs = format_objectspec objs |> Yojson.Basic.to_string
 
 let format_objects objs =
-  `List (ExtArray.to_list objs |> List.map format_objectspec)
+  `List (BatDynArray.to_list objs |> List.map format_objectspec)
 
 let format_funcspec = function
   | Local { from_toString; from_jalangi = Some from_jalangi } ->
@@ -274,7 +274,7 @@ let format_funcspec = function
 let string_of_funcspec funs = format_funcspec funs |> Yojson.Basic.to_string
 
 let format_functions funs =
-  `List (ExtArray.to_list funs |> List.map format_funcspec)
+  `List (BatDynArray.to_list funs |> List.map format_funcspec)
 
 let format_globals globals =
   `Assoc (StringMap.fold (fun name obj glob -> (name, format_jsval obj) :: glob)
