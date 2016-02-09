@@ -131,3 +131,20 @@ let pp_fieldref pp (obj, name) = Format.fprintf pp "%a@%s" pp_objectid obj name
 let get_object_id = function
   | Object id | Function (id, _) | Other (_, id) -> id
 
+let try_objectid_of_jsval = function
+  | OObject o -> Some (Object o)
+  | OFunction (o, f) -> Some (Function (o, f))
+  | OOther (t, o) -> Some (Other (t, o))
+  | _ -> None
+
+let try_get_object = function
+  | OObject id -> Some id
+  | OOther (_, id) -> Some id
+  | OFunction (id, _) -> Some id
+  | _ -> None
+
+let is_base = function
+  | OObject _
+  | OOther _
+  | OFunction _ -> false
+  | _ -> true

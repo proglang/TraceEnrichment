@@ -63,11 +63,16 @@ type fieldref = objectid * string
 exception NotAnObject
 (** Get the object identifier of a given value, or throw [NotAnObject]. *)
 val get_object: jsval -> int
+val try_get_object: jsval -> int option
 
 (** Objectid helpers *)
 val get_object_id: objectid -> int
 val objectid_of_jsval: jsval -> objectid
 val objectid_to_jsval: objectid -> jsval
+val try_objectid_of_jsval: jsval -> objectid option
+
+(** Check if a value is of base type. *)
+val is_base: jsval -> bool
 
 (** Pretty-printers *)
 val pp_objectid: Format.formatter -> objectid -> unit
