@@ -30,7 +30,7 @@ let sinks: (string, string -> unit) Hashtbl.t = Hashtbl.create 20
 let handle_new make_trace_sink uri body =
   let%lwt init_json = Cohttp_lwt_body.to_string body in
   let id = Uuidm.v4_gen (Random.get_state ()) () |> Uuidm.to_string in
-  match make_trace_sink init_json id with
+  match%lwt make_trace_sink ~init_data:init_json ~id:id with
     | Some sink ->
           Hashtbl.add sinks id sink;
           Cohttp_lwt_unix.Server.respond_string ~status:`OK ~body:id ()
@@ -143,4 +143,27 @@ let trace_collection_server make_trace_sink =
          | None -> Lwt.return ()
          | Some base ->
              Lwt.return (FileUtil.rm ~recurse:true ~force:FileUtil.Force [base]))
+
+let one_shot_server trace_consumer =
+  let result = Lwt_mvar.create_empty ()
+  and waiting = ref true in
+  let server =
+    trace_collection_server
+      (fun ~init_data ~id ->
+         if !waiting then begin
+           waiting := false;
+           let (initials, stream, push) =
+             TraceStream.parse_setup_packet init_data in
+           let%lwt _ = Lwt_mvar.put result (trace_consumer initials stream) in
+             Lwt.return_some push
+         end else
+           Lwt.return_none)
+  in Lwt.ignore_result server; Lwt.bind (Lwt_mvar.take result) (fun x -> x)
+
+let generic_server trace_consumer =
+  trace_collection_server (fun ~init_data ~id ->
+                             let (initials, stream, push) =
+                               TraceStream.parse_setup_packet init_data
+                             in (trace_consumer id initials stream: unit);
+                                Lwt.return_some push)
 
