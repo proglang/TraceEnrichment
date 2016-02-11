@@ -24,12 +24,10 @@ Library "js-enrichment-xhr"
   BuildTools: ocamlbuild
   Install:    true
   XMETAEnable: true
+  FindLibParent: js-enrichment
   XMETADescription: Trace enrichment server for JavaScript traces
-  BuildDepends: yojson, str, lwt.ppx, lwt, fmt, batteries, cohttp, fileutils, uuidm
-  Modules:    CalculatePointsTo, CalculateVersions, CleanTrace, 
-    LocalFacts, PointsTo, Reference, RichTrace, Streaming, Trace,
-    TraceTypes, Types, Debug, StringMap, IntMap, IntIntMap,
-    IntIntSet, Config, CompilationConfig, TraceCollector, TraceStream
+  BuildDepends: yojson, str, lwt.ppx, lwt, fmt, batteries, cohttp, fileutils, uuidm, conduit
+  Modules:    Config, CompilationConfig, TraceCollector, TraceStream
   
 Library "js-enrichment.test"
   Path:       .
