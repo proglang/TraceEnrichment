@@ -5,8 +5,7 @@ Synopsis:    Trace enrichment for JavaScript execution traces.
 Authors:     Johannes Kloos
 License:     MIT
 Plugins:     META (0.4), StdFiles (0.4)
-AlphaFeatures:  ocamlbuild_more_args
-XOCamlbuildExtraArgs: -use-ocamlfind
+FilesAB:     compilationConfig.ml.ab
 
 Library "js-enrichment"
   Path:       .
