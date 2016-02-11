@@ -1,3 +1,3 @@
 B _build
-PKG lwt lwt.unix kaputt yojson batteries fmt
+PKG lwt lwt.unix kaputt yojson batteries fmt cohttp uri uuidm conduit fileutils
 FLG -ppx ppx_lwt
