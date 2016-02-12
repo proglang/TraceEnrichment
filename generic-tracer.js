@@ -606,6 +606,9 @@
     }
 
     function xhrStrategy(gap, globals) {
+        if (!global.XMLHttpRequest) {
+            XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
+        }
         var xhr = new XMLHttpRequest();
         var urlbase =
             "http://" +
@@ -626,6 +629,7 @@
         function sendXHR() {
             if (facts != []) {
                 canSend = false;
+                xhr = new XMLHttpRequest();
                 xhr.open("POST", url, true);
                 xhr.onreadystatechange = sendXHRCallback;
                 xhr.send(JSON.stringify(facts));
