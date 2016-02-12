@@ -15,6 +15,7 @@ let instrument filename outdir =
        "--analysis"; Config.get_analysis_script_path ();
        "--initParam"; "host:" ^ (Config.get_xhr_server_address ());
        "--initParam"; "port:" ^ (string_of_int (Config.get_xhr_server_port ()));
+       "--initParam"; "strategy:xhr";
        "--outputDir"; outdir;
        filename |]
   in match Unix.fork () with
