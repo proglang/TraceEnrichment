@@ -1,7 +1,7 @@
 let (/:) = Filename.concat
 
 let instrument_script_path =
-  List.fold_right (/:) [ "src"; "js"; "commands" ] "instrument.js"
+  List.fold_right (/:) [ "src"; "js"; "commands" ] "generic-tracer.js"
 
 exception InstrumentationError
 
