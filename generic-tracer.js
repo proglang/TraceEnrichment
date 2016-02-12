@@ -605,7 +605,91 @@
 
     }
 
-    var strategies = { debug: debugStrategy, console: consoleJSONStrategy, dumpEnv: dumpEnvStrategy }
+    function xhrStrategy(gap, globals) {
+        var xhr = new XMLHttpRequest();
+        var urlbase =
+            "http://" +
+            (J$.initParams.host || "localhost") + ":" +
+            (J$.initParams.port || "8080") + "/";
+        xhr.open("POST", urlbase + "new", false);
+        xhr.send(JSON.stringify([gap, globals]));
+        if (xhr.readyState != 4) { throw new Exception("XHR session initialisation failed"); }
+        var session = xhr.response;
+        var url = urlbase + session + "/facts";
+        var facts = [];
+
+        var canSend = true;
+        var timeoutId;
+        var maxLength = 20;
+        var timeout = 100;
+
+        function sendXHR() {
+            if (facts != []) {
+                canSend = false;
+                xhr.open("POST", url, true);
+                xhr.onreadystatechange = sendXHRCallback;
+                xhr.send(JSON.stringify(facts));
+                facts = [];
+            }
+        }
+
+        function sendXHRCallback() {
+            if (xhr.readyState >= 2) {
+                canSend = true;
+                sendStateMachine(false);
+            }
+        }
+
+        function sendStateMachine(pushy) {
+            if (canSend) {
+                if (facts.length == 0) {
+                    if (timeoutId) {
+                        clearTimeout(timeoutId);
+                        timeoutId = undefined;
+                    }
+                } else if (facts.length < maxLength && !pushy) {
+                    if (!timeoutId)
+                        timeoutId = setTimeout(sendXHR(), timeout);
+                } else if (facts.length >= maxLength || pushy) {
+                    if (timeoutId) {
+                        clearTimeout(timeoutId);
+                        timeoutId = undefined;
+                    }
+                    sendXHR();
+                }
+            }
+        }
+
+        function sendFact(fact, pushy) {
+            facts.push(fact);
+            sendStateMachine(pushy);
+        }
+
+        var strategy = {};
+        strategy.addFunction = function (id, desc) {
+            sendFact([ "function", id, desc ]);
+        }
+        strategy.addObject = function (id, desc) {
+            sendFact([ "object", id, desc ]);
+        }
+        strategy.functionCode = function (id, code) {
+            sendFact([ "function-uninstrumented", id, code ]);
+        }
+        strategy.addStep = function(step) {
+            sendFact([ "step", step ]);
+        }
+        strategy.end = function () {
+            sendFact([ "end" ], true);
+        }
+        return strategy;
+    }
+
+    var strategies = {
+        debug: debugStrategy,
+        console: consoleJSONStrategy,
+        dumpEnv: dumpEnvStrategy,
+        xhr: xhrStrategy
+    }
     var whichStrategy = J$.initParams.strategy || "debug";
     sandbox.analysis = new GenericAnalysis(this, strategies[whichStrategy]);
 })(J$);
