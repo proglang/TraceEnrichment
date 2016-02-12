@@ -18,6 +18,7 @@ _build/
 # Editor backup files.
 *~
 *.bak
+.*.swp
 
 # OASIS generated files.
 AUTHORS.txt
