@@ -1,3 +1,5 @@
+(** Basic types used everywhere in js-enrichment. *)
+
 (** A JavaScript value. This represents the value, either directly or as a reference to the object and/or function tables.  *)
 type jsval =
   | OUndefined
@@ -9,10 +11,10 @@ type jsval =
   | OSymbol of string
   | OFunction of int * int (** [OFunction(id, fid)] stands for a function belonging to object [id], with function id [fid]. *)
   | OObject of int (** [OObject id] stands for the object with object id [id]. *)
-  | OOther of string * int (** [OOther (ty, id) stands for a special object with type [ty] and object id [id]. *)
+  | OOther of string * int (** [OOther (ty, id)] stands for a special object with type [ty] and object id [id]. *)
 
 (** The description of a field in an object. This record reflects
- * the structure of the Property Descriptor described in ECMAScript 6. *)
+   the structure of the Property Descriptor described in ECMAScript 6. *)
 type fieldspec = {
   value: jsval;
   writable: bool;
@@ -22,29 +24,29 @@ type fieldspec = {
   configurable: bool
 }
 (** An object can be described by a description of all its fields.
- *
- * Note that complete knowledge of object fields is not always available;
- * this comes up in [MatchObjects]. *)
+
+   Note that complete knowledge of object fields is not always available;
+   this comes up in [MatchObjects]. *)
 type objectspec = fieldspec StringMap.t
 (** Description of all object initial states in the program. *)
 type objects = objectspec BatDynArray.t
 (** Description of a local JavaScript function, i.e., a function that
- * consists of JavaScript code and not a native call.
- *
- * The two fields contain the from_toString and the from_jalangi code
- * of the function. In some cases, from_jalangi contains "(unknown)";
- * this happens when the code is outside of the Jalangi-instrumented
- * part of the program.
- *
- * FIXME: Obviously, it would more sense to have a single string
- * describing the function body, containing the uninstrumented code
- * only. The cases can be kept apart in parsing.
+   consists of JavaScript code and not a native call.
+
+   The two fields contain the from_toString and the from_jalangi code
+   of the function. In some cases, from_jalangi contains "(unknown)";
+   this happens when the code is outside of the Jalangi-instrumented
+   part of the program.
+
+   FIXME: Obviously, it would more sense to have a single string
+   describing the function body, containing the uninstrumented code
+   only. The cases can be kept apart in parsing.
 *)
 type local_funcspec = { from_toString : string; from_jalangi : string option }
 (** Description of a Javascript function. It can either be local, with
- * a description as given above, or [External fid], with function
- * identifier [fid]. *)
-type funcspec = Local of local_funcspec | External of int
+   a description as given above, or [External fid], with function
+   identifier [fid]. *)
+type funcspec = Local of local_funcspec | External of int (** *)
 (** Description of all Javascript functions encountered in a trace. *)
 type functions = funcspec BatDynArray.t
 (** The values of all (known) global variables. *)
@@ -86,8 +88,11 @@ val pp_funcspec : Format.formatter -> funcspec -> unit
 val pp_functions : Format.formatter -> functions -> unit
 val pp_globals : Format.formatter -> globals -> unit
 
-(** For streaming *)
-(* Nota bene: functions and objects are, in fact, mutable internally. *)
+(**
+  Initial state data, containing globals, object descriptions
+  and function descriptions. This is used in streaming.
+
+  Nota bene: functions and objects are, in fact, mutable internally. *)
 type initials = {
   functions: functions;
   objects: objects;

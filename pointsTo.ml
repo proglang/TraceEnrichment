@@ -1,3 +1,4 @@
+(** Helpers for the points-to map. *)
 open TraceTypes
 module VersionReferenceMap = Reference.VersionReferenceMap
 

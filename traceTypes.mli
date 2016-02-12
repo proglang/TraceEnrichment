@@ -1,7 +1,8 @@
 open Types
-(** * Structures that contain event data *)
+(** The different kinds of traces. *)
+(** {1 Structures that contain event data} *)
 (** Thanks to these structures, we do not carry around huge tuples. The fields are exactly
- * the properties that can be read off from the JSON trace representation, unless otherwise noted. *)
+ the properties that can be read off from the JSON trace representation, unless otherwise noted. *)
 type raw_funpre = {
   f : jsval;
   base : jsval;
@@ -81,7 +82,7 @@ type unary = { op : string; arg : jsval; result : jsval; }
 type funenter = { f : jsval; this : jsval; args : jsval; }
 type funexit = { ret : jsval; exc : jsval; }
 (** The type of operations in a trace.
-  * This covers exactly the possible cases in the JSON trace. *)
+  This covers exactly the possible cases in the JSON trace. *)
 type event =
   | FunPre of int * raw_funpre
   | FunPost of int * raw_funpost
@@ -108,20 +109,20 @@ type event =
   | UnaryPost of int * unary
   | EndExpression of int
   | Conditional of jsval
-  (** A trace is a sequence of events. *)
+(** A trace is a sequence of events. *)
 type trace = event list
 type raw_stream = event Streaming.Stream.t
 
 (** A trace file is a tuple containing the various components defined above. *)
 type tracefile = functions * objects * trace * globals * bool
 
-(** * Cleaned-up traces. *)
+(** {1 Cleaned-up traces} *)
 (** A cleaned-up trace is a version of a trace that has
- * unneccesary detail removed, and contains proper information
- * on whether a variable access goes to a global or a local variable. *)
+ unneccesary detail removed, follows the trace grammar and
+ contains some extra information. *)
 
 (** Classification of the different types of function calls. This just enumerates
- * the combinations of flags. *)
+ the combinations of flags. *)
 type call_type = Function | Method | Constructor | ConstructorMethod
 
 (** The different possible types of variable declarations. *)
@@ -136,8 +137,8 @@ type declaration_type =
   | CatchParam
 
 (** Structures that contain information about the different possible events on a trace.
- * 
- * These structures are pruned-down versions of those in [Trace].
+
+ These structures are pruned-down versions of those in [Trace].
 *)
 type funpre = {
   f : jsval;
@@ -182,7 +183,7 @@ type binary = {
 }
 
 (** Events that can occur in a cleaned-up trace. Note that certain
- * events in a [Trace.trace] are redundant for out task, so we drop them. *)
+ events in a [Trace.trace] are redundant for out task, so we drop them. *)
 type clean_operation =
   | CFunPre of funpre
   | CFunPost of funpost
@@ -214,7 +215,7 @@ type clean_stream = clean_operation Streaming.Stream.t
 (** A clean trace file is like a trace file, only it contains a clean trace. *)
 type clean_tracefile = functions * objects * clean_trace * globals * bool
 
-(** * A nicer form of trace, with more uniform events. *)
+(** {1 A nicer form of trace, with more uniform events} *)
 
 (** This contains an explanation of where an alias comes from. *)
 type alias_source = Argument of int | With of Reference.versioned_reference
@@ -240,10 +241,10 @@ type rwrite = {
   success : bool;
 }
 (** Events that make use of the facts calculated by the [LocalFacts] module
- * and consorts to provide a better representation for trace comparison.
- * Compare with [clean_operation], and note that variable and field accessed
- * have been unified to [RRead] and [RWrite], while [CDeclare] has been split
- * into [RAlias], [RLocal] and [RCatch]. *)
+ and consorts to provide a better representation for trace comparison.
+ Compare with [clean_operation], and note that variable and field accessed
+ have been unified to [RRead] and [RWrite], while [CDeclare] has been split
+ into [RAlias], [RLocal] and [RCatch]. *)
 type rich_operation =
     RFunPre of funpre
   | RFunPost of funpost
@@ -307,9 +308,9 @@ type rich_event = rich_operation * local_facts
 (** A rich trace contains rich operations and local facts. *)
 type rich_trace = rich_event list
 (** A rich trace file contains the original function and object descriptions,
- * as well as global object information and the [globals_are_properties] flag.
- * Furthermore, it contains a rich trace and a points - to map for the references
- * occuring in the program. *)
+ as well as global object information and the [globals_are_properties] flag.
+ Furthermore, it contains a rich trace and a points - to map for the references
+ occuring in the program. *)
 type rich_tracefile = {
   funcs : functions;
   objs : objects;
@@ -334,4 +335,5 @@ val pp_rich_trace : Format.formatter -> rich_trace -> unit
 val pp_rich_tracefile : Format.formatter -> rich_tracefile -> unit
 val pp_local_facts: Format.formatter -> local_facts -> unit
 
+(** Debugging helper: When writing rich events, also dump associated facts. *)
 val enable_dump_facts: unit -> unit

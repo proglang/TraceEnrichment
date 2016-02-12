@@ -19,6 +19,16 @@ Library "js-enrichment"
     TraceTypes, Types, Debug, StringMap, IntMap, IntIntMap,
     IntIntSet
 
+Document "js-enrichment-api"
+  Type:       ocamlbuild (0.4)
+  BuildTools: ocamldoc, ocamlbuild
+  Title:      API reference for js-enrichment
+  XOcamlbuildPath: .
+  XOcamlbuildModules:    CalculatePointsTo, CalculateVersions, CleanTrace, 
+    LocalFacts, PointsTo, Reference, RichTrace, Streaming, Trace,
+    TraceTypes, Types, Debug, StringMap, IntMap, IntIntMap,
+    IntIntSet
+
 Library "js-enrichment-xhr"
   Path:       .
   BuildTools: ocamlbuild
