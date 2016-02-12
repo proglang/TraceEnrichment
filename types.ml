@@ -148,3 +148,10 @@ let is_base = function
   | OOther _
   | OFunction _ -> false
   | _ -> true
+
+type initials = {
+  functions: functions;
+  objects: objects;
+  globals: globals;
+  globals_are_properties: bool;
+}

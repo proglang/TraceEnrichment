@@ -86,4 +86,13 @@ val pp_funcspec : Format.formatter -> funcspec -> unit
 val pp_functions : Format.formatter -> functions -> unit
 val pp_globals : Format.formatter -> globals -> unit
 
+(** For streaming *)
+(* Nota bene: functions and objects are, in fact, mutable internally. *)
+type initials = {
+  functions: functions;
+  objects: objects;
+  globals: globals;
+  globals_are_properties: bool;
+}
+
 

@@ -139,7 +139,7 @@ let initial_pointsto init =
         |> globals_points_to init.objects init.globals versions)
 
 open Reference
-let update_points_to init points_to (op, lf) =
+let update_points_to (init: initials) points_to (op, lf) =
   let points_to' =
     collect_pointsto_step init.globals_are_properties init.objects points_to lf op
   in ((op, { lf with points_to = points_to' }), points_to')

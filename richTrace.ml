@@ -89,8 +89,8 @@ let calculate_rich_tracefile
   in
   { funcs; objs; globals; globals_are_properties; trace; points_to }
 
-let calculate_rich_stream init stream =
-  StreamEnrich.to_rich_tracefile init.Reference.globals_are_properties stream
+let calculate_rich_stream (init: initials) stream =
+  StreamEnrich.to_rich_tracefile init.globals_are_properties stream
 
 let tracefile_to_rich_tracefile trace =
   trace

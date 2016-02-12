@@ -1,6 +1,7 @@
 open LocalFacts
-open Reference
 open TraceTypes
+open Types
+open Reference
 
 (** Calculate a points-to map for a given trace file. Note that this requires
  * the version map to be initialized. *)

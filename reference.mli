@@ -56,14 +56,3 @@ type points_to_map = Types.jsval VersionReferenceMap.t
 (** Pretty-printer. *)
 val pp_points_to_map: Format.formatter -> points_to_map -> unit
 
-(* For streaming *)
-open Types
-(* Nota bene: functions and objects are, in fact, mutable internally. *)
-type initials = {
-  functions: functions;
-  objects: objects;
-  globals: globals;
-  globals_are_properties: bool;
-}
-
-

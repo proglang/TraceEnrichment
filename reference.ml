@@ -78,12 +78,3 @@ type points_to_map = jsval VersionReferenceMap.t
 
 let pp_points_to_map = pp_versioned_reference_map pp_jsval
 
-(* For streaming *)
-type initials = {
-  functions: functions;
-  objects: objects;
-  globals: globals;
-  globals_are_properties: bool;
-}
-
-

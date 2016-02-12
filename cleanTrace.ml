@@ -648,7 +648,7 @@ let synthesize_events funcs trace =
 let clean_tracefile (funs, objs, rawtr, globals, gap) =
   (funs, objs, CleanList.clean_trace globals funs objs rawtr, globals, gap)
 
-let clean_stream data raw =
+let clean_stream (data: initials) raw =
   let open Reference in
   CleanStream.clean_trace data.globals data.functions data.objects raw
 
