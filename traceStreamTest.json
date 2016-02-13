@@ -1,0 +1,33 @@
+[
+    [ true,
+        { "global": { "type": "object", "id": 0 } }
+    ],
+    [
+        [ "object", 0, {
+            "Array": { "type": "function", "id":1, "funid": 0 },
+            "console": { "type": "object", "id":2 }
+        }],
+        [ "function", 0, {
+            "instrumented": "[native]",
+            "obj": { "type": "function", "id":1, "funid": 0 }
+        } ],
+        [ "object", 1, {
+            "prototype": { "type": "object", "id":1 }
+        }],
+        [ "object", 2, { }]
+    ],
+    [
+        [ "function", 1, {
+            "instrumented": "/* instrumented */",
+            "obj": { "type": "function", "id":3, "funid": 1 }
+        }],
+        [ "object", 3, { }],
+        [ "function-uninstrumented", 1, "/* uninstrumented */" ]
+    ],
+    [
+        [ "step", { "step": "literal", "iid": 42,
+            "val": { "type": "function", "id":3, "funid": 1 },
+            "hasGetterSetter": false }],
+        [ "end" ]
+    ]
+]

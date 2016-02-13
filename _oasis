@@ -116,6 +116,15 @@ Executable "synthesize_test"
   BuildTools: ocamlbuild
   CompiledObject: best
 
+Executable "traceStreamTest"
+  Install:    false
+  Build$:     flag(tests)
+  MainIs:     traceStreamTest.ml
+  BuildDepends: js-enrichment, js-enrichment.js-enrichment-xhr, kaputt, lwt, lwt.unix
+  Path:       .
+  BuildTools: ocamlbuild
+  CompiledObject: best
+
 Test "synthesize_test"
   Command:    $synthesize_test
   Run:        true
