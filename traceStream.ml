@@ -40,24 +40,17 @@ let rec handle_end = function
   | item :: items -> let (items, at_end) = handle_end items in (item::items, at_end)
   | [] -> ([], false)
 
-let pad_array value arr length =
-  while BatDynArray.length arr <= length do
-    BatDynArray.add arr value
-  done
-           
 let function_handler initials = function
   | ItemFunction (id, spec) ->
       let open Reference in
-        pad_array spec initials.functions id;
-        BatDynArray.set initials.functions id spec;
+        BatDynArray.insert initials.functions id spec;
         true
   | _ -> false
 
 let object_handler initials = function
   | ItemObject (id, spec) ->
       let open Reference in
-        pad_array spec initials.objects id;
-        BatDynArray.set initials.objects id spec;
+        BatDynArray.insert initials.objects id spec;
         true
   | _ -> false
 

@@ -4,15 +4,15 @@
     ],
     [
         [ "object", 0, {
-            "Array": { "type": "function", "id":1, "funid": 0 },
-            "console": { "type": "object", "id":2 }
+            "Array": { "value": {"type": "function", "id":1, "funid": 0} },
+            "console": { "value": {"type": "object", "id":2} }
         }],
         [ "function", 0, {
-            "instrumented": "[native]",
-            "obj": { "type": "function", "id":1, "funid": 0 }
+            "instrumented": "[native code]",
+            "obj": 0
         } ],
         [ "object", 1, {
-            "prototype": { "type": "object", "id":1 }
+            "prototype": { "value": {"type": "object", "id":1} }
         }],
         [ "object", 2, { }]
     ],
