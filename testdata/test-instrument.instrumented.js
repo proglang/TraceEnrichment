@@ -1,4 +1,4 @@
-J$.iids = {"nBranches":2,"originalCodeFileName":"out/test-instrument_orig_.js","instrumentedCodeFileName":"out/test-instrument.js"};
+J$.iids = {"9":[1,1,1,8],"17":[1,13,1,14],"25":[1,1,1,15],"27":[1,1,1,12],"33":[1,1,1,16],"41":[1,1,2,1],"49":[1,1,2,1],"57":[1,1,2,1],"nBranches":2,"originalCodeFileName":"out/test-instrument_orig_.js","instrumentedCodeFileName":"out/test-instrument.js","code":"console.log(1);\n"};
 jalangiLabel0:
     while (true) {
         try {
