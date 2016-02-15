@@ -125,6 +125,15 @@ Executable "traceStreamTest"
   BuildTools: ocamlbuild
   CompiledObject: best
 
+Executable "jalangiInterfaceTest"
+  Install:    false
+  Build$:     flag(tests)
+  MainIs:     jalangiInterfaceTest.ml
+  BuildDepends: js-enrichment, js-enrichment.js-enrichment-xhr, kaputt, lwt, lwt.unix, fileutils, diff, camltemplate
+  Path:       .
+  BuildTools: ocamlbuild
+  CompiledObject: best
+
 Test "synthesize_test"
   Command:    $synthesize_test
   Run:        true
