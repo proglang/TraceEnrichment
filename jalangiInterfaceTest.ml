@@ -3,7 +3,7 @@ open Kaputt.Abbreviations
 let (|>) = Pervasives.(|>)
 let same_file expected got =
   Assert.make_equal (=) Odiff.string_of_diffs
-    [] (Odiff.strings_diffs expected got)
+    [] (Odiff.files_diffs expected got)
 
 let test_jalangi_instrument =
   Test.make_assert_test ~title:"Instrumenting a JavaScript file, simple"
@@ -13,9 +13,9 @@ let test_jalangi_instrument =
          [ "testdata/test-instrument.js"; "testdata/test-instrument.html" ]
          tmpdir
        |> Lwt_main.run |> ignore;
-       same_file "testdata/test-instrumented.instrumented.js"
+       same_file "testdata/test-instrument.instrumented.js"
          (tmpdir ^ "/test-instrument.js");
-       same_file "testdata/test-instrumented.instrumented.html"
+       same_file "testdata/test-instrument.instrumented.html"
          (tmpdir ^ "/test-instrument.html");
        tmpdir)
     (fun tmpdir -> FileUtil.rm ~force:FileUtil.Force ~recurse:true [tmpdir])
