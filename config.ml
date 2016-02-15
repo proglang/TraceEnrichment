@@ -54,7 +54,7 @@ let find_analysis_script () =
     | Some path ->
         if good path then () else failwith "Analysis script not found in given path!"
     | None ->
-        let script_base = "xhrtracer.js" in
+        let script_base = "generic-tracer.js" in
           if good script_base then
             analysis_script_path := Some script_base
           else
@@ -70,7 +70,7 @@ let find_analysis_html () =
     | Some path ->
         if good path then () else failwith "Analysis driver not found in given path!"
     | None ->
-        let script_base = "xhrtracer.html" in
+        let script_base = "analysisDriver.html" in
           if good script_base then
             analysis_script_path := Some script_base
           else
