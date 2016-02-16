@@ -27,4 +27,4 @@ val jalangi2_instrument : string -> string list -> string -> unit Lwt.t
   *)
 val instrument_for_browser :
   ?basename:string ->
-  providejs:(string -> string option Lwt.t) -> string Lwt.t
+  providejs:(string -> unit Lwt.t) -> string Lwt.t

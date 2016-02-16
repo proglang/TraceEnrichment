@@ -14,7 +14,7 @@ let instrument_make_html basename =
                template_cache
                (Config.get_analysis_html_path ())
   in
-    Hashtbl.add model "basename" (CamlTemplate.Model.Tstr basename);
+    Hashtbl.add model "basename" (CamlTemplate.Model.Tstr (Filename.basename basename));
     CamlTemplate.merge tmpl model buffer;
     Buffer.contents buffer
 
@@ -60,11 +60,9 @@ let instrument_for_browser ?basename ~providejs =
     | Some basename -> tmpdir /: Filename.basename basename
     | None -> Filename.temp_file ~temp_dir:tmpdir "gen" ""
   in let jsfile = basename ^ ".js" and htmlfile = basename ^ ".html" in
-  let%lwt jsfile = match%lwt providejs jsfile with
-    | Some actual_jsfile -> Lwt.return actual_jsfile
-    | None -> Lwt.return jsfile
-  in let driver = instrument_make_html basename in
+  let%lwt _ = providejs jsfile in
+  let driver = instrument_make_html basename in
   let%lwt _ = Lwt_io.with_file Lwt_io.Output htmlfile (fun c -> Lwt_io.write c driver) in
   let%lwt _ = jalangi2_instrument "xhr" [ jsfile; htmlfile ] insdir in
-    Lwt.return basename
+    Lwt.return (insdir /: Filename.basename basename)
    
