@@ -54,6 +54,8 @@ let get_instrument_tmp_dir () =
     instrument_tmp_dir := Some path;
     Lwt.return (path, path /: "instrumented")
 
+let get_instrumented_dir () = Lwt.map snd (get_instrument_tmp_dir ())
+
 let instrument_for_browser ?basename ~providejs =
   let%lwt (tmpdir, insdir) = get_instrument_tmp_dir () in
   let basename = match basename with

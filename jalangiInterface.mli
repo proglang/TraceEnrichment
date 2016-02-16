@@ -28,3 +28,6 @@ val jalangi2_instrument : string -> string list -> string -> unit Lwt.t
 val instrument_for_browser :
   ?basename:string ->
   providejs:(string -> unit Lwt.t) -> string Lwt.t
+
+(** Return the path containing the instrumented files. *)
+val get_instrumented_dir: unit -> string Lwt.t
