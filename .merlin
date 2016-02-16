@@ -1,4 +1,4 @@
 B _build
 PKG lwt lwt.unix kaputt yojson batteries fmt cohttp uri uuidm conduit fileutils
-PKG camltemplate diff
+PKG camltemplate
 FLG -ppx ppx_lwt

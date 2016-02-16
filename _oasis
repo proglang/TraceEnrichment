@@ -129,7 +129,7 @@ Executable "jalangiInterfaceTest"
   Install:    false
   Build$:     flag(tests)
   MainIs:     jalangiInterfaceTest.ml
-  BuildDepends: js-enrichment, js-enrichment.js-enrichment-xhr, kaputt, lwt, lwt.unix, fileutils, diff, camltemplate
+  BuildDepends: js-enrichment, js-enrichment.js-enrichment-xhr, kaputt, lwt, lwt.unix, fileutils, camltemplate
   Path:       .
   BuildTools: ocamlbuild
   CompiledObject: best
