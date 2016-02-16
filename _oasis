@@ -37,7 +37,7 @@ Library "js-enrichment-xhr"
   FindLibParent: js-enrichment
   XMETADescription: Trace enrichment server for JavaScript traces
   BuildDepends: yojson, str, lwt.ppx, lwt, fmt, batteries, cohttp, fileutils, uuidm, conduit
-  Modules:    Config, CompilationConfig, TraceCollector, TraceStream
+  Modules:    Config, CompilationConfig, TraceCollector, TraceStream, JalangiInterface
   DataFiles:  generic-tracer.js
   
 Library "js-enrichment.test"
@@ -129,7 +129,16 @@ Executable "jalangiInterfaceTest"
   Install:    false
   Build$:     flag(tests)
   MainIs:     jalangiInterfaceTest.ml
-  BuildDepends: js-enrichment, js-enrichment.js-enrichment-xhr, kaputt, lwt, lwt.unix, fileutils, camltemplate
+  BuildDepends: js-enrichment, js-enrichment.js-enrichment-xhr, kaputt, lwt, lwt.unix, camltemplate
+  Path:       .
+  BuildTools: ocamlbuild
+  CompiledObject: best
+
+Executable "traceCollectorTest"
+  Install:    false
+  Build$:     flag(tests)
+  MainIs:     traceCollectorTest.ml
+  BuildDepends: js-enrichment, js-enrichment.js-enrichment-xhr, kaputt, lwt, lwt.unix, camltemplate, cohttp, cohttp.lwt
   Path:       .
   BuildTools: ocamlbuild
   CompiledObject: best
