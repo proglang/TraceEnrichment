@@ -72,11 +72,11 @@ let find_analysis_html () =
     | None ->
         let script_base = "analysisDriver.html" in
           if good script_base then
-            analysis_script_path := Some script_base
+            analysis_html_path := Some script_base
           else
             let installed_path = CompilationConfig.datadir /: "jstools" /: script_base in
               if good installed_path then
-                analysis_script_path := Some installed_path
+                analysis_html_path := Some installed_path
               else
                 failwith "Analysis driver not found!"
 
