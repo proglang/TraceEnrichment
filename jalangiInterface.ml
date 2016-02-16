@@ -25,6 +25,8 @@ let jalangi2_instrument strategy filenames outdir =
       Config.get_jalangi2_path() /: instrument_script_path;
       "--inlineIID";
       "--inlineSource";
+      "--inlineJalangi";
+      "-i";
       "--analysis"; Config.get_analysis_script_path ();
       "--initParam"; "host:" ^ (Config.get_xhr_server_address ());
       "--initParam"; "port:" ^ (string_of_int (Config.get_xhr_server_port ()));
@@ -33,7 +35,8 @@ let jalangi2_instrument strategy filenames outdir =
     ] @ filenames
   in let argarray = Array.of_list args in
   match Lwt_unix.fork () with
-  | 0 -> Unix.execv (Config.get_node_path ()) argarray
+  | 0 ->
+      Unix.execv (Config.get_node_path ()) argarray
   | pid ->
     Lwt_unix.waitpid [] pid
     >|= function
