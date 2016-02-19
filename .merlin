@@ -1,4 +1,10 @@
 B _build
+B _build/lib
+B _build/xhr
+B _build/tools
+S lib
+S xhr
+S tools
 PKG lwt lwt.unix kaputt yojson batteries fmt cohttp uri uuidm conduit fileutils
-PKG camltemplate ppx_deriving_yojson
+PKG camltemplate ppx_deriving_yojson logs
 FLG -ppx ppx_lwt
