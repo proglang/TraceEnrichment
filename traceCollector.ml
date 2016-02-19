@@ -196,6 +196,6 @@ module Server(S: STRATEGY) = struct
           server
       in log_info (fun () -> ("Server shut down", []));
          JalangiInterface.clean_up();
-         Lwt.return_none
+         Lwt.return_unit
 
 end
