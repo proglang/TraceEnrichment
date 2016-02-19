@@ -39,7 +39,7 @@ let find_jalangi () =
           jalangi2_path := Some "."
         else
           let npm = Filename.dirname !node_path /: "npm" in
-          let chan = Unix.open_process_in (npm ^ " explore jalangi2 -- pwd") in
+          let chan = Unix.open_process_in (npm ^ " explore jalangi2 -- pwd 2>/dev/null") in
             try
               let path = input_line chan in
                 ignore (Unix.close_process_in chan);
