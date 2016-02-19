@@ -8,7 +8,7 @@ Plugins:     META (0.4), StdFiles (0.4)
 FilesAB:     compilationConfig.ml.ab
 
 Library "js-enrichment"
-  Path:       .
+  Path:       lib
   BuildTools: ocamlbuild
   Install:    true
   XMETAEnable: true
@@ -23,14 +23,14 @@ Document "js-enrichment-api"
   Type:       ocamlbuild (0.4)
   BuildTools: ocamldoc, ocamlbuild
   Title:      API reference for js-enrichment
-  XOcamlbuildPath: .
+  XOcamlbuildPath: lib
   XOcamlbuildModules:    CalculatePointsTo, CalculateVersions, CleanTrace, 
     LocalFacts, PointsTo, Reference, RichTrace, Streaming, Trace,
     TraceTypes, Types, Debug, StringMap, IntMap, IntIntMap,
     IntIntSet
 
 Library "js-enrichment-xhr"
-  Path:       .
+  Path:       xhr
   BuildTools: ocamlbuild
   Install:    true
   XMETAEnable: true
@@ -41,7 +41,7 @@ Library "js-enrichment-xhr"
   DataFiles:  generic-tracer.js
   
 Library "js-enrichment.test"
-  Path:       .
+  Path:       lib
   BuildTools: ocamlbuild
   Install:    true
   XMETAEnable: true
@@ -54,7 +54,7 @@ Flag prettyprint
   Default:     false
 
 Executable "pptrace"
-  Path:         .
+  Path:         tools
   BuildTools:   ocamlbuild
   MainIs:       pptrace.ml
   Install$:     flag(prettyprint)
@@ -62,7 +62,7 @@ Executable "pptrace"
   CompiledObject: best
 
 Executable "pprichtrace"
-  Path:         .
+  Path:         tools
   BuildTools:   ocamlbuild
   MainIs:       pprichtrace.ml
   Install$:     flag(prettyprint)
@@ -70,7 +70,7 @@ Executable "pprichtrace"
   CompiledObject: best
 
 Executable "ppcleantrace"
-  Path:         .
+  Path:         tools
   BuildTools:   ocamlbuild
   MainIs:       ppcleantrace.ml
   Install$:     flag(prettyprint)
@@ -78,7 +78,7 @@ Executable "ppcleantrace"
   CompiledObject: best
 
 Executable "unittests"
-  Path:       .
+  Path:       lib
   BuildTools: ocamlbuild
   Install:    false
   Build$:     flag(tests)
@@ -94,7 +94,7 @@ Executable "cleantrace_test"
   Build$:     flag(tests)
   MainIs:     cleantrace_test.ml
   BuildDepends: js-enrichment
-  Path:       .
+  Path:       lib
   BuildTools: ocamlbuild
   CompiledObject: best
 
@@ -103,7 +103,7 @@ Executable "richtrace_test"
   Build$:     flag(tests)
   MainIs:     richtrace_test.ml
   BuildDepends: js-enrichment
-  Path:       .
+  Path:       lib
   BuildTools: ocamlbuild
   CompiledObject: best
 
@@ -112,7 +112,7 @@ Executable "synthesize_test"
   Build$:     flag(tests)
   MainIs:     cleanTrace_unit_synthesize.ml
   BuildDepends: js-enrichment, kaputt
-  Path:       .
+  Path:       lib
   BuildTools: ocamlbuild
   CompiledObject: best
 
@@ -121,7 +121,7 @@ Executable "traceStreamTest"
   Build$:     flag(tests)
   MainIs:     traceStreamTest.ml
   BuildDepends: js-enrichment, js-enrichment.js-enrichment-xhr, kaputt, lwt, lwt.unix
-  Path:       .
+  Path:       xhr
   BuildTools: ocamlbuild
   CompiledObject: best
 
@@ -130,7 +130,7 @@ Executable "jalangiInterfaceTest"
   Build$:     flag(tests)
   MainIs:     jalangiInterfaceTest.ml
   BuildDepends: js-enrichment, js-enrichment.js-enrichment-xhr, kaputt, lwt, lwt.unix, camltemplate
-  Path:       .
+  Path:       xhr
   BuildTools: ocamlbuild
   CompiledObject: best
 
@@ -141,7 +141,7 @@ Executable "traceCollectorTest"
   BuildDepends: js-enrichment, js-enrichment.js-enrichment-xhr,
         ppx_deriving.std, ppx_deriving_yojson,
         lwt, lwt.unix, cohttp, cohttp.lwt, camltemplate
-  Path:       .
+  Path:       xhr
   BuildTools: ocamlbuild
   CompiledObject: best
 
@@ -152,7 +152,7 @@ Executable "traceStreamServerTest"
   BuildDepends: js-enrichment, js-enrichment.js-enrichment-xhr,
         ppx_deriving.std, ppx_deriving_yojson,
         lwt, lwt.unix, cohttp, cohttp.lwt, camltemplate
-  Path:       .
+  Path:       xhr
   BuildTools: ocamlbuild
   CompiledObject: best
 
