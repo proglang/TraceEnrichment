@@ -34,7 +34,6 @@ module Server(S: STRATEGY) = struct
   open Cohttp.Code
 
   let sessions = Hashtbl.create 20
-  let shutdown = ref false
   let logger = BatLogger.make_log "JSCollector"
   let log_debug = BatLogger.log logger BatLogger.DEBUG
   let log_info = BatLogger.log logger BatLogger.INFO
@@ -43,12 +42,14 @@ module Server(S: STRATEGY) = struct
   let log_error = BatLogger.log logger BatLogger.ERROR
   let log_fatal = BatLogger.log logger BatLogger.FATAL
 
+  let (stop, wakener) = Lwt.wait ()
+  let shutdown: unit -> unit = Lwt.wakeup wakener
 
   let handler_new uri body =
     let id = make_new_uuid () in
     let%lwt init_data = body in
     let%lwt sink =
-      S.make_trace_sink ~init_data ~id ~finish:(fun () -> shutdown := true)
+      S.make_trace_sink ~init_data ~id ~finish:shutdown
     in
       Hashtbl.add sessions id sink;
       reply_plain_text id
@@ -67,8 +68,10 @@ module Server(S: STRATEGY) = struct
     with Exit -> reply_error `Not_found "No such handler"
 
   let handler_shutdown uri body =
-    shutdown := true;
-    reply_plain_text "Shuting down"
+    log_info (fun () -> ("Shutting down server", []));
+    let _ = shutdown () in
+      log_info (fun () -> ("Shutdown signalled", []));
+      reply_plain_text "Shuting down"
 
   let handler_facts id uri body =
     if Uri.path uri = "" then begin
