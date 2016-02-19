@@ -5,7 +5,7 @@ Synopsis:    Trace enrichment for JavaScript execution traces.
 Authors:     Johannes Kloos
 License:     MIT
 Plugins:     META (0.4), StdFiles (0.4)
-FilesAB:     compilationConfig.ml.ab
+FilesAB:     xhr/compilationConfig.ml.ab
 
 Library "js-enrichment"
   Path:       lib
