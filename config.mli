@@ -15,3 +15,5 @@ val get_analysis_html_path : unit -> string
 val get_xhr_server_address : unit -> string
 (** Get the port of the trace collection XHR server. *)
 val get_xhr_server_port : unit -> int
+(** Get a flag stating whether temporary files should be kept. *)
+val get_keep_temporaries : unit -> bool

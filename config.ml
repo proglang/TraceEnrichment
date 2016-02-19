@@ -5,6 +5,7 @@ let analysis_script_path: string argument = ref None
 let analysis_html_path: string argument = ref None
 let xhr_server_address: string ref = ref "localhost"
 let xhr_server_port: int ref = ref 8888
+let keep_temporaries: bool ref = ref false
 let setup_done = ref false
 
 let set_string_arg arg = Arg.String (fun s -> arg := Some s)
@@ -16,7 +17,9 @@ let args =
       ("--analysis-html", set_string_arg analysis_html_path, "Path to the analysis HTML driver");
       ("--xhr-bind", Set_string xhr_server_address, "Bind the XHR server to this address");
       ("--xhr-port", Set_int xhr_server_port, "Bind the XHR server to this port");
-      ("--node", Set_string node_path, "Path to the node.js binary") ]
+      ("--node", Set_string node_path, "Path to the node.js binary");
+      ("--keep", Set keep_temporaries, "Keep temporary files and directories");
+    ]
 
 let find_node () =
   if Sys.command (!node_path ^ " -e 0") == 0 then
@@ -95,4 +98,4 @@ let get_analysis_script_path () = setup (); BatOption.get !analysis_script_path
 let get_analysis_html_path () = setup(); BatOption.get !analysis_html_path
 let get_xhr_server_address () = !xhr_server_address
 let get_xhr_server_port () = !xhr_server_port
-
+let get_keep_temporaries () = !keep_temporaries

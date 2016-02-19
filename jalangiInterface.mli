@@ -31,3 +31,9 @@ val instrument_for_browser :
 
 (** Return the path containing the instrumented files. *)
 val get_instrumented_dir: unit -> string Lwt.t
+
+(** Clean up temporary directories.
+  
+  This code is meant for program shut-down cleanup, and performs
+  operations synchronously. *)
+val clean_up: unit -> unit
