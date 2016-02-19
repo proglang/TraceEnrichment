@@ -28,5 +28,6 @@ module Server = TraceStreamServer.TraceStreamServer(TestStreamStrategy)
 let () =
   Arg.parse Config.args (fun _ -> failwith "Unexpected argument")
     "traceStreamServerTest [options]";
+  Log.default_setup true;
   Server.run_server ()
 
