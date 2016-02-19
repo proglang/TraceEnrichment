@@ -32,6 +32,8 @@ module TraceStreamServer(S: STREAMSTRATEGY): TSS = struct
         S.handlers_local
   end
   include TraceCollector.Server(Strategy)
-  let run_server () = Lwt_main.run server
+  let run_server () =
+    Log.default_setup false;
+    Lwt_main.run server
 end
 

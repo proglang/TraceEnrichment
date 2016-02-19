@@ -80,8 +80,8 @@ let get_object ?(required=false) (objects: objects) objval fieldname =
     |> StringMap.find fieldname
     |> fun { value } -> value
   with Not_found ->
-    Debug.debug "Could not find object %a, field %s@."
-      pp_jsval objval fieldname;
+    Log.debug (fun m -> m "Could not find object %a, field %s"
+      pp_jsval objval fieldname);
     if required then
       raise ObjectNotFound
     else
@@ -118,16 +118,16 @@ let debug_get_array objects base =
         List.rev objs
     in get 0 []
   with ObjectNotFound ->
-    Debug.debug "Not a proper array: %a, containing @[<hov 2>%a@]@." pp_jsval base
-      pp_objectspec (BatDynArray.get objects (Types.get_object base));
+    Log.debug (fun m -> m "Not a proper array: %a, containing @[<hov 2>%a@]" pp_jsval base
+      pp_objectspec (BatDynArray.get objects (Types.get_object base)));
     raise ObjectNotFound
       
 let resolve_call objects function_apply function_call f base args call_type =
-  Debug.debug "Resolving call to %s with arguments %a"
+  Log.debug (fun m -> m "Resolving call to %s with arguments %a"
     (if f = function_apply then "apply"
      else if f = function_call then "call"
      else "some random function")
-    (Fmt.list pp_jsval) (debug_get_array objects args);
+    (Fmt.list pp_jsval) (debug_get_array objects args));
   let rec resolve f base args argsidx =
     if f = function_apply then
       resolve base
@@ -145,7 +145,7 @@ let resolve_call objects function_apply function_call f base args call_type =
     resolve f base args 0  
   with
       ObjectNotFound ->
-        Debug.debug "Cannot resolve call due to objects not being found@.";
+        Log.debug (fun m -> m "Cannot resolve call due to objects not being found");
         { f=f; base=base; args=args; call_type = call_type }
 
 type 'a stackop = Push of 'a | Keep | Pop | Replace of 'a | Pop2 | PopReplace of 'a | PushReplace of 'a * 'a | Pop2Replace of 'a
@@ -291,7 +291,7 @@ module CleanGeneric = functor(S: Transformers) -> struct
          | Drop -> ([]), (stack, locals, globals))
 
   let normalize_calls globals (objs: objects) =
-    Debug.debug "Normalizing calls@.";
+    Log.debug (fun m -> m "Normalizing calls");
     let function_apply = lookup globals objs ["Function"; "prototype"; "apply"]
     and function_call = lookup globals objs ["Function"; "prototype"; "call"] in 
     S.map (function
@@ -307,7 +307,7 @@ module CleanGeneric = functor(S: Transformers) -> struct
         | ev -> ev)
 
   let normalize_function_constructor globals objs =
-    Debug.debug "Normalizing function constructor@.";
+    Log.debug (fun m -> m "Normalizing function constructor");
     let function_constructor = lookup globals objs ["Function"] in
     S.map_list_state false
       (fun in_constructor op ->
@@ -367,7 +367,7 @@ module CleanGeneric = functor(S: Transformers) -> struct
         ([op], (frames, false, None))
 
   let normalize_eval globals objs =
-    Debug.debug "Normalizing eval constructor@.";
+    Log.debug (fun m -> m "Normalizing eval constructor");
     let eval = lookup globals objs ["global"; "eval"] in
     S.map_list_state ([], false, None) (normalize_eval_step eval)
 
@@ -474,7 +474,7 @@ module CleanGeneric = functor(S: Transformers) -> struct
     and calls_normalized =
       level = SynthesizedEvents || level = NormalizedCalls
     in
-      Debug.debug "Operation: %a@." pp_clean_operation op;
+      Log.debug (fun m -> m "Operation: %a" pp_clean_operation op);
     let state' = match op with
     | CFunPre { f; base; args; call_type } ->
         is_function f;
@@ -610,12 +610,12 @@ module CleanGeneric = functor(S: Transformers) -> struct
 
 
   let validate level globals objs trace =
-    Debug.debug "Validating trace, level: %s@."
+    Log.debug (fun m -> m "Validating trace, level: %s"
       (match level with
            Basic -> "basic"
          | NoUseStrict -> "no use strict"
          | NormalizedCalls -> "calls normalized, removing apply and call"
-         | SynthesizedEvents -> "call framing completed");
+         | SynthesizedEvents -> "call framing completed"));
     let function_apply = lookup globals objs ["Function"; "prototype"; "apply"]
     and function_call = lookup globals objs ["Function"; "prototype"; "call"] in 
       if Debug.is_validate () then begin

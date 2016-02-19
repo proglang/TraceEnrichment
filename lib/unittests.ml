@@ -1,6 +1,8 @@
 open Kaputt.Abbreviations
 
-let _ = Test.run_tests
+let () =
+  Log.default_setup true;
+  Test.run_tests
           (CalculatePointsTo_unit.tests @
            CalculateVersions_unit.tests @
            Cleantrace_unit.tests @

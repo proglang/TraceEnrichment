@@ -34,19 +34,6 @@ module Server(S: STRATEGY) = struct
   open Cohttp.Code
 
   let sessions = Hashtbl.create 20
-  let logger = BatLogger.make_log "JSCollector"
-  let log_debug = BatLogger.log logger BatLogger.DEBUG
-  let log_info = BatLogger.log logger BatLogger.INFO
-  let log_notice = BatLogger.log logger BatLogger.NOTICE
-  let log_warn = BatLogger.log logger BatLogger.WARN
-  let log_error = BatLogger.log logger BatLogger.ERROR
-  let log_fatal = BatLogger.log logger BatLogger.FATAL
-  let debug str = log_debug (fun () -> (str, []))
-  let info str = log_info (fun () -> (str, []))
-  let notice str = log_notice (fun () -> (str, []))
-  let warn str = log_warn (fun () -> (str, []))
-  let error str = log_error (fun () -> (str, []))
-  let fatal str = log_fatal (fun () -> (str, []))
 
   let (stop, wakener) = Lwt.wait ()
   let shutdown: unit -> unit = Lwt.wakeup wakener
@@ -54,7 +41,7 @@ module Server(S: STRATEGY) = struct
   let handler_new uri body =
     let id = make_new_uuid () in
     let%lwt init_data = body in
-    log_info (fun () -> ("Adding new handler", [("id", id); ("body", init_data)]));
+    Log.info (fun m -> m "Adding new handler for %s based on %s" id init_data);
     let%lwt sink =
       S.make_trace_sink ~init_data ~id ~finish:shutdown
     in
@@ -67,46 +54,46 @@ module Server(S: STRATEGY) = struct
       let basename =
         if uri = "" then None else Some (Filename.basename uri)
       in
-        log_info (fun () -> ("Instrumenting", match basename with Some bn -> ["basename",bn] | _ -> []));
+        Log.info (fun m -> m "Instrumenting JavaScript%a"
+                             (Fmt.option (Fmt.prefix (Fmt.const Fmt.string " with basename ") Fmt.string))
+                             basename);
       let%lwt base =
         JalangiInterface.instrument_for_browser ?basename
           ~providejs:(fun path ->
-                        log_debug (fun () -> ("Writing JS code", ["path", path]));
                         Lwt_io.with_file ~mode:Lwt_io.Output path
                           (fun channel -> Lwt.bind body (Lwt_io.write channel)))
       in
-        log_info (fun () -> ("Performed instrumentation", ["base", base]));
+        Log.info (fun m -> m "Performed instrumentation, resulting in %s" base);
         reply_plain_text (Filename.basename base)
     with
-        e -> log_warn (fun () -> ("Exception in instrumentation", [("exc", Printexc.to_string e)]));
+        e -> Log.warn (fun m -> m "Exception in instrumentation: %s" (Printexc.to_string e));
              reply_error `Internal_server_error (Printexc.to_string e)
 
 
   let handler_shutdown uri body =
-    log_info (fun () -> ("Shutting down server", []));
-    let _ = shutdown () in
-      log_info (fun () -> ("Shutdown signalled", []));
-      reply_plain_text "Shuting down"
+    Log.info (fun m -> m "Shutting down server");
+    shutdown ();
+    reply_plain_text "Shuting down"
 
   let handler_facts id uri body =
     if Uri.path uri = "" then begin
       let%lwt body = body in
-      log_info (fun () -> ("Feeding facts", [("id", id); ("data", body)]));
+      Log.info (fun m -> m "Feeding facts for %s: %s" id body);
       Hashtbl.find sessions id body;
       reply_plain_text ~status:`Accepted "Accepted for processing"
     end else begin
-      info "Fact handling with extra arguments";
+      Log.info (fun m -> m "Fact handling with extra arguments");
       reply_error `Not_found "No such handler"
     end
 
   let handler_index query =
-    warn "Unimplemented index functionality";
+    Log.warn (fun m -> m "Unimplemented index functionality");
     reply_plain_text "No implementation so far"
 
   let handle_session_management id meth =
     match meth with
       | `DELETE ->
-          log_info (fun () -> ("Deleting session", ["id", id]));
+          Log.info (fun m -> m "Deleting session %s" id);
           if Hashtbl.mem sessions id then begin
             let sink = Hashtbl.find sessions id in
               Hashtbl.remove sessions id;
@@ -115,7 +102,7 @@ module Server(S: STRATEGY) = struct
           end else
             reply_error `Not_found "No such resource"
       | _ ->
-          info "Session management with bad method";
+          Log.info (fun m -> m "Session management with bad method");
           reply_error `Method_not_allowed "Cannot access using this method"
 
   let handlers_global =
@@ -139,7 +126,8 @@ module Server(S: STRATEGY) = struct
       let uri = uri req
       and body = Cohttp_lwt_body.to_string body
       and meth = meth req
-      in log_info (fun () -> ("Received request", [("URI", Uri.to_string uri); ("Method", Cohttp.Code.string_of_method meth)]));
+      in Log.info (fun m -> m "Received request for %s using %s"
+                              (Uri.to_string uri) (Cohttp.Code.string_of_method meth));
          let update_uri tail = Uri.with_path uri (BatString.concat "/" tail)
          in
            match Str.split slash_re (BatString.strip ~chars:"/" (Uri.path uri)) with
@@ -147,7 +135,7 @@ module Server(S: STRATEGY) = struct
                  if meth = `GET then
                    handler_index (Uri.query uri)
                  else begin
-                   info "Accessing index with bad method";
+                   Log.info (fun m -> m "Accessing index with bad method");
                    reply_error `Method_not_allowed ("Can't access / using this method")
                  end
              | [id] when Hashtbl.mem sessions id ->
@@ -156,36 +144,38 @@ module Server(S: STRATEGY) = struct
                  begin try
                    List.assoc (op, meth) handlers_local id (update_uri tail) body
                  with Not_found ->
-                   log_info (fun () -> ("No handler found", ["session", id; "operation", op]));
+                   Log.info (fun m -> m "No handler found for %s, session %s" op id);
                    reply_error `Not_found ("No handler found")
                  end
              | op::tail ->
                  begin try
-                   log_debug (fun () -> ("Global operation", [("operation", op)]));
                    List.assoc (op, meth) handlers_global (update_uri tail) body
                  with Not_found ->
-                   log_info (fun () -> ("No handler found, trying file handling", []));
                    let%lwt insdir = JalangiInterface.get_instrumented_dir () in
                    let path = Filename.concat insdir op in
                      if tail = [] && Sys.file_exists path then begin
                        if Str.string_match html_filename_re op 0 then begin
-                         info "Serving HTML file";
+                         Log.info (fun m -> m "Serving HTML file");
                          reply_file "text/html" path
                        end else if Str.string_match js_filename_re op 0 then begin
-                         info "Serving JS file";
+                         Log.info (fun m -> m "Serving JS file");
                          reply_file "application/javascript" path
-                       end else
+                       end else begin
+                         Log.info (fun m -> m "Trying to serve inaccesible file");
                          reply_error `Forbidden "Cannot access this file"
-                     end else
+                       end
+                     end else begin
+                       Log.info (fun m -> m "No handler available");
                        reply_error `Not_found "No handler found"
+                     end
                  end
     with 
-      | e -> log_error (fun () -> (Printexc.to_string e, [])); raise e
+      | e -> Log.err (fun m -> m "Got exception: %s" (Printexc.to_string e));
+             raise e
 
   let server =
     let open Lwt in
-      BatLogger.init [("JSCollector", BatLogger.DEBUG)] BatLogger.stderr_formatter;
-      log_debug (fun () -> ("Starting JSCollector server.", []));
+      Log.debug (fun m -> m "Starting JSCollector server");
       let server = Cohttp_lwt_unix.Server.make ~callback:multiplex () in
       let%lwt ctx = Conduit_lwt_unix.init ~src:(Config.get_xhr_server_address ()) () in
       let%lwt () =
@@ -194,7 +184,7 @@ module Server(S: STRATEGY) = struct
           ~ctx:(Cohttp_lwt_unix_net.init ~ctx ())
           ~mode:(`TCP (`Port (Config.get_xhr_server_port ())))
           server
-      in log_info (fun () -> ("Server shut down", []));
+      in Log.debug (fun m -> m "Stopped JSCollector server");
          JalangiInterface.clean_up();
          Lwt.return_unit
 

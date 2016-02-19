@@ -33,7 +33,7 @@ let add_read facts state ref value: points_to_map =
     VersionReferenceMap.add vref value state
 
 let add_known_new_object objects facts state obj =
-  Debug.debug "Adding known object %a@." pp_jsval obj;
+  Log.debug (fun m -> m "Adding known object %a" pp_jsval obj);
   let id = objectid_of_jsval obj in
   let may_be_known = (Some (get_object_id id) = facts.last_arguments) in
   StringMap.fold
@@ -73,9 +73,9 @@ let pp_versions =
     using ReferenceMap.bindings (list (pair Reference.pp_reference int))
 
 let collect_pointsto_step globals_are_properties objects state facts =
-  fun step -> Debug.debug "points-to collection step: %a, %a@."
+  fun step -> Log.debug (fun m -> m "points-to collection step: %a, %a"
                 pp_clean_operation step
-                pp_versions facts.versions;
+                pp_versions facts.versions);
               step |>
   function
   | CFunPre { base; args } ->

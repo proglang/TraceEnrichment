@@ -251,4 +251,5 @@ let test_synthesize_events =
 
 let _ =
   Printexc.record_backtrace true;
+  Logs.set_reporter (Logs_fmt.reporter ());
   Test.run_tests ( [ test_synthesize_events ] )
