@@ -13,11 +13,11 @@ Library "js-enrichment"
   Install:    true
   XMETAEnable: true
   XMETADescription: Trace enrichment for JavaScript traces
-  BuildDepends: yojson, str, lwt.ppx, lwt, fmt, batteries
+  BuildDepends: yojson, str, lwt.ppx, lwt, fmt, batteries, logs, logs.fmt
   Modules:    CalculatePointsTo, CalculateVersions, CleanTrace, 
     LocalFacts, PointsTo, Reference, RichTrace, Streaming, Trace,
     TraceTypes, Types, Debug, StringMap, IntMap, IntIntMap,
-    IntIntSet
+    IntIntSet, Log
 
 Document "js-enrichment-api"
   Type:       ocamlbuild (0.4)
@@ -36,7 +36,7 @@ Library "js-enrichment-xhr"
   XMETAEnable: true
   FindLibParent: js-enrichment
   XMETADescription: Trace enrichment server for JavaScript traces
-  BuildDepends: yojson, str, lwt.ppx, lwt, fmt, batteries, cohttp, fileutils, uuidm, conduit
+  BuildDepends: yojson, str, lwt.ppx, lwt, fmt, batteries, cohttp, fileutils, uuidm, conduit, logs
   Modules:    Config, CompilationConfig, TraceCollector, TraceStream, JalangiInterface, TraceStreamServer
   DataFiles:  generic-tracer.js
   
@@ -46,7 +46,7 @@ Library "js-enrichment.test"
   Install:    true
   XMETAEnable: true
   XMETADescription: Trace enrichment for JavaScript traces - test data
-  BuildDepends: yojson, str, lwt, kaputt, js-enrichment, fmt, batteries
+  BuildDepends: yojson, str, lwt, kaputt, js-enrichment, fmt, batteries, logs
   Modules:    TestBaseData
 
 Flag prettyprint
@@ -83,7 +83,7 @@ Executable "unittests"
   Install:    false
   Build$:     flag(tests)
   MainIs:     unittests.ml
-  BuildDepends: kaputt, lwt, yojson, str, fmt, batteries
+  BuildDepends: kaputt, lwt, yojson, str, fmt, batteries, logs, logs.fmt
 
 Test "unittests"
   Command:    $unittests
