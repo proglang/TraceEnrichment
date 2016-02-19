@@ -1,0 +1,37 @@
+set base="http://localhost:8888";
+POST "${base}/new" {
+  status 200;
+  match /(.+)/ with id=1;
+}
+GET "${base}/${id}/query/argument" {
+  status 200
+}
+GET "${base}/query/otherargument" {
+  status 200
+}
+GET "${base}:8888/events" {
+  status 200;
+  match json
+    '[["MakeSink","","${id}"],
+      ["LocalQuery","${id}","/argument",""],
+      ["Query","/otherargument",""]]';
+}
+POST "${base}/${id}/facts" "some facts" {
+  status 202;
+}
+GET "${base}:8888/events" {
+  status 200;
+  match json '[["Facts","some facts"]]';
+}
+POST "${base}/instrument" "console.log(1);" {
+  status 200;
+  match /(.+)/ with name=1;
+}
+GET "${base}/${name}.js" {
+  status 200;
+  match /console.*log.*1/;
+}
+GET "${base}/${name}.html" {
+  status 200;
+  match /xhrStrategy/;
+}

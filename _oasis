@@ -138,7 +138,9 @@ Executable "traceCollectorTest"
   Install:    false
   Build$:     flag(tests)
   MainIs:     traceCollectorTest.ml
-  BuildDepends: js-enrichment, js-enrichment.js-enrichment-xhr, kaputt, lwt, lwt.unix, camltemplate, cohttp, cohttp.lwt
+  BuildDepends: js-enrichment, js-enrichment.js-enrichment-xhr,
+        ppx_deriving.std, ppx_deriving_yojson,
+        lwt, lwt.unix, cohttp, cohttp.lwt, camltemplate
   Path:       .
   BuildTools: ocamlbuild
   CompiledObject: best
@@ -146,3 +148,4 @@ Executable "traceCollectorTest"
 Test "synthesize_test"
   Command:    $synthesize_test
   Run:        true
+
