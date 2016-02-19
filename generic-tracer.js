@@ -37,6 +37,7 @@
 // symbolic execution.
 (function(sandbox) {
     function GenericAnalysis(global, strategyBuilder) {
+        console.log("Instantiating generic analysis");
         var objects = new WeakMap();
         var functions = new WeakMap();
         var objids = 0;
@@ -61,7 +62,9 @@
         // The second argument is used to control the fields that get added.
         // In particular, we use it to exclude debris from the instrumentation.
         // Fill in descriptions for standard library objects if missing. XXX do we need to do something here?
+        console.log("About to build strategy");
         var strategy = strategyBuilder(global.J$ === J$, { global: { type: typeof global, id: 0 } });
+        console.log("Collecting globals");
         valid(global);
 
         // recurse along prototype chain
@@ -606,19 +609,23 @@
     }
 
     function xhrStrategy(gap, globals) {
-        if (!global.XMLHttpRequest) {
+        console.log("Instantiating XHR strategy");
+        if (!window.XMLHttpRequest) {
             XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
         }
         var xhr = new XMLHttpRequest();
+        console.log("Found XHR object");
         var urlbase =
             "http://" +
             (J$.initParams.host || "localhost") + ":" +
             (J$.initParams.port || "8080") + "/";
+        console.log("URL base: " + urlbase);
         xhr.open("POST", urlbase + "new", false);
         xhr.send(JSON.stringify([gap, globals]));
         if (xhr.readyState != 4) { throw new Exception("XHR session initialisation failed"); }
         var session = xhr.response;
         var url = urlbase + session + "/facts";
+        console.debug("Fact URL: " + url);
         var facts = [];
 
         var canSend = true;
@@ -628,6 +635,7 @@
 
         function sendXHR() {
             if (facts != []) {
+                console.debug("Sending facts to " + url + ": " + JSON.stringify(facts));
                 canSend = false;
                 xhr = new XMLHttpRequest();
                 xhr.open("POST", url, true);
@@ -695,5 +703,6 @@
         xhr: xhrStrategy
     }
     var whichStrategy = J$.initParams.strategy || "debug";
+    console.debug("Strategy: " + whichStrategy);
     sandbox.analysis = new GenericAnalysis(this, strategies[whichStrategy]);
 })(J$);
