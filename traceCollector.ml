@@ -64,7 +64,7 @@ module Server(S: STRATEGY) = struct
           ~providejs:(fun path ->
                         Lwt_io.with_file ~mode:Lwt_io.Output path
                           (fun channel -> Lwt.bind body (Lwt_io.write channel)))
-      in reply_plain_text base
+      in reply_plain_text (Filename.basename base)
     with Exit -> reply_error `Not_found "No such handler"
 
   let handler_shutdown uri body =
@@ -108,7 +108,7 @@ module Server(S: STRATEGY) = struct
     (("facts", `POST), handler_facts) ::
     S.handlers_local
 
-  let colon_re = Str.regexp ":"
+  let slash_re = Str.regexp "/"
   let html_filename_re = Str.regexp "^[-a-zA-Z0-9._]*\\.html$"
   let js_filename_re = Str.regexp "^[-a-zA-Z0-9._]*\\.js$"
 
