@@ -35,6 +35,14 @@ module Server(S: STRATEGY) = struct
 
   let sessions = Hashtbl.create 20
   let shutdown = ref false
+  let logger = BatLogger.make_log "JSCollector"
+  let log_debug = BatLogger.log logger BatLogger.DEBUG
+  let log_info = BatLogger.log logger BatLogger.INFO
+  let log_notice = BatLogger.log logger BatLogger.NOTICE
+  let log_warn = BatLogger.log logger BatLogger.WARN
+  let log_error = BatLogger.log logger BatLogger.ERROR
+  let log_fatal = BatLogger.log logger BatLogger.FATAL
+
 
   let handler_new uri body =
     let id = make_new_uuid () in
@@ -106,28 +114,37 @@ module Server(S: STRATEGY) = struct
     let uri = uri req
     and body = Cohttp_lwt_body.to_string body
     and meth = meth req
-    in let update_uri tail = Uri.with_path uri (BatString.concat "/" tail)
-    in match Str.split colon_re (Uri.path uri) with
+    in log_info (fun () -> ("Received request", [("URI", Uri.to_string uri); ("Method", Cohttp.Code.string_of_method meth)]));
+    let update_uri tail = Uri.with_path uri (BatString.concat "/" tail)
+    in let result = match Str.split slash_re (BatString.strip ~chars:"/" (Uri.path uri)) with
         | [] ->
+            log_debug (fun () -> ("Index page handling", []));
             if meth = `GET then
               handler_index (Uri.query uri)
             else
               reply_error `Method_not_allowed ("Can't access / using this method")
         | [id] when Hashtbl.mem sessions id ->
+            log_debug (fun () -> ("Session management", []));
             handle_session_management id meth
         | id::op::tail when Hashtbl.mem sessions id ->
             begin try
+              log_debug (fun () -> ("Per-session operations", [("session", id); ("operation", op)]));
               List.assoc (op, meth) handlers_local id (update_uri tail) body
             with Not_found ->
+              log_info (fun () -> ("No handler found", ["session", id; "operation", op]));
               reply_error `Not_found ("No handler found")
             end
         | op::tail ->
+            log_debug (fun () -> ("op: not a handler", ["op", op] @ Hashtbl.fold (fun key _ keys -> ("key", key) :: keys) sessions []));
             begin try
+              log_debug (fun () -> ("Global operation", [("operation", op)]));
               List.assoc (op, meth) handlers_global (update_uri tail) body
             with Not_found ->
+              log_debug (fun () -> ("No handler found, trying file handling", []));
               let%lwt insdir = JalangiInterface.get_instrumented_dir () in
               let path = Filename.concat insdir op in
               if tail = [] && Sys.file_exists path then begin
+                log_debug (fun () -> ("Found file, checking if permissible to send", []));
                 if Str.string_match html_filename_re op 0 then
                   reply_file "text/html" path
                 else if Str.string_match js_filename_re op 0 then
@@ -137,13 +154,21 @@ module Server(S: STRATEGY) = struct
               end else
                 reply_error `Not_found "No handler found"
             end
+    in log_debug (fun () -> ("Made reply", [])); result
 
   let server =
+    let open Lwt in
+    BatLogger.init [("JSCollector", BatLogger.DEBUG)] BatLogger.stderr_formatter;
+    log_debug (fun () -> ("Starting JSCollector server.", []));
     let server = Cohttp_lwt_unix.Server.make ~callback:multiplex () in
+      log_debug (fun () -> ("Created server instance.", []));
     let%lwt ctx = Conduit_lwt_unix.init ~src:(Config.get_xhr_server_address ()) () in
+      log_debug (fun () -> ("Set up binding address, starting...", []));
       Cohttp_lwt_unix.Server.create
+        ~stop
         ~ctx:(Cohttp_lwt_unix_net.init ~ctx ())
         ~mode:(`TCP (`Port (Config.get_xhr_server_port ())))
         server
+                >|= fun () -> log_info (fun () -> ("Server shut down", []))
 
 end
