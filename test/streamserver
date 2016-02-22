@@ -1,0 +1,4 @@
+#! /bin/bash
+
+id=$(../WebExpect/postFile.native http://localhost:8888/instrument testdata/test-instrument.js |tail -1)
+iceweasel http://localhost:8888/$id.html
