@@ -148,41 +148,6 @@
             return valdesc;
         }
 
-        /*
-        function describe_level(obj, desc) {
-            var props = Object.getOwnPropertyNames(obj);
-            for (var i = 0; i < props.length; i++) {
-                var prop = props[i];
-                if (filter_special(obj === this, prop))
-                    continue;
-                var propdesc = Object.getOwnPropertyDescriptor(obj, prop);
-                if (propdesc == undefined)
-                    propdesc = {};
-                var skip_value = false;
-                if (propdesc["get"]) {
-                    propdesc.get = valid(propdesc.get)
-                        skip_value = true;
-                }
-                if (propdesc["set"]) {
-                    propdesc.set = valid(propdesc.set)
-                }
-                if (!skip_value)
-                    propdesc.value = valid(obj[prop]);
-                else
-                    propdesc.value = undefined;
-                desc[prop] = propdesc;
-            }
-            var proto = Object.getPrototypeOf(obj);
-            if (proto !== null && proto !== Object.getPrototypeOf(obj))
-                return describe_level(obj, desc);
-            else
-                return desc;
-        }
-
-        function describeobj(obj) {
-            return describe_level(obj, {});
-        }
-        */
         function funcid(obj) {
             // We know that obj is of type function
             if (functions.has(obj)) {
@@ -197,68 +162,6 @@
                 return id;
             }
         }
-
-        /*
-        function valid(obj) {
-            switch (typeof obj) {
-                case "undefined":
-                    return {
-                        type : "undefined"
-                    };
-                case "boolean":
-                case "number":
-                case "string":
-                case "symbol":
-                    return {
-                        type : typeof obj,
-                        val : obj.toString()
-                    }
-                case "function":
-                    if (objects.has(obj)) {
-                        return {
-                            type : "function",
-                            id : objects.get(obj),
-                            funid : funcid(obj)
-                        }
-                    } else {
-                        var id = valids++;
-                        objects.set(obj, id);
-                        strategy.addObject(id, describeobj(obj));
-                        return {
-                            type : "function",
-                            id : id,
-                            funid : funcid(obj)
-                        }
-                    }
-                default:
-                    if (obj === null) {
-                        return {
-                            type : "null"
-                        }
-                    } else if (objects.has(obj)) {
-                        return {
-                            type : typeof obj,
-                            id : objects.get(obj)
-                        }
-                    } else if (typeof obj == "object") {
-                        var id = valids++;
-                        objects.set(obj, id);
-                        strategy.addObject(id, describeobj(obj));
-                        return {
-                            type : typeof obj,
-                            id : id
-                        }
-                    } else {
-                        var id = valids++;
-                        objects.set(obj, id);
-                        return {
-                            type : typeof obj,
-                            id : id
-                        }
-                    }
-            }
-        }
-        */
 
         console.log("Preparing dynamic analysis");
         this.invokeFunPre = function(iid, f, base, args, isConstructor,
