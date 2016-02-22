@@ -23,6 +23,8 @@ module TraceStreamServer(S: STREAMSTRATEGY): TSS = struct
         TraceStream.parse_setup_packet init_data in
       let sink_data = S.stream_setup id initials stream in
         Hashtbl.add sinks id sink_data;
+        Log.debug (fun m -> m "Created new trace sink with ID %s for %s"
+                              id init_data);
         Lwt.return sink
 
     let handlers_global = S.handlers_global

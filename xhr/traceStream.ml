@@ -71,6 +71,7 @@ let function_uninstrumented_handler initials = function
   | _ -> false
 
 let parse_packet initials event_push json_string =
+  Log.debug (fun m -> m "Handling data packet %s" json_string);
   let items =
     Yojson.Basic.from_string json_string
     |> Yojson.Basic.Util.convert_each parse_item
@@ -80,12 +81,19 @@ let parse_packet initials event_push json_string =
     |> extract (function_uninstrumented_handler initials)
     |> extract (object_handler initials)
     |> handle_end 
-  in let trace =
+  in
+    Log.debug (fun m -> m "Extracted trace operations. At end: %b, %d operations"
+                          at_end (List.length operations));
+  let trace =
     List.map (function ItemStep op -> op | _ -> failwith "Only ItemStep can happen!")
       operations
   in
+    Log.debug (fun m -> m "Prepare event feeding");
     List.iter (fun op -> event_push (Some op)) trace;
-    if at_end then event_push None
+    Log.debug (fun m -> m "Finished event feeding");
+    if at_end then event_push None;
+    Log.debug (fun m -> m "At-end handling")
+
 
 let parse_setup_packet json_string =
   match Yojson.Basic.from_string json_string |> Yojson.Basic.Util.to_list with

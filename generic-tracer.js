@@ -66,6 +66,7 @@
         var strategy = strategyBuilder(global.J$ === J$, { global: { type: typeof global, id: 0 } });
         console.log("Collecting globals");
         valid(global);
+        console.log("Collected global-reachable objects");
 
         // recurse along prototype chain
         function filter_special(at_top, name) {
@@ -259,6 +260,7 @@
         }
         */
 
+        console.log("Preparing dynamic analysis");
         this.invokeFunPre = function(iid, f, base, args, isConstructor,
                 isMethod) {
             strategy.addStep({
@@ -541,6 +543,7 @@
                 val : val
             });
         };
+        console.log("Starting dynamic analysis");
     }
 
     function consoleJSONStrategy(gap, globals) {
@@ -642,11 +645,15 @@
                 xhr.onreadystatechange = sendXHRCallback;
                 xhr.send(JSON.stringify(facts));
                 facts = [];
+            } else {
+                console.log("sendXHR called with empty fact set");
             }
         }
 
         function sendXHRCallback() {
+            console.log("In XHR callback, state: " + xhr.readyState);
             if (xhr.readyState >= 2) {
+                console.log("State allows sending, call state machine");
                 canSend = true;
                 sendStateMachine(false);
             }
@@ -654,15 +661,19 @@
 
         function sendStateMachine(pushy) {
             if (canSend) {
+                console.log("Can send, handling cases");
                 if (facts.length == 0) {
+                    console.log("No facts, clearing timeout");
                     if (timeoutId) {
                         clearTimeout(timeoutId);
                         timeoutId = undefined;
                     }
                 } else if (facts.length < maxLength && !pushy) {
+                    console.log("Only few facts and not pushy, set timeout for flush");
                     if (!timeoutId)
                         timeoutId = setTimeout(sendXHR(), timeout);
                 } else if (facts.length >= maxLength || pushy) {
+                    console.log("Enough facts for immediate sending, clear timeout and send");
                     if (timeoutId) {
                         clearTimeout(timeoutId);
                         timeoutId = undefined;
@@ -673,6 +684,7 @@
         }
 
         function sendFact(fact, pushy) {
+            console.log("Adding fact: " + JSON.stringify(fact));
             facts.push(fact);
             sendStateMachine(pushy);
         }
