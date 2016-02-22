@@ -79,7 +79,20 @@
                 return { type: typeof obj, id: objects.get(obj) };
             } else {
                 var id = objids++;
-                objects.set(obj, id);
+                try {
+                    objects.set(obj, id);
+                } catch (e) {
+                    if (e instanceof TypeError) {
+                        console.log("writeobj: type error in object memoization. name=" + name);
+                        console.log("type of object: " + typeof obj);
+                        console.log("is obects a weak map? " + (objects instanceof WeakMap));
+                        console.warn("Swallowing exception; this needs to be fixed at some point!");
+                        // TODO figure out if this is a VM bug or a bug on our side.
+                    } else {
+                        console.log("unexpected exception " + e);
+                        throw e;
+                    }
+                }
                 queue.push([obj, id, name]);
                 return { type: typeof obj, id: id };
             }
