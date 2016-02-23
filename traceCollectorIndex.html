@@ -1,0 +1,43 @@
+<html>
+    <head>
+        <title>JSCollector API server - overview</title>
+    </head>
+    <body>
+        <h1>Global operations</h1>
+        <form action="shutdown" method=post>
+            <button type=submit>Shut down server</button>
+        </form>
+        #foreach (operation in global_operations)
+        #if (operation.post)
+        <form action="${operation.path}" method=post>
+            <button type=submit>${operation.name}</button>
+        </form>
+        #else
+        <a href="${operation.path}">${operation.name</a>
+        #end
+        #end
+        <h1>Instrumented files</h1>
+        #foreach (file in instrumented_files)
+        <a href="${file}">${file}</a>
+        #end
+        <h1>Traces</h1>
+        <table>
+            #foreach (session in sessions)
+            <tr>
+                <td>${session}</td>
+                #foreach (operation in local_operations)
+                <td>
+                    #if (operation.post)
+                    <form action="${session}/${operation.path}" method=post>
+                        <button type=submit>${operation.name}</button>
+                    </form>
+                    #else
+                    <a href="${session}/${operation.path}">${operation.name</a>
+                    #end
+                </td>
+                #end
+            </tr>
+            #end
+        </table>
+    </body>
+</html>

@@ -86,9 +86,51 @@ module Server(S: STRATEGY) = struct
       reply_error `Not_found "No such handler"
     end
 
+  let operations_view ops =
+    let open Cohttp.Code in
+    let ops =
+      List.filter (function ((_, (`GET | `POST)), _) -> true | _ -> false) ops
+    in let ops_view =
+      List.map
+        (fun ((op, meth), _) ->
+           let ht = Hashtbl.create 2 in
+             Hashtbl.add ht "path" (CamlTemplate.Model.Tstr op);
+             Hashtbl.add ht "post" (CamlTemplate.Model.Tbool (meth = `POST));
+             CamlTemplate.Model.Thash ht)
+        ops
+    in CamlTemplate.Model.Tlist ops_view
+
+  let global_operations_view = operations_view S.handlers_global
+  let local_operations_view = operations_view S.handlers_local
+
   let handler_index query =
-    Log.warn (fun m -> m "Unimplemented index functionality");
-    reply_plain_text "No implementation so far"
+    let open CamlTemplate.Model in
+    (** Create a nice list of available operations and files. *)
+    let num_files = 256 in
+    let%lwt dir = JalangiInterface.get_instrumented_dir () in
+    let%lwt dirhandle = Lwt_unix.opendir dir in
+    let rec collect_files seen =
+      let%lwt more_files = Lwt_unix.readdir_n dirhandle num_files in
+      let seen = Array.to_list more_files @ seen in
+        if Array.length more_files < num_files then
+          let%lwt () = Lwt_unix.closedir dirhandle in
+          Lwt.return (List.sort String.compare seen)
+        else
+          collect_files seen
+    in let%lwt files = collect_files [] in
+    let files = Tlist (List.map (fun n -> Tstr n) files)
+    and sessions_view = ref [] in
+    let model = Hashtbl.create 4
+    and tmpl = CamlTemplate.Cache.get_template
+                 Common.template_cache "traceCollectorIndex.html"
+    and buf = Buffer.create 4096 in
+      Hashtbl.iter (fun key _ -> sessions_view := Tstr key :: !sessions_view) sessions;
+      Hashtbl.add model "globals_operations" global_operations_view;
+      Hashtbl.add model "local_operations" local_operations_view;
+      Hashtbl.add model "instrumented_files" files;
+      Hashtbl.add model "session" (Tlist !sessions_view);
+      CamlTemplate.merge tmpl model buf;
+      reply_html (Buffer.contents buf)
 
   let handle_session_management id meth =
     match meth with

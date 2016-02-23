@@ -5,13 +5,11 @@ let instrument_script_path =
 
 exception InstrumentationError
 
-let template_cache = CamlTemplate.Cache.create ()
-
 let instrument_make_html basename =
   let model = Hashtbl.create 1
   and buffer = Buffer.create 512
   and tmpl = CamlTemplate.Cache.get_template
-               template_cache
+               Common.template_cache
                (Config.get_analysis_html_path ())
   in
     Hashtbl.add model "basename" (CamlTemplate.Model.Tstr (Filename.basename basename));
