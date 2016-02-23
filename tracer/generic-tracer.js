@@ -384,6 +384,7 @@
                     exc : valid(wrappedExceptionVal)
                 });
             }
+            return { wrappedExceptionVal: wrappedExceptionVal, isBacktrack: false }
         };
 
         this.binaryPre = function(iid, op, left, right, isOpAssign,
@@ -621,6 +622,7 @@
         }
         strategy.end = function () {
             sendFact([ "end" ], true);
+            J$.next_page = urlbase + session
         }
         return strategy;
     }
