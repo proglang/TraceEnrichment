@@ -9,17 +9,10 @@ module TestStreamStrategy: TraceStreamServer.STREAMSTRATEGY = struct
     Lwt.bind strings
     (fun strings -> TraceCollector.reply_plain_text (BatString.concat "\n" strings))
 
-  let display_menu _ _ =
-    let headers = Cohttp.Header.init_with "Content-Type" "text/html" in
-    Cohttp_lwt_unix.Server.respond_file ~headers ~fname:"menu.html" ()
-
-  let handlers_global = [
-    ("menu", let open Cohttp.Code in `GET),
-    display_menu
-  ]
+  let handlers_global = []
   let handlers_local = [
     ("pretty", let open Cohttp.Code in `GET),
-    stream_dump
+    ("Pretty-print trace", stream_dump)
   ]
 end
 

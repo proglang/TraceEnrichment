@@ -4,8 +4,8 @@ module type STREAMSTRATEGY = sig
   type t
 
   val stream_setup: string -> Types.initials -> TraceTypes.raw_stream -> t
-  val handlers_global: ((string * Cohttp.Code.meth) * handler) list
-  val handlers_local: ((string * Cohttp.Code.meth) * (t -> handler)) list
+  val handlers_global: ((string * Cohttp.Code.meth) * (string * handler)) list
+  val handlers_local: ((string * Cohttp.Code.meth) * (string * (t -> handler))) list
 end
 
 module type TSS = sig
@@ -29,8 +29,8 @@ module TraceStreamServer(S: STREAMSTRATEGY): TSS = struct
 
     let handlers_global = S.handlers_global
     let handlers_local =
-      List.map (fun (key, fn) ->
-                  (key, fun id -> fn (Hashtbl.find sinks id)))
+      List.map (fun (key, (name, fn)) ->
+                  (key, (name, fun id -> fn (Hashtbl.find sinks id))))
         S.handlers_local
   end
   include TraceCollector.Server(Strategy)

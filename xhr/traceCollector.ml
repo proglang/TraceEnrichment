@@ -28,8 +28,8 @@ module type STRATEGY = sig
     id:string ->
     finish:(unit -> unit) ->
     (string -> unit) Lwt.t
-  val handlers_global: ((string * Cohttp.Code.meth) * handler) list
-  val handlers_local: ((string * Cohttp.Code.meth) * (string -> handler)) list
+  val handlers_global: ((string * Cohttp.Code.meth) * (string * handler)) list
+  val handlers_local: ((string * Cohttp.Code.meth) * (string * (string -> handler))) list
 end
 
 module Server(S: STRATEGY) = struct
@@ -39,6 +39,24 @@ module Server(S: STRATEGY) = struct
 
   let (stop, wakener) = Lwt.wait ()
   let shutdown: unit -> unit = Lwt.wakeup wakener
+
+  let operations_view ops =
+    let open Cohttp.Code in
+    let ops =
+      List.filter (function ((_, (`GET | `POST)), _) -> true | _ -> false) ops
+    in let ops_view =
+      List.map
+        (fun ((op, meth), (name, _)) ->
+           let ht = Hashtbl.create 2 in
+             Hashtbl.add ht "path" (CamlTemplate.Model.Tstr op);
+             Hashtbl.add ht "post" (CamlTemplate.Model.Tbool (meth = `POST));
+             Hashtbl.add ht "name" (CamlTemplate.Model.Tstr name);
+             CamlTemplate.Model.Thash ht)
+        ops
+    in CamlTemplate.Model.Tlist ops_view
+
+  let global_operations_view = operations_view S.handlers_global
+  let local_operations_view = operations_view S.handlers_local
 
   let handler_new uri body =
     let id = make_new_uuid () in
@@ -88,23 +106,6 @@ module Server(S: STRATEGY) = struct
       reply_error `Not_found "No such handler"
     end
 
-  let operations_view ops =
-    let open Cohttp.Code in
-    let ops =
-      List.filter (function ((_, (`GET | `POST)), _) -> true | _ -> false) ops
-    in let ops_view =
-      List.map
-        (fun ((op, meth), _) ->
-           let ht = Hashtbl.create 2 in
-             Hashtbl.add ht "path" (CamlTemplate.Model.Tstr op);
-             Hashtbl.add ht "post" (CamlTemplate.Model.Tbool (meth = `POST));
-             CamlTemplate.Model.Thash ht)
-        ops
-    in CamlTemplate.Model.Tlist ops_view
-
-  let global_operations_view = operations_view S.handlers_global
-  let local_operations_view = operations_view S.handlers_local
-
   let handler_index query =
     let open CamlTemplate.Model in
     (** Create a nice list of available operations and files. *)
@@ -151,13 +152,13 @@ module Server(S: STRATEGY) = struct
 
   let handlers_global =
     let open Cohttp.Code in
-    (("new", `POST), handler_new) ::
-    (("instrument", `POST), handler_instrument) ::
-    (("shutdown", `POST), handler_shutdown) ::
+    (("new", `POST), ("new trace session", handler_new)) ::
+    (("instrument", `POST), ("instrument JavaScript source code", handler_instrument)) ::
+    (("shutdown", `POST), ("shut down server", handler_shutdown)) ::
     S.handlers_global
 
   let handlers_local =
-    (("facts", `POST), handler_facts) ::
+    (("facts", `POST), ("add facts in a trace session", handler_facts)) ::
     S.handlers_local
 
   let slash_re = Str.regexp "/"
@@ -183,17 +184,19 @@ module Server(S: STRATEGY) = struct
                    reply_error `Method_not_allowed ("Can't access / using this method")
                  end
              | [id] when Hashtbl.mem sessions id ->
-                 handle_session_management id meth
+                 handle_session_management uri id meth
              | id::op::tail when Hashtbl.mem sessions id ->
                  begin try
-                   List.assoc (op, meth) handlers_local id (update_uri tail) body
+                   let (_, handler) = List.assoc (op, meth) handlers_local in
+                     handler id (update_uri tail) body
                  with Not_found ->
                    Log.info (fun m -> m "No handler found for %s, session %s" op id);
                    reply_error `Not_found ("No handler found")
                  end
              | op::tail ->
                  begin try
-                   List.assoc (op, meth) handlers_global (update_uri tail) body
+                   let (_, handler) = List.assoc (op, meth) handlers_global in
+                     handler (update_uri tail) body
                  with Not_found ->
                    let%lwt insdir = JalangiInterface.get_instrumented_dir () in
                    let path = Filename.concat insdir op in

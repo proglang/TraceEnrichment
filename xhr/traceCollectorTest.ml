@@ -33,9 +33,9 @@ module TestStrategy = struct
 
   open Cohttp.Code
   let handlers_global =
-    [ (("query", `GET), query_handler);
-      (("events", `GET), events_handler) ]
-  let handlers_local = [ (("query", `GET), local_query_handler) ]
+    [ (("query", `GET), ("Debugging query", query_handler));
+      (("events", `GET), ("List of events", events_handler)) ]
+  let handlers_local = [ (("query", `GET), ("Debugging query", local_query_handler)) ]
 end
 
 module TestServer = Server(TestStrategy)
