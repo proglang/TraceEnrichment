@@ -38,8 +38,8 @@
 (function(sandbox) {
     function GenericAnalysis(global, strategyBuilder) {
         console.log("Instantiating generic analysis");
-        var objects = new WeakMap();
-        var functions = new WeakMap();
+        var objects = new AlmostWeakMap();
+        var functions = new AlmostWeakMap();
         var objids = 0;
         var funids = 0;
         var special_names = [
@@ -85,9 +85,10 @@
                     if (e instanceof TypeError) {
                         console.log("writeobj: type error in object memoization. name=" + name);
                         console.log("type of object: " + typeof obj);
-                        console.log("is obects a weak map? " + (objects instanceof WeakMap));
-                        console.warn("Swallowing exception; this needs to be fixed at some point!");
-                        // TODO figure out if this is a VM bug or a bug on our side.
+                        throw e;
+                        // The whole affair here is to work around less-than-perfect WeakMap
+                        // support. Old browsers don't support it at all, and Firefox has
+                        // some weird exceptions where some objects cannot be used as keys.
                     } else {
                         console.log("unexpected exception " + e);
                         throw e;
