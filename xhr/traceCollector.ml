@@ -12,6 +12,8 @@ let reply_error status body =
 let reply_file content filename =
   let headers = Cohttp.Header.init_with "Content-Type" content in
     Cohttp_lwt_unix.Server.respond_file ~headers ~fname:filename ()
+let reply_redirect uri =
+  Cohttp_lwt_unix.Server.respond_redirect ~uri ()
 
 let make_new_uuid () =
   Uuidm.v4_gen (Random.get_state ()) ()
@@ -135,7 +137,7 @@ module Server(S: STRATEGY) = struct
       CamlTemplate.merge tmpl model buf;
       reply_html (Buffer.contents buf)
 
-  let handle_session_management id meth =
+  let handle_session_management uri id meth =
     match meth with
       | `DELETE ->
           Log.info (fun m -> m "Deleting session %s" id);
@@ -146,6 +148,22 @@ module Server(S: STRATEGY) = struct
               reply_plain_text "removed"
           end else
             reply_error `Not_found "No such resource"
+      | `GET ->
+          Log.info (fun m -> m "Menu of local operations for %s" id);
+          (* Special-case if there is only one operation, using GET *)
+          begin match S.handlers_local with
+            | [ ((op, `GET), _) ] ->
+                reply_redirect (Uri.with_path uri (id ^ "/" ^ op))
+            | _ ->
+                let model = Hashtbl.create 2
+                and tmpl = CamlTemplate.Cache.get_template
+                             Common.template_cache (Config.get_analysis_script_path () /: "operationMenu.html")
+                and buf = Buffer.create 4096 in
+                  Hashtbl.add model "local_operations" local_operations_view;
+                  Hashtbl.add model "session" (CamlTemplate.Model.Tstr id);
+                  CamlTemplate.merge tmpl model buf;
+                  reply_html (Buffer.contents buf)
+          end
       | _ ->
           Log.info (fun m -> m "Session management with bad method");
           reply_error `Method_not_allowed "Cannot access using this method"

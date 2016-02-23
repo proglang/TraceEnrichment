@@ -1,0 +1,21 @@
+<html>
+    <head>
+        <title>JSCollector API server - trace operations</title>
+    </head>
+    <body>
+        <h1>Operations on trace ${session}</h1>
+        <ul>
+            #foreach (operation in local_operations)
+            <p>
+                #if (operation.post)
+                <form action="${session}/${operation.path}" method=post>
+                    <button type=submit>${operation.name}</button>
+                </form>
+                #else
+                <a href="${session}/${operation.path}">${operation.name}</a>
+                #end
+            </p>
+            #end
+        </ul>
+    </body>
+</html>
