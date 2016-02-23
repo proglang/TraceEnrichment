@@ -1,0 +1,41 @@
+<html>
+    <head>
+        <title>Which globals are valid keys?</title>
+    </head>
+    <body>
+        <p><em>Globals that are valid keys:</em><span id="valid"></span></p>
+        <p><em>Glboals that are not non-null objects:</em><span id="nonobject"></span></p>
+        <p><em>Globals that are <strong>not</strong> valid keys:</em><span id="invalid"></span></p>
+        <script type="application/javascript">
+var valid = [];
+var invalid = [];
+var nonobject = [];
+var props = Object.getOwnPropertyNames(window);
+var wmap = new WeakMap();
+for (var i = 0; i < props.length; i++) {
+    var prop = props[i];
+    var value = window[prop];
+    var type = typeof value;
+    if ((type === 'object' || type === 'function') && value != null) {
+        try {
+            wmap.set(window[prop], {});
+            valid.push(prop);
+        } catch (e) {
+            invalid.push(prop + " (" + e + ")");
+        }
+    } else {
+        nonobject.push(prop + " (" + type + ")");
+    }
+}
+function update(id, value) {
+    var dom = window.document.getElementById(id);
+    var text = window.document.createTextNode(value.join(", "));
+    dom.appendChild(text);
+}
+update("valid", valid);
+update("invalid", invalid);
+update("nonobject", nonobject);
+        </script>
+    </body>
+</html>
+
