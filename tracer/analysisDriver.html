@@ -1,14 +1,16 @@
 <html>
     <head>
         <title>Dynamic analysis for ${basename}</title>
+        <script>
+// JALANGI DO NOT INSTRUMENT
+window.onload = function () {
+    J$.endExecution();
+    window.location.assign(J$.next_page);
+}
+        </script>
     </head>
     <body>
         <script src="${basename}.js"></script>
         <span id="status">Script running...</span>
-        <script>
-// JALANGI DO NOT INSTRUMENT
-J$.endExecution();
-window.location.assign(J$.next_page);
-        </script>
     </body>
 </html>
