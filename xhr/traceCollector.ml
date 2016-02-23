@@ -17,6 +17,8 @@ let make_new_uuid () =
   Uuidm.v4_gen (Random.get_state ()) ()
     |> Uuidm.to_string
 
+let (/:) = Filename.concat
+
 type handler =
     Uri.t -> string Lwt.t -> (Cohttp.Response.t * Cohttp_lwt_body.t) Lwt.t
 
@@ -122,7 +124,7 @@ module Server(S: STRATEGY) = struct
     and sessions_view = ref [] in
     let model = Hashtbl.create 4
     and tmpl = CamlTemplate.Cache.get_template
-                 Common.template_cache "traceCollectorIndex.html"
+                 Common.template_cache (Config.get_analysis_script_path () /: "traceCollectorIndex.html")
     and buf = Buffer.create 4096 in
       Hashtbl.iter (fun key _ -> sessions_view := Tstr key :: !sessions_view) sessions;
       Hashtbl.add model "globals_operations" global_operations_view;
