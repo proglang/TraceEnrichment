@@ -1,4 +1,7 @@
 #! /bin/bash
 
+pkill traceStream
+./traceStreamServerTest.native >tss.stdout 2>tss.stderr &
+sleep 1
 id=$(../WebExpect/postFile.native http://localhost:8888/instrument testdata/test-instrument.js |tail -1)
 iceweasel http://localhost:8888/$id.html
