@@ -10,7 +10,7 @@ let instrument_make_html basename =
   and buffer = Buffer.create 512
   and tmpl = CamlTemplate.Cache.get_template
                Common.template_cache
-               (Config.get_analysis_html_path ())
+               (Config.get_analysis_script_path () /: "analysisDriver.html")
   in
     Hashtbl.add model "basename" (CamlTemplate.Model.Tstr (Filename.basename basename));
     CamlTemplate.merge tmpl model buffer;
@@ -31,7 +31,8 @@ let jalangi2_instrument strategy filenames outdir =
       "--inlineSource";
       "--inlineJalangi";
       "-i";
-      "--analysis"; Config.get_analysis_script_path ();
+      "--analysis"; Config.get_analysis_script_path () /: "AlmostWeakMap.js";
+      "--analysis"; Config.get_analysis_script_path () /: "generic-tracer.js";
       "--initParam"; "host:" ^ (Config.get_xhr_server_address ());
       "--initParam"; "port:" ^ (string_of_int (Config.get_xhr_server_port ()));
       "--initParam"; "strategy:" ^ strategy;
@@ -96,4 +97,4 @@ let instrument_for_browser ?basename ~providejs =
     else
       unlink_files [ jsfile; htmlfile; basename ]
   in Lwt.return (insdir /: Filename.basename basename)
-   
+  

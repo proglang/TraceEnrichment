@@ -9,8 +9,6 @@ val get_node_path : unit -> string
 val get_jalangi2_path : unit -> string
 (** Get the path to the analysis script. *)                                  
 val get_analysis_script_path : unit -> string
-(** Get the path to the analysis HTML driver. *)                                  
-val get_analysis_html_path : unit -> string
 (** Get the binding address of the trace collection XHR server. *)
 val get_xhr_server_address : unit -> string
 (** Get the port of the trace collection XHR server. *)
