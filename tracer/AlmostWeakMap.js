@@ -1,3 +1,4 @@
+// JALANGI DO NOT INSTRUMENT
 /* A best-effort weak map from objects to values.
  * Where possible, keys and values are mapped
  * weakly, but for those cases where the weak
