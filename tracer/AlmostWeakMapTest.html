@@ -1,0 +1,42 @@
+<!DOCTYPE HTML>
+<html>
+    <head>
+        <title>Tests for AlmostWeakMap</title>
+        <link rel="stylesheet" href="http://code.jquery.com/qunit/qunit-1.21.0.css">
+    </head>
+    <body>
+        <div id="qunit"></div>
+        <div id="qunit-fixture"></div>
+        <script src="http://code.jquery.com/qunit/qunit-1.21.0.js"></script>
+        <script src="AlmostWeakMap.js"></script>
+        <script>
+QUnit.test("initialisation", function (assert) {
+    var map = new AlmostWeakMap();
+    assert.ok(map);
+    assert.notOk(map.has(Function));
+    assert.notOk(map.has(CSSRule));
+    assert.equal(map.get(Function), undefined);
+    assert.equal(map.get(CSSRule), undefined);
+});
+QUnit.test("Adding Function", function (assert) {
+    var map = new AlmostWeakMap();
+    var addResult = map.set(Function, 42);
+    assert.equal(map, addResult);
+    assert.ok(map.has(Function));
+    assert.notOk(map.has(CSSRule));
+    assert.equal(map.get(Function), 42);
+    assert.equal(map.get(CSSRule), undefined);
+});
+QUnit.test("Adding Function", function (assert) {
+    var map = new AlmostWeakMap();
+    var addResult = map.set(CSSRule, 123);
+    assert.equal(map, addResult);
+    assert.notOk(map.has(Function));
+    assert.ok(map.has(CSSRule));
+    assert.equal(map.get(Function), undefined);
+    assert.equal(map.get(CSSRule), 123);
+});
+
+        </script>
+    </body>
+</html>
