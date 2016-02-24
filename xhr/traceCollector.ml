@@ -121,8 +121,8 @@ module Server(S: STRATEGY) = struct
     let files = Tlist (List.map (fun n -> Tstr n) files)
     and sessions_view = ref [] in
     let model = Hashtbl.create 4
-    and tmpl = CamlTemplate.Cache.get_template
-                 Common.template_cache "traceCollectorIndex.html"
+    and tmpl = CamlTemplate.Cache.get_template Common.template_cache
+                 (Filename.concat (Config.get_analysis_script_path ()) "traceCollectorIndex.html")
     and buf = Buffer.create 4096 in
       Hashtbl.iter (fun key _ -> sessions_view := Tstr key :: !sessions_view) sessions;
       Hashtbl.add model "globals_operations" global_operations_view;
