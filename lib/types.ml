@@ -22,25 +22,8 @@ type jsval =
   | OFunction of int * int [@printer (!% "function:") %< (Fmt.pair ~sep:(!% "/") Fmt.int Fmt.int)]
   | OObject of int [@printer (!% "object:") %< Fmt.int]
   | OOther of string * int [@printer (Fmt.pair ~sep:(!% ":") Fmt.string Fmt.int)]
-  (*[@@deriving show]*)
-
-type fieldspec = {
-  value: jsval;
-  writable: bool;
-  get: jsval option;
-  set: jsval option;
-  enumerable: bool;
-  configurable: bool
-}
-
-type objectspec = fieldspec StringMap.t
-type objects = objectspec BatDynArray.t
-
-type local_funcspec = { from_toString : string; from_jalangi : string option }
-type funcspec = Local of local_funcspec | External of int
-type functions = funcspec BatDynArray.t
-
-type globals = jsval StringMap.t
+  (*[@@deriving show, eq, ord]*)
+  [@@deriving eq, ord]
 
 let pp_jsval pp = let open Format in function
     | OUndefined -> pp_print_string pp "undefined"
@@ -53,6 +36,15 @@ let pp_jsval pp = let open Format in function
     | OFunction (id, fid) -> fprintf pp "function:%d/%d" id fid
     | OObject id -> fprintf pp "object:%d" id
     | OOther (ty, id) -> fprintf pp "other:%s:%d" ty id
+
+type fieldspec = {
+  value: jsval;
+  writable: bool [@default true];
+  get: jsval option;
+  set: jsval option;
+  enumerable: bool [@default true];
+  configurable: bool [@default true]
+} [@@deriving eq, ord, make]
 
 let pp_fieldspec pp { value; set; get; writable; enumerable; configurable } =
   (* Special-case the most common case *)
@@ -73,36 +65,27 @@ let pp_fieldspec pp { value; set; get; writable; enumerable; configurable } =
       (Fmt.option pp_jsval) get
       (Fmt.option pp_jsval) set
 
-let pp_objectspec pp spec =
-  let open Format in
-  pp_open_hovbox pp 0;
-  pp_print_string pp "{";
-  StringMap.iter (fun fld value -> fprintf pp "@[<hov>%s: %a;@]" fld pp_fieldspec value) spec;
-  pp_print_string pp "}";
-  pp_close_box pp ()
+type objectspec = fieldspec StringMap.t [@@deriving show, eq]
+type objects = objectspec BatDynArray.t
+let pp_objects = Fmt.using BatDynArray.to_list (Fmt.list pp_objectspec)
+let equal_objects o1 o2 =
+  BatEnum.equal equal_objectspec (BatDynArray.enum o1) (BatDynArray.enum o2)
 
-let pp_objects pp arr =
-  let open Format in
-  pp_open_vbox pp 0;
-  BatDynArray.iteri (fun i s -> fprintf pp "%i: %a;@ " i pp_objectspec s) arr;
-  pp_close_box pp ()
+type local_funcspec = { from_toString : string; from_jalangi : string option }
+  [@@deriving ord, eq]
 let pp_local_funcspec pp s = match s.from_jalangi with
   | Some body -> Format.fprintf pp "@[<hov>@ from_jalangi code: @[<hov>%s@]@]" body
   | None -> Format.fprintf pp "@[<hov>@ from_toString code: @[<hov>%s@]@]" s.from_toString
-let pp_funcspec pp = function
-  | Local s -> pp_local_funcspec pp s
-  | External id -> Format.fprintf pp "(external code, id=%d)" id
-let pp_functions pp arr = let open Format in
-  pp_open_vbox pp 0;
-  BatDynArray.iteri (fun i s -> fprintf pp "%i: %a;@ " i pp_funcspec s) arr;
-  pp_close_box pp ()
-let pp_global_spec pp id = pp_jsval pp id
-let pp_globals pp spec = let open Format in
-  pp_open_hovbox pp 0;
-  pp_print_string pp "{";
-  StringMap.iter (fun fld value -> fprintf pp "@[<hov>%s => %a;@]" fld pp_global_spec value) spec;
-  pp_print_string pp "}";
-  pp_close_box pp ()
+type funcspec =
+    Local of local_funcspec [@printer pp_local_funcspec]
+  | External of int [@printer fprintf "external:%d"]
+  [@@deriving show, ord, eq]
+type functions = funcspec BatDynArray.t
+let pp_functions = Fmt.using BatDynArray.to_list (Fmt.list pp_funcspec)
+let equal_functions f1 f2 =
+  BatEnum.equal equal_funcspec (BatDynArray.enum f1) (BatDynArray.enum f2)
+
+type globals = jsval StringMap.t [@@deriving show, eq]
 
 exception NotAnObject
 let get_object = function
@@ -115,8 +98,9 @@ type objectid =
   | Object of int
   | Function of int * int
   | Other of string * int
+  [@@deriving show, ord, eq]
 
-type fieldref = objectid * string;;
+type fieldref = objectid * string [@@deriving show, ord, eq];;
 
 let objectid_to_jsval = function
   | Object o -> OObject o
@@ -128,11 +112,6 @@ let objectid_of_jsval = function
   | OFunction (o, f) -> Function (o, f)
   | OOther (t, o) -> Other (t, o)
   | _ -> failwith "Not an object"
-
-let pp_objectid pp id = pp_jsval pp (objectid_to_jsval id)
-
-let pp_fieldref pp (obj, name) = Format.fprintf pp "%a@%s" pp_objectid obj name
-
 
 let get_object_id = function
   | Object id | Function (id, _) | Other (_, id) -> id
@@ -160,4 +139,4 @@ type initials = {
   objects: objects;
   globals: globals;
   globals_are_properties: bool;
-}
+} [@@deriving show, eq]
