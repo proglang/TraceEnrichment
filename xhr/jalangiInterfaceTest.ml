@@ -32,7 +32,7 @@ let test_jalangi_instrument =
        same_file "testdata/test-instrument.instrumented.html"
          (tmpdir ^ "/test-instrument.html");
        tmpdir)
-    (fun tmpdir -> FileUtil.rm ~force:FileUtil.Force ~recurse:true [tmpdir])
+    (fun tmpdir -> Lwt_main.run (Files.rm_rf_lwt tmpdir) |> ignore)
 
 let test_instrument_for_browser =
   Test.make_assert_test
