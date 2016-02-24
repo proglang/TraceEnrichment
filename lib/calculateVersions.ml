@@ -170,10 +170,10 @@ let collect_versions_step (objects: objects) globals_are_properties state argume
       provide_read (reference_of_field base offset) state
     | CPutField { base; offset } ->
       provide_write objects (reference_of_field base offset) state
-    | CRead { name; isGlobal } ->
-      provide_read (nameref isGlobal name) state
-    | CWrite { name; isGlobal } ->
-      provide_write objects (nameref isGlobal name) state
+    | CRead { name } ->
+      provide_read (nameref false (*isGlobal*) name) state
+    | CWrite { name } ->
+      provide_write objects (nameref false (*isGlobal*) name) state
     | CFunEnter { this; args } ->
         let state =  provide_literal objects (push state) args in
         let state = provide_literal objects state this in

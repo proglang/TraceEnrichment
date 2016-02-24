@@ -45,12 +45,12 @@ let enrich_step globals_are_properties (op, facts) =
           oldref = BatOption.get facts.last_update;
           value; success = true
         }]
-    | CRead { name; value; isGlobal } ->
-      [RRead { ref = mkvarref isGlobal name; value }]
-    | CWrite { name; lhs; value; isGlobal } ->
+    | CRead { name; value } ->
+      [RRead { ref = mkvarref false (*isGlobal*) name; value }]
+    | CWrite { name; lhs; value } ->
       (* FIXME success handling *)
       [RWrite {
-          ref = mkvarref isGlobal name;
+          ref = mkvarref false (*isGlobal*) name;
           oldref = BatOption.get facts.last_update;
           value;
           success = true

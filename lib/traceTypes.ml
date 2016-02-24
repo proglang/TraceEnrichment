@@ -120,7 +120,7 @@ type tracefile = functions * objects * trace * globals * bool
 
 (** Classification of the different types of function calls. This just enumerates
   * the combinations of flags. *)
-type call_type = Function | Method | Constructor | ConstructorMethod
+type call_type = Function | Method | Constructor
 
 (** The different possible types of variable declarations. *)
 type declaration_type =
@@ -162,14 +162,12 @@ type accessfield = {
 }
 type read = {
   name : string;
-  value : jsval;
-  isGlobal: bool
+  value : jsval
 }
 type write = {
   name : string;
   lhs : jsval;
   value : jsval;
-  isGlobal : bool;
   isSuccessful: bool
 }
 type binary = {
@@ -372,7 +370,6 @@ let pp_call_type pp = function
   | Function -> fprintf pp "function"
   | Method -> fprintf pp "method"
   | Constructor -> fprintf pp "constructor"
-  | ConstructorMethod -> fprintf pp "constructor method"
 
 let pp_declaration_type pp = function
   | Var -> pp_print_string pp "LocalVariable"
@@ -403,11 +400,11 @@ let pp_clean_operation pp = function
     fprintf pp "CGetField(base=%a, offset=%s, value=%a)" pp_jsval base offset pp_jsval value
   | CPutField { base; offset; value } ->
     fprintf pp "CPutField(base=%a, offset=%s, value=%a)" pp_jsval base offset pp_jsval value
-  | CRead { name; value; isGlobal } ->
-    fprintf pp "CRead(name=%s, global=%B, value=%a)" name isGlobal pp_jsval value
-  | CWrite { name; lhs; value; isGlobal; isSuccessful } ->
-    fprintf pp "CWrite(name=%s, global=%B, oldValue=%a, newValue=%a, successful=%B)"
-      name isGlobal pp_jsval lhs pp_jsval value isSuccessful
+  | CRead { name; value } ->
+    fprintf pp "CRead(name=%s, value=%a)" name pp_jsval value
+  | CWrite { name; lhs; value; isSuccessful } ->
+    fprintf pp "CWrite(name=%s, oldValue=%a, newValue=%a, successful=%B)"
+      name pp_jsval lhs pp_jsval value isSuccessful
   | CReturn value ->
     fprintf pp "CReturn(value=%a)" pp_jsval value
   | CThrow value ->
@@ -507,7 +504,7 @@ let pp_local_facts pp
     (Fmt.option Fmt.int) last_arguments
     (Fmt.option Reference.pp_versioned_reference) last_update
     (Reference.pp_reference_map Format.pp_print_int) versions
-    (StringMap.pp ~sep:(Fmt.const Fmt.string " -> ") pp_fieldref) aliases
+    (StringMap.pp (*~entry_sep:(Fmt.const Fmt.string " -> ")*) pp_fieldref) aliases
     Reference.pp_points_to_map points_to
 
 let pp_enriched_trace fmt =
