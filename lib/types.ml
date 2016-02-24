@@ -71,15 +71,12 @@ let pp_objects = Fmt.using BatDynArray.to_list (Fmt.list pp_objectspec)
 let equal_objects o1 o2 =
   BatEnum.equal equal_objectspec (BatDynArray.enum o1) (BatDynArray.enum o2)
 
-type local_funcspec = { from_toString : string; from_jalangi : string option }
-  [@@deriving ord, eq]
-let pp_local_funcspec pp s = match s.from_jalangi with
-  | Some body -> Format.fprintf pp "@[<hov>@ from_jalangi code: @[<hov>%s@]@]" body
-  | None -> Format.fprintf pp "@[<hov>@ from_toString code: @[<hov>%s@]@]" s.from_toString
 type funcspec =
-    Local of local_funcspec [@printer pp_local_funcspec]
-  | External of int [@printer fprintf "external:%d"]
-  [@@deriving show, ord, eq]
+  | Instrumented of string
+  | Uninstrumented of string * string
+  | External of int
+  [@@deriving ord, eq, show]
+
 type functions = funcspec BatDynArray.t
 let pp_functions = Fmt.using BatDynArray.to_list (Fmt.list pp_funcspec)
 let equal_functions f1 f2 =

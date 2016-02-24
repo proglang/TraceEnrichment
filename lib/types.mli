@@ -107,31 +107,15 @@ val equal_objects :
   objectspec BatDynArray.t -> objectspec BatDynArray.t -> bool
 
 (** {1 Description of JavaScript functions} *)
-(** Description of a local JavaScript function, i.e., a function that
-   consists of JavaScript code and not a native call.
-
-   The two fields contain the from_toString and the from_jalangi code
-   of the function. In some cases, from_jalangi contains "(unknown)";
-   this happens when the code is outside of the Jalangi-instrumented
-   part of the program.
-
-   FIXME This type and [funcspec] are somewhat awkward. Update
-   this later to have a sane interface.
-*)
-type local_funcspec = {
-  from_toString : string;
-  from_jalangi : string option;
-}
-(** Description of a Javascript function. It can either be local, with
-   a description as given above, or [External fid], with function
-   identifier [fid]. *)
-type funcspec = Local of local_funcspec | External of int
+(** Description of a Javascript function. *)
+type funcspec = 
+  | Instrumented of string (** Possibly insturmented JavaScript function. *)
+  | Uninstrumented of string * string
+    (** Function that has been instrumented by Jalangi.
+        [Instrumented (ins, unins)] contains the instrumented
+        code in [ins] and the uninstrumented code in [unins]. *)
+  | External of int (** External function, implemented in native code *)
 (** Boilerplate code. *)
-val compare_local_funcspec :
-  local_funcspec -> local_funcspec -> int
-val equal_local_funcspec :
-  local_funcspec -> local_funcspec -> bool
-val pp_local_funcspec : local_funcspec Fmt.t
 val pp_funcspec : funcspec Fmt.t
 val show_funcspec : funcspec -> string
 val compare_funcspec : funcspec -> funcspec -> int

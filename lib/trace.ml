@@ -37,7 +37,9 @@ let parse_funcspec json =
   let instr = member "instrumented" json |> to_string "Function specification" in
   if (Str.string_match native_pattern instr 0)
   then External (json |> member "obj" |> to_int)
-  else Local { from_toString = instr; from_jalangi = json |> member "uninstrumented" |> to_string_option }
+  else match json |> member "uninstrumented" |> to_string_option with
+    | Some uninstr -> Uninstrumented (instr, uninstr)
+    | None -> Instrumented instr
 
 let parse_fieldspec json =
   let default_to d = function Some x -> x | None -> d in try
@@ -263,10 +265,10 @@ let format_objects objs =
   `List (BatDynArray.to_list objs |> List.map format_objectspec)
 
 let format_funcspec = function
-  | Local { from_toString; from_jalangi = Some from_jalangi } ->
+  | Uninstrumented (from_toString, from_jalangi) ->
       `Assoc [("instrumented", `String from_toString);
               ("uninstrumented", `String from_jalangi)]
-  | Local { from_toString; from_jalangi = None } ->
+  | Instrumented from_toString ->
       `Assoc [("instrumented", `String from_toString)]
   | External id ->
       `Assoc [("instrumented", `String "[native code]"); ("obj", `Int id)]

@@ -17,10 +17,10 @@ let vbeta = OString "beta"
 let vmain = OSymbol "main"
 
 (** Three versions of function tables, two equivalent but permuted, and one different. *)
-let funcin1 = Local { from_toString = "func 1 toString"; from_jalangi = Some "func 1 jalangi" }
-let funcin2 = Local { from_toString = "func 2 toString"; from_jalangi = Some "func 2 jalangi" }
-let funcin3 = Local { from_toString = "func 3 toString"; from_jalangi = Some "func 3 jalangi" }
-let funcstd = Local { from_toString = "func std toString"; from_jalangi = None }
+let funcin1 = Uninstrumented("func 1 toString", "func 1 jalangi")
+let funcin2 = Uninstrumented("func 2 toString", "func 2 jalangi")
+let funcin3 = Uninstrumented("func 3 toString", "func 3 jalangi")
+let funcstd = Instrumented "func std toString"
 let funcext1 = External 1
 let funcext2 = External 2
 let funcapply = External 100

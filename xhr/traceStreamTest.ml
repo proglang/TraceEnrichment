@@ -44,8 +44,7 @@ let test_full =
                StringMap.empty ]
              (BatDynArray.to_list initials.objects);
            Assert.make_equal_list (=) (Fmt.to_to_string pp_funcspec)
-             [ External 0; Local { from_toString = "/* instrumented */";
-                                   from_jalangi = Some "/* uninstrumented */" } ]
+             [ External 0; Uninstrumented ("/* instrumented */", "/* uninstrumented */") ]
              (BatDynArray.to_list initials.functions);
            Assert.make_equal_list (=) (Fmt.to_to_string pp_operation)
              [ Literal (42, { value = OFunction (3, 1); hasGetterSetter = false }) ]

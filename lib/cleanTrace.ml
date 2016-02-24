@@ -163,7 +163,7 @@ let is_instrumented funcs f =
   match f with
   | OFunction (_, fid) ->
     begin match BatDynArray.get funcs fid with
-      | Local { from_jalangi = Some _ } -> true
+      | Instrumented _ -> true
       | _ -> false
     end
   | _ -> false

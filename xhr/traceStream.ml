@@ -59,13 +59,13 @@ let function_uninstrumented_handler initials = function
       begin
         let open Reference in
           match BatDynArray.get initials.functions id with
-            | Local { from_toString; from_jalangi = None } ->
+            | Instrumented ins ->
                 BatDynArray.set initials.functions id
-                  (Local { from_toString; from_jalangi = Some code })
-            | Local { from_toString; from_jalangi = Some code' } ->
-                (* FIXME log an error *)
+                  (Uninstrumented (ins, code))
+            | Uninstrumented (ins, _) ->
+                Log.err (fun m -> m "Adding uninstrumented code to a function that already has this.");
                 BatDynArray.set initials.functions id
-                  (Local { from_toString; from_jalangi = Some code })
+                  (Uninstrumented (ins, code))
             | External _ -> raise InvalidItem
       end; true
   | _ -> false
