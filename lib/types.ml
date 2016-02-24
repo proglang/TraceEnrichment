@@ -1,14 +1,28 @@
+let shorten ?(lenbound = 20) s =
+  let len = String.length s in
+  try
+    let idx = String.index s '\n' in
+      String.sub s 0 (min idx lenbound) ^ "..."
+  with Not_found ->
+    if len < lenbound then s else String.sub s 0 lenbound ^ "..."
+
+let pp_shortened pp s = Fmt.string pp (shorten s)
+let (%%) = Fmt.const
+let (%<) = Fmt.prefix
+let (%>) = Fmt.suffix
+let (!%) = Fmt.const Fmt.string
 type jsval =
-  | OUndefined
-  | ONull
-  | OBoolean of bool
-  | ONumberInt of int
-  | ONumberFloat of float
-  | OString of string
-  | OSymbol of string
-  | OFunction of int * int
-  | OObject of int
-  | OOther of string * int
+  | OUndefined [@printer Fmt.string %% "undefined"]
+  | ONull [@printer Fmt.string %% "null"]
+  | OBoolean of bool [@printer Fmt.bool]
+  | ONumberInt of int [@printer Fmt.int]
+  | ONumberFloat of float [@printer Fmt.float]
+  | OString of string [@printer (!% "\"") %< pp_shortened %> (!% "\"")]
+  | OSymbol of string [@printer (!% "symbol:") %< Fmt.braces pp_shortened]
+  | OFunction of int * int [@printer (!% "function:") %< (Fmt.pair ~sep:(!% "/") Fmt.int Fmt.int)]
+  | OObject of int [@printer (!% "object:") %< Fmt.int]
+  | OOther of string * int [@printer (Fmt.pair ~sep:(!% ":") Fmt.string Fmt.int)]
+  (*[@@deriving show]*)
 
 type fieldspec = {
   value: jsval;
@@ -27,14 +41,6 @@ type funcspec = Local of local_funcspec | External of int
 type functions = funcspec BatDynArray.t
 
 type globals = jsval StringMap.t
-
-let shorten s =
-  let len = String.length s in
-  try
-    let idx = String.index s '\n' in
-      String.sub s 0 (min idx 20) ^ "..."
-  with Not_found ->
-    if len < 20 then s else String.sub s 0 20 ^ "..."
 
 let pp_jsval pp = let open Format in function
     | OUndefined -> pp_print_string pp "undefined"
