@@ -49,32 +49,32 @@ let test2 =
       ] in
       let (_, _, cleantrace, _, _) = CleanTrace.clean_tracefile (functab1, objtab1, trace, globals, true) in
       Assert.make_equal (=) (Fmt.to_to_string pp_clean_trace) [
-        CRead { name = "r1"; value = vundef; isGlobal = true }; 
-        CRead { name = "r2"; value = vundef; isGlobal = true }; 
-        CWrite { name = "w1"; value = vundef; lhs = vundef; isGlobal = true; isSuccessful = true }; 
-        CWrite { name = "w2"; value = vundef; lhs = vundef; isGlobal = true; isSuccessful = true }; 
+        CRead { name = "r1"; value = vundef }; 
+        CRead { name = "r2"; value = vundef }; 
+        CWrite { name = "w1"; value = vundef; lhs = vundef; isSuccessful = true }; 
+        CWrite { name = "w2"; value = vundef; lhs = vundef; isSuccessful = true }; 
         CDeclare { name = "r2"; value = vundef; declaration_type = Var };
-        CRead { name = "r1"; value = vundef; isGlobal = true }; 
-        CRead { name = "r2"; value = vundef; isGlobal = false }; 
-        CWrite { name = "w1"; value = vundef; lhs = vundef; isGlobal = true; isSuccessful = true }; 
-        CWrite { name = "w2"; value = vundef; lhs = vundef; isGlobal = true; isSuccessful = true }; 
+        CRead { name = "r1"; value = vundef }; 
+        CRead { name = "r2"; value = vundef }; 
+        CWrite { name = "w1"; value = vundef; lhs = vundef; isSuccessful = true }; 
+        CWrite { name = "w2"; value = vundef; lhs = vundef; isSuccessful = true }; 
         CFunPre { f = obj1_fun1; base = vundef; args = vundef; call_type = Function };
         CFunEnter { f = vundef; this = vundef; args = vundef };
-        CRead { name = "r1"; value = vundef; isGlobal = true }; 
-        CRead { name = "r2"; value = vundef; isGlobal = false }; 
-        CWrite { name = "w1"; value = vundef; lhs = vundef; isGlobal = true; isSuccessful = true }; 
-        CWrite { name = "w2"; value = vundef; lhs = vundef; isGlobal = true; isSuccessful = true }; 
+        CRead { name = "r1"; value = vundef }; 
+        CRead { name = "r2"; value = vundef }; 
+        CWrite { name = "w1"; value = vundef; lhs = vundef; isSuccessful = true }; 
+        CWrite { name = "w2"; value = vundef; lhs = vundef; isSuccessful = true }; 
         CDeclare { name = "w1"; value = vundef; declaration_type = Var };
-        CRead { name = "r1"; value = vundef; isGlobal = true }; 
-        CRead { name = "r2"; value = vundef; isGlobal = false }; 
-        CWrite { name = "w1"; value = vundef; lhs = vundef; isGlobal = false; isSuccessful = true }; 
-        CWrite { name = "w2"; value = vundef; lhs = vundef; isGlobal = true; isSuccessful = true }; 
+        CRead { name = "r1"; value = vundef }; 
+        CRead { name = "r2"; value = vundef }; 
+        CWrite { name = "w1"; value = vundef; lhs = vundef; isSuccessful = true }; 
+        CWrite { name = "w2"; value = vundef; lhs = vundef; isSuccessful = true }; 
         CFunExit { ret = vundef; exc = vundef };
         CFunPost { f = obj1_fun1; base = vundef; args = vundef; result = vundef; call_type = Function };
-        CRead { name = "r1"; value = vundef; isGlobal = true }; 
-        CRead { name = "r2"; value = vundef; isGlobal = false }; 
-        CWrite { name = "w1"; value = vundef; lhs = vundef; isGlobal = true; isSuccessful = true }; 
-        CWrite { name = "w2"; value = vundef; lhs = vundef; isGlobal = true; isSuccessful = true } 
+        CRead { name = "r1"; value = vundef }; 
+        CRead { name = "r2"; value = vundef }; 
+        CWrite { name = "w1"; value = vundef; lhs = vundef; isSuccessful = true }; 
+        CWrite { name = "w2"; value = vundef; lhs = vundef; isSuccessful = true } 
       ] cleantrace
     )
 
@@ -88,10 +88,6 @@ let test3 =
         FunEnter (0, { f = obj1_fun1; this = vundef; args = vundef }); 
         FunPre (0, { f = obj1_fun1; base = vundef; args = vundef; isMethod = false; isConstructor = true }); 
         FunEnter (0, { f = obj1_fun1; this = vundef; args = vundef }); 
-        FunPre (0, { f = obj1_fun1; base = vundef; args = vundef; isMethod = true; isConstructor = true }); 
-        FunEnter (0, { f = obj1_fun1; this = vundef; args = vundef });
-        FunExit (0, { ret = vundef; exc = vundef });
-        FunPost (0, { f = obj1_fun1; base = vundef; args = vundef; isMethod = true; isConstructor = true; result = vundef }); 
         FunExit (0, { ret = vundef; exc = vundef });
         FunPost (0, { f = obj1_fun1; base = vundef; args = vundef; isMethod = false; isConstructor = true; result = vundef }); 
         FunExit (0, { ret = vundef; exc = vundef });
@@ -112,10 +108,6 @@ let test3 =
         CFunEnter { f = obj1_fun1; this = vundef; args = vundef }; 
         CFunPre { f = obj1_fun1; base = vundef; args = vundef; call_type = Constructor }; 
         CFunEnter { f = obj1_fun1; this = vundef; args = vundef }; 
-        CFunPre { f = obj1_fun1; base = vundef; args = vundef; call_type = ConstructorMethod }; 
-        CFunEnter { f = obj1_fun1; this = vundef; args = vundef };
-        CFunExit { ret = vundef; exc = vundef };
-        CFunPost { f = obj1_fun1; base = vundef; args = vundef; call_type = ConstructorMethod; result = vundef }; 
         CFunExit { ret = vundef; exc = vundef };
         CFunPost { f = obj1_fun1; base = vundef; args = vundef; call_type = Constructor; result = vundef }; 
         CFunExit { ret = vundef; exc = vundef };

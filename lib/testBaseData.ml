@@ -281,8 +281,8 @@ let cleantrace1 = [
   CDeclare { name = "e"; value = obj1_simp2; declaration_type = CatchParam };
   CEndExpression;
   CLiteral { value = vtrue; hasGetterSetter = false };
-  CWrite { name = "x"; lhs = vundef; value = vtrue; isGlobal = true; isSuccessful = true };
-  CRead { name = "x"; value = vtrue; isGlobal = true };
+  CWrite { name = "x"; lhs = vundef; value = vtrue; isSuccessful = true };
+  CRead { name = "x"; value = vtrue };
 
   CFunPre { f = obj1_fun1; base = obj1_cyc1; args = obj1_simp1; call_type = Method };
   CFunEnter { f = obj1_fun1; this = obj1_cyc1; args = obj1_simp1 };

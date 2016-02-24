@@ -338,15 +338,15 @@ let format_event = function
       `Assoc [("iid", `Int iid); ("base", format_jsval base); ("offset", `String offset);
               ("isComputed", `Bool isComputed); ("isOpAssign", `Bool isOpAssign);
               ("val", format_jsval value); ("step", `String "putpost") ]
-  | Read (iid, {name; value; isGlobal; isScriptLocal}) ->
+  | Read (iid, {name; value; isScriptLocal}) ->
       `Assoc [("step", `String "read"); ("iid", `Int iid);
               ("name", `String name); ("val", format_jsval value);
-              ("isScriptLocal", `Bool isScriptLocal); ("isGlobal", `Bool isGlobal)]
-  | Write (iid, {name; value; lhs; isGlobal; isScriptLocal}) ->
+              ("isScriptLocal", `Bool isScriptLocal)]
+  | Write (iid, {name; value; lhs; isScriptLocal}) ->
       `Assoc [("step", `String "write"); ("iid", `Int iid);
               ("name", `String name); ("val", format_jsval value);
               ("lhs", format_jsval lhs);
-              ("isScriptLocal", `Bool isScriptLocal); ("isGlobal", `Bool isGlobal)]
+              ("isScriptLocal", `Bool isScriptLocal)]
   | Return (iid, value) ->
       `Assoc [("step", `String "return"); ("iid", `Int iid); ("val", format_jsval value)]
   | Throw (iid, value) ->
@@ -403,7 +403,6 @@ let format_call_type = function
   | Function -> `String "function"
   | Method -> `String "method"
   | Constructor -> `String "constructor"
-  | ConstructorMethod -> `String "constructor-method"
 
 let format_declaration_type = function
   | Var -> `String "var"
@@ -440,12 +439,12 @@ let format_clean_event = function
   | CPutFieldPre { base; offset; value } ->
       `Assoc [("step", `String "putfieldpre"); ("base", format_jsval base);
               ("offset", `String offset); ("val", format_jsval value)]
-  | CRead { name; value; isGlobal } ->
+  | CRead { name; value} ->
       `Assoc [("step", `String "read"); ("name", `String name);
-              ("value", format_jsval value); ("isGlobal", `Bool isGlobal)]
-  | CWrite { name; value; isGlobal; lhs; isSuccessful } ->
+              ("value", format_jsval value)]
+  | CWrite { name; value; lhs; isSuccessful } ->
       `Assoc [("step", `String "read"); ("name", `String name);
-              ("value", format_jsval value); ("isGlobal", `Bool isGlobal);
+              ("value", format_jsval value);
               ("lhs", format_jsval lhs); ("isSuccessful", `Bool isSuccessful)]
   | CReturn value -> `Assoc [("step", `String "return"); ("val", format_jsval value)]
   | CThrow value -> `Assoc [("step", `String "throw"); ("val", format_jsval value)]

@@ -123,7 +123,7 @@ type tracefile = functions * objects * trace * globals * bool
 
 (** Classification of the different types of function calls. This just enumerates
  the combinations of flags. *)
-type call_type = Function | Method | Constructor | ConstructorMethod
+type call_type = Function | Method | Constructor
 
 (** The different possible types of variable declarations. *)
 type declaration_type =
@@ -165,14 +165,12 @@ type accessfield = {
 }
 type read = {
   name : string;
-  value : jsval;
-  isGlobal: bool
+  value : jsval
 }
 type write = {
   name : string;
   lhs : jsval;
   value : jsval;
-  isGlobal : bool;
   isSuccessful: bool
 }
 type binary = {

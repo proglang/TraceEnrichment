@@ -68,9 +68,8 @@ let gen_synthesize_inputs max_ht =
          | 6 -> CPutFieldPre (build_access r)
          | 7 -> CGetField (build_access r)
          | 8 -> CPutField (build_access r)
-         | 9 -> CRead { name = build_string 32; value = build_jsval r; isGlobal = Random.State.bool r }
-         | 10 -> CWrite { name = build_string 32; value = build_jsval r; isGlobal = Random.State.bool r;
-                          isSuccessful = Random.State.bool r; lhs = build_jsval r }
+         | 9 -> CRead { name = build_string 32; value = build_jsval r }
+         | 10 -> CWrite { name = build_string 32; value = build_jsval r; isSuccessful = Random.State.bool r; lhs = build_jsval r }
          | 11 -> CReturn (build_jsval r)
          | 12 -> CWith (build_jsval r)
          | 13 -> CBinary { op = build_string 3; left = build_jsval r; right = build_jsval r; result = build_jsval r }

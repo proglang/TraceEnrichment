@@ -94,13 +94,13 @@ let collect_pointsto_step globals_are_properties objects state facts =
     add_read facts state (Reference.reference_of_field base offset) value
   | CPutField { base; offset; value } ->
     add_write facts state (Reference.reference_of_field base offset) value false
-  | CRead { name; value; isGlobal } ->
+  | CRead { name; value } ->
     let ref =
-      LocalFacts.reference_of_variable globals_are_properties facts isGlobal name
+      LocalFacts.reference_of_variable globals_are_properties facts false (*isGlobal*) name
     in add_read facts state ref value
-  | CWrite { name; value; isGlobal } ->
+  | CWrite { name; value } ->
     let ref =
-      LocalFacts.reference_of_variable globals_are_properties facts isGlobal name
+      LocalFacts.reference_of_variable globals_are_properties facts false (*isGlobal*) name
     in add_write facts state ref value false
   | CFunEnter { args; this } ->
     let state = add_known_new_object objects facts state args in

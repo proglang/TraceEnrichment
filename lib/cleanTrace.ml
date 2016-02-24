@@ -3,7 +3,7 @@ open Streaming
 open TraceTypes
 
 let encode_type isMethod isConstructor = match isMethod, isConstructor with
-  | true, true -> ConstructorMethod
+  | true, true -> failwith "Unexpected function type: both constructor and method"
   | true, false -> Method
   | false, true -> Constructor
   | false, false -> Function
@@ -47,13 +47,13 @@ let clean_impl_cases stack locals globals =
     | Read (_, { name; value }) ->
       (* Throw away Jalangi2's isGlobal and isScriptLocal - they turn out to be useless *)
       let (locals', globals', isGlobal) = check_global locals globals name in
-      UpdateLocalGlobals (locals', globals', CRead { name; value; isGlobal })
+      UpdateLocalGlobals (locals', globals', CRead { name; value })
     | PutFieldPre (_, { base; offset; value }) -> Simple (CPutFieldPre { base; offset; value })
     | PutField (_, { base; offset; value }) -> Simple (CPutField { base; offset; value })
     | Write (_, { name; lhs; value }) ->
       let (locals', globals', isGlobal) = check_global locals globals name in
       UpdateLocalGlobals (locals', globals',
-                          CWrite { name; lhs; value; isGlobal; isSuccessful = true })
+                          CWrite { name; lhs; value; isSuccessful = true })
     | Return (_, value) -> Simple (CReturn value)
     | Throw (_, value) -> Simple (CThrow value)
     | With (_, value) -> Simple (CWith value)
