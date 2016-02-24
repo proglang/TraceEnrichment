@@ -504,7 +504,7 @@ let pp_local_facts pp
     (Fmt.option Fmt.int) last_arguments
     (Fmt.option Reference.pp_versioned_reference) last_update
     (Reference.pp_reference_map Format.pp_print_int) versions
-    (StringMap.pp ~sep:(Fmt.const Fmt.string " -> ") pp_fieldref) aliases
+    (StringMap.pp (*~entry_sep:(Fmt.const Fmt.string " -> ")*) pp_fieldref) aliases
     Reference.pp_points_to_map points_to
 
 let pp_enriched_trace fmt =
