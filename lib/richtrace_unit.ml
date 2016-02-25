@@ -30,7 +30,7 @@ let test2 = Test.make_simple_test ~title:"calculate_rich_tracefile" (fun () ->
     Assert.make_equal ~msg:"objects" (=) (Fmt.to_to_string pp_objects) objtab1 rt.objs;
     Assert.make_equal ~msg:"globals" (=) (Fmt.to_to_string pp_globals) globals rt.globals;
     Assert.equal_bool ~msg:"globals-are-properties" true rt.globals_are_properties;
-    Assert.make_equal ~msg:"points-to map" (Reference.VersionReferenceMap.equal (=))
+    Assert.make_equal ~msg:"points-to map" (Reference.VersionedReferenceMap.equal (=))
       (Fmt.to_to_string Reference.pp_points_to_map)
       trace1_pointsto rt.points_to;
     Assert.make_equal_list ~msg:"trace" rop_eq

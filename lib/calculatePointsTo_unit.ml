@@ -14,8 +14,8 @@ let test_calculate_pointsTo =
       let open Fmt in
       let open Reference in
       let to_string m =
-        Fmt.to_to_string (using VersionReferenceMap.bindings (list (pair pp_versioned_reference pp_jsval))) m in
-      Assert.make_equal (Reference.VersionReferenceMap.equal (=)) to_string trace1_pointsto points_to;
+        Fmt.to_to_string (using VersionedReferenceMap.bindings (list (pair pp_versioned_reference pp_jsval))) m in
+      Assert.make_equal (Reference.VersionedReferenceMap.equal (=)) to_string trace1_pointsto points_to;
       same_facts_tracefile tf1 tf2)
 
 let tests = [ test_calculate_pointsTo ]

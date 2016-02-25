@@ -586,7 +586,7 @@ let format_rich_trace tr = `List (List.map format_rich_event tr)
 let format_rich_trace_small tr = `List (List.map format_rich_event_small tr)
 
 let format_points_to ptm =
-  `List (Reference.VersionReferenceMap.fold
+  `List (Reference.VersionedReferenceMap.fold
            (fun vref value json ->
               `List [format_versioned_reference vref; format_jsval value] :: json)
            ptm [])

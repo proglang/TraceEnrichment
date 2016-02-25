@@ -186,7 +186,7 @@ let collect_versions_step (objects: objects) globals_are_properties state argume
            versions = res.versions_current;
            aliases = res.aliases;
            last_update = res.last_update;
-           points_to = Reference.VersionReferenceMap.empty }),
+           points_to = Reference.VersionedReferenceMap.empty }),
     res )
 
 let initial_refs objects globals_are_properties globals =

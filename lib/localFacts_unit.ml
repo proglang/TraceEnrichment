@@ -39,7 +39,7 @@ let alias_map = {
   last_update = None;
   versions = Reference.ReferenceMap.empty |> Reference.ReferenceMap.add ref0 42;
   aliases = (let open StringMap in empty |> add "y" (Types.Object 1, "a"));
-  points_to = Reference.VersionReferenceMap.empty
+  points_to = Reference.VersionedReferenceMap.empty
 }
 
 let test1 = let open Reference in

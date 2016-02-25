@@ -45,15 +45,12 @@ val reference_of_local_name: string -> reference
 
 (** Versioned references are references with an integer version. *)
 type versioned_reference = reference * int
-(** Maps and sets over versioned references. *)
-module VersionReferenceMap : Map.S with type key = versioned_reference
-module VersionReferenceSet : Set.S with type elt = versioned_reference
+val pp_versioned_reference : versioned_reference Fmt.t
 
-(** A points-to map assigned a value to each versioned reference occuring in a trace. *)
-type points_to_map = Types.jsval VersionReferenceMap.t
-(** Pretty-printers. *)
-val pp_versioned_reference: Format.formatter -> versioned_reference -> unit
-val pp_versioned_reference_set: Format.formatter -> VersionReferenceSet.t -> unit
-val pp_versioned_reference_map: (Format.formatter -> 'a -> unit) -> Format.formatter -> 'a VersionReferenceMap.t -> unit
-val pp_points_to_map: Format.formatter -> points_to_map -> unit
-
+(** Maps and sets of versioned references. *)
+module VersionedReferenceMap : ExtMap.S with type key = versioned_reference
+module VersionedReferenceSet : Set.S with type elt = versioned_reference
+val pp_versioned_reference_map : 'a Fmt.t -> 'a VersionedReferenceMap.t Fmt.t
+val pp_versioned_reference_set : VersionedReferenceSet.t Fmt.t
+type points_to_map = Types.jsval VersionedReferenceMap.t
+val pp_points_to_map : points_to_map Fmt.t

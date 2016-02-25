@@ -216,18 +216,18 @@ let get_facts_for (objtab: objects) =
         let ref = Reference.reference_of_field (OObject idx) field in
         ({ local_facts with
            versions = Reference.ReferenceMap.add ref 0 local_facts.versions },
-         Reference.VersionReferenceMap.add (ref, 0) desc.value points_to))
+         Reference.VersionedReferenceMap.add (ref, 0) desc.value points_to))
       desc acc 
   and empty_facts = {
     last_arguments = None;
     last_update = None;
     aliases = StringMap.empty;
     versions = Reference.ReferenceMap.empty;
-    points_to = Reference.VersionReferenceMap.empty
+    points_to = Reference.VersionedReferenceMap.empty
   } in
   let foldi f a x =
     snd (BatDynArray.fold_left (fun (i, x) y -> (i+1, f i y x)) (0, x) a)
-  in foldi add_facts objtab (empty_facts, Reference.VersionReferenceMap.empty)
+  in foldi add_facts objtab (empty_facts, Reference.VersionedReferenceMap.empty)
 
 let (local_facts_1, points_to_1) = get_facts_for objtab1
 let (local_facts_2, points_to_2) = get_facts_for objtab2
@@ -496,7 +496,7 @@ let rec combine_facts args updates versions aliases pointsto =
     | [], [], [], [], [] -> []
     | _ -> invalid_arg "Lengths do not match"
 
-module VRM = Reference.VersionReferenceMap
+module VRM = Reference.VersionedReferenceMap
 let add_simple_fields (obj: objectid) (fields: (string * jsval) list) ptm =
   List.fold_left
     (fun ptm (fld, value) -> VRM.add (Reference.reference_of_fieldref (obj, fld), 0) value ptm)
@@ -909,7 +909,7 @@ module AssertReferenceMap =
        let to_string = (Fmt.to_to_string Reference.pp_reference)
      end)
 module AssertVersionedReferenceMap = 
-  Kaputt.Assertion.Map(Reference.VersionReferenceMap)
+  Kaputt.Assertion.Map(Reference.VersionedReferenceMap)
     (struct
        type t = Reference.versioned_reference
        let to_string = (Fmt.to_to_string Reference.pp_versioned_reference)

@@ -60,21 +60,21 @@ type versioned_reference = reference * int
 let pp_versioned_reference =
   let open Fmt in pair ~sep:(const string ":") pp_reference int
 
-module VersionReference = struct
-  type t = versioned_reference
-  let compare: t -> t -> int = Pervasives.compare
-end;;
-module VersionReferenceMap = Map.Make(VersionReference);;
-module VersionReferenceSet = Set.Make(VersionReference);;
+module VersionedReference = Pairs.Make(Reference)(struct include BatInt let pp = Fmt.int end)
+type versioned_reference = VersionedReference.t
+let pp_versioned_reference = VersionedReference.pp
+
+module VersionedReferenceMap = ExtMap.Make(VersionedReference);;
+module VersionedReferenceSet = Set.Make(VersionedReference);;
 let pp_versioned_reference_map fmtval =
   let open Fmt in
     using VersionReferenceMap.bindings (list (pair ~sep:map_sep pp_versioned_reference fmtval))
 let pp_versioned_reference_set =
   let open Fmt in
-    using VersionReferenceSet.elements (list ~sep:map_sep pp_versioned_reference)
+    using VersionedReferenceSet.elements (list pp_versioned_reference)
 
-open Types
-type points_to_map = jsval VersionReferenceMap.t
+type points_to_map = Types.jsval VersionedReferenceMap.t
 
-let pp_points_to_map = pp_versioned_reference_map pp_jsval
+let pp_points_to_map = pp_versioned_reference_map Types.pp_jsval
+
 
