@@ -1,49 +1,57 @@
-(** A unified reference type for variables and fields. *)
+(** {1 References to mutable state} *)
 
-(** A reference to mutable state.
+(** {2 The scope of a variable} *)
+type scope = Global | Local of int
+(** Boilerplate code. *)
+val pp_scope : Format.formatter -> scope -> Ppx_deriving_runtime.unit
+val show_scope : scope -> Ppx_deriving_runtime.string
+val compare_scope : scope -> scope -> Ppx_deriving_runtime.int
+val equal_scope : scope -> scope -> Ppx_deriving_runtime.bool
+
+(** {2 A reference to mutable state}
 
  Because of aliasing issues, the transformation from variables to
- references is somewhat tricky. Therefore, we do not expose the
- constructors of [reference]. *)
-type reference = private
-  | LocalVariable of string
-  | GlobalVariable of string
-  | Field of Types.objectid * string;;
+ references is somewhat tricky. It is recommended to use the helpers below. *)
+type reference = Field of Types.fieldref | Variable of scope * string
+(** Boilerplate code. *)
+val pp_reference : reference Fmt.t
+val equal_reference : reference -> reference -> bool
 
-
-(** Maps on references. *)
-module ReferenceMap: Map.S with type key = reference
-
-(** Pretty printers. *)
-val pp_reference: Format.formatter -> reference -> unit
-val pp_reference_map: (Format.formatter -> 'a -> unit) ->
-  Format.formatter -> 'a ReferenceMap.t -> unit
-
-(** Transform a variable name to a reference.
-
- [reference_of_name globals_are_properties alias_map is_global name]
- creates the correct reference for the variable [name], taking into account
- whether the variable is global ([is_global]), whether global variables
- are references to properties of the global object ([globals_are_properties]),
- and the current alias map ([alias_map]).
-*)
-val reference_of_name:
-  bool -> Types.fieldref StringMap.t -> bool -> string -> reference
+(** {3 Reference constructors} *)
 (** Transform a field access to a reference.
 
  Call as [reference_of_field base offset], where [base] must be a
  value having an object identifier. *)
-val reference_of_field: Types.jsval -> string -> reference
+val reference_of_field : Types.jsval -> string -> reference
 (** Transform a field reference to a reference. *)
-val reference_of_fieldref: Types.fieldref -> reference
+val reference_of_fieldref : Types.fieldref -> reference
 (** Transform a variable name that is known to be local and non-aliased to
  a reference.
 
  Beware: Unless you are certain that no aliasing occurs for this name,
  use [reference_of_name]! *)
-val reference_of_local_name: string -> reference
+val reference_of_local_name : int -> string -> reference
+(** Create a reference for a variable name.
 
-(** Versioned references are references with an integer version. *)
+  [reference_of_name globals_are_properties name_map name] creates
+  the appropriate reference for [name] using the map [name_map] of known
+  variables, and [globals_are_properties] to create the appropriate reference
+  for as-yet-unknown global variables. *)
+val reference_of_name : bool -> reference StringMap.t -> string -> reference
+
+(** Map with references as keys. *)
+module ReferenceMap : ExtMap.S with type key = reference
+val pp_reference_map :
+  'a ->
+  ?pair_sep:unit Fmt.t ->
+  ?entry_sep:unit Fmt.t ->
+  ?entry_frame:((ReferenceMap.key * 'b) Fmt.t ->
+                (ReferenceMap.key * 'b) Fmt.t) ->
+  'b Fmt.t -> 'b ReferenceMap.t Fmt.t
+
+(** {2 A pair of reference and version}
+
+   These pairs provide references to different versions of a reference. *)
 type versioned_reference = reference * int
 val pp_versioned_reference : versioned_reference Fmt.t
 
