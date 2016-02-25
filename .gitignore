@@ -26,7 +26,6 @@ AUTHORS.txt
 INSTALL.txt
 META
 README.txt
-_tags
 *.mldylib
 *.mllib
 myocamlbuild.ml

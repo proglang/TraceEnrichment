@@ -1,0 +1,8 @@
+# OASIS_START
+# OASIS_END
+true: package(fmt), package(batteries), package(logs), package(logs.fmt)
+true: package(ppx_deriving), package(ppx_deriving.show)
+true: package(ppx_deriving.make), package(ppx_deriving_yojson)
+true: package(ppx_deriving.ord), package(ppx_deriving.eq)
+true: package(lwt), package(lwt.unix), package(yojson), package(kaputt)
+<xhr/*>: package(cohttp), package(cohttp.lwt), package(uuidm)
