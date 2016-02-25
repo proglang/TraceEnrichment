@@ -60,8 +60,7 @@ let add_literal objects facts state value =
              StringMap.find field (BatDynArray.get objects objid)
            in
            VersionedReferenceMap.add vref value state
-         | Reference.LocalVariable name
-         | Reference.GlobalVariable name ->
+         | Reference.Variable (_, name) ->
              failwith ("Unexpected unmapped variable " ^ name))
     facts.versions
     state
