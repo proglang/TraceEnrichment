@@ -42,42 +42,6 @@ let alias_map = {
   points_to = Reference.VersionedReferenceMap.empty
 }
 
-let test1 = let open Reference in
-  Test.make_simple_test ~title:"reference_of_variable: global when globals are not properties"
-    (fun () ->
-       let ref = reference_of_variable false alias_map true "x" in
-       Assert.is_true
-         ~msg:(Format.asprintf "Expected 'Global(\"x\")', but got '%a'" pp_reference ref)
-         (match ref with GlobalVariable "x" -> true | _ -> false))
-let test2 = let open Reference in
-  Test.make_simple_test ~title:"reference_of_variable: global when globals are properties"
-    (fun () ->
-       let ref = reference_of_variable true alias_map true "x" in
-       Assert.is_true
-         ~msg:(Format.asprintf "Expected 'Field(Object 0, \"x\")', but got '%a'" pp_reference ref)
-         (match ref with Field(Object 0, "x") -> true | _ -> false))
-let test3 = let open Reference in
-  Test.make_simple_test ~title:"reference_of_variable: global when globals are properties; alias handling"
-    (fun () ->
-       let ref = reference_of_variable true alias_map true "y" in
-       Assert.is_true
-         ~msg:(Format.asprintf "Expected 'Field(Object 0, \"y\")', but got '%a'" pp_reference ref)
-         (match ref with Field(Object 0, "y") -> true | _ -> false))
-let test4 = let open Reference in
-  Test.make_simple_test ~title:"reference_of_variable: local, not an alias"
-    (fun () ->
-       let ref = reference_of_variable true alias_map false "x" in
-       Assert.is_true
-         ~msg:(Format.asprintf "Expected 'Local \"x\"', but got '%a'" pp_reference ref)
-         (match ref with LocalVariable "x" -> true | _ -> false))
-let test5 = let open Reference in
-  Test.make_simple_test ~title:"reference_of_variable: local name; alias handling"
-    (fun () ->
-       let ref = reference_of_variable true alias_map false "y" in
-       Assert.is_true
-         ~msg:(Format.asprintf "Expected 'Field(Object 1, \"a\")', but got '%a'" pp_reference ref)
-         (match ref with Field(Object 1, "a") -> true | _ -> false))
-
 let test_make_versioned =
   Test.make_simple_test ~title: "make_versioned"
     (fun () ->  Assert.make_equal (=)
