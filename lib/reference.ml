@@ -26,7 +26,7 @@ let get_name = function
 
 
 module ReferenceMap = ExtMap.Make(Reference)
-let pp_reference_map fmtval = ReferenceMap.pp
+let pp_reference_map = ReferenceMap.pp
 
 let global_object = Types.Object 0
 
