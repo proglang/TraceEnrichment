@@ -121,6 +121,7 @@ type tracefile = functions * objects * trace * globals * bool
 (** Classification of the different types of function calls. This just enumerates
   * the combinations of flags. *)
 type call_type = Function | Method | Constructor
+  [@@deriving show]
 
 (** The different possible types of variable declarations. *)
 type declaration_type =
@@ -132,6 +133,7 @@ type declaration_type =
   | ArgumentBinding of int
   (** The variable binds a caught exception. *)
   | CatchParam
+  [@@deriving show]
 
 (** Structures that contain information about the different possible events on a trace.
   * 
@@ -364,18 +366,6 @@ let pp_trace pp trace =
 let pp_tracefile pp (f, o, t, g, gap) =
   fprintf pp "@[<v>Globals are properties: %b@ @[<hov>%a@]@ @[<hov>%a@]@ @[<hov>Globals:@ %a@]@ Trace:@ @[<hov>%a@]@]"
     gap pp_functions f pp_objects o pp_globals g pp_trace t
-
-
-let pp_call_type pp = function
-  | Function -> fprintf pp "function"
-  | Method -> fprintf pp "method"
-  | Constructor -> fprintf pp "constructor"
-
-let pp_declaration_type pp = function
-  | Var -> pp_print_string pp "LocalVariable"
-  | ArgumentArray -> pp_print_string pp "ArgumentArray"
-  | ArgumentBinding i -> fprintf pp "Argument(%d)" i
-  | CatchParam -> pp_print_string pp "CatchParameter"
 
 let pp_clean_operation pp = function
   | CFunPre { f; base; args; call_type } ->
