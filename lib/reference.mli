@@ -42,7 +42,6 @@ val reference_of_name : bool -> reference StringMap.t -> string -> reference
 (** Map with references as keys. *)
 module ReferenceMap : ExtMap.S with type key = reference
 val pp_reference_map :
-  'a ->
   ?pair_sep:unit Fmt.t ->
   ?entry_sep:unit Fmt.t ->
   ?entry_frame:((ReferenceMap.key * 'b) Fmt.t ->

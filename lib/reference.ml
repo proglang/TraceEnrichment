@@ -5,14 +5,16 @@ type scope =
 
 module Reference = struct
   type t =
-    | Field of Types.objectid * string
+    | Field of Types.fieldref
     | Variable of scope * string
     [@@deriving show, ord, eq]
 end
 open Reference
-type reference = Reference.t
+type reference = Reference.t = Field of Types.fieldref
+    | Variable of scope * string
+
 let pp_reference = Reference.pp
-let pp_equal = Reference.equal
+let equal_reference = Reference.equal
 
 let get_fieldref = function
   | Field(obj, fld) -> Some (obj, fld)
