@@ -6,8 +6,8 @@ Authors:     Johannes Kloos
 License:     MIT
 Plugins:     META (0.4), StdFiles (0.4)
 FilesAB:     xhr/compilationConfig.ml.ab
-AlphaFeatures: ocamlbuild_more_args
-XOCamlbuildExtraArgs: -use-ocamlfind
+OCamlVersion: >= 4.02.1
+AlphaFeatures: no_automatic_syntax
 
 Library "js-enrichment"
   Path:       lib
@@ -16,7 +16,8 @@ Library "js-enrichment"
   XMETAEnable: true
   XMETADescription: Trace enrichment for JavaScript traces
   BuildDepends: yojson, str, lwt.ppx, lwt, fmt, batteries, logs, logs.fmt,
-    ppx_deriving
+    ppx_deriving, ppx_deriving.show, ppx_deriving.ord, ppx_deriving.eq,
+    ppx_deriving.make
   Modules:    CalculatePointsTo, CalculateVersions, CleanTrace, 
     LocalFacts, PointsTo, Reference, RichTrace, Streaming, Trace,
     TraceTypes, Types, Debug, StringMap, IntMap, IntIntMap,
