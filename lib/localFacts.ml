@@ -21,8 +21,8 @@ let collect_arguments_stream = StreamCollectArguments.collect_arguments
 let collect_arguments_trace = ListCollectArguments.collect_arguments
 let collect_arguments_tracefile (f, o, t, g, p) = (f, o, collect_arguments_trace t, g, p)
 
-let reference_of_variable gap facts global name =
-  Reference.reference_of_name gap facts.aliases global name
+let reference_of_variable gap facts name =
+  Reference.reference_of_name gap facts.names name
 
 let make_versioned state ref =
   try (ref, Reference.ReferenceMap.find ref state.versions)

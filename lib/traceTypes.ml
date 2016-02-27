@@ -242,7 +242,7 @@ type local_facts = {
   last_arguments: int option;
   last_update: Reference.versioned_reference option;
   versions: int Reference.ReferenceMap.t;
-  aliases: fieldref StringMap.t;
+  names: Reference.reference StringMap.t;
   points_to: Reference.points_to_map
 }
 
@@ -483,8 +483,7 @@ let pp_rich_operation pp = let open Format in function
     | REndExpression -> pp_print_string pp "REndExpression"
     | RConditional value -> fprintf pp "RConditional(value=%a)" pp_jsval value
 
-let pp_local_facts pp
-    { last_arguments; last_update; versions; aliases; points_to } =
+let pp_local_facts pp { last_arguments; last_update; versions; names; points_to } =
   Format.fprintf pp "@[< v >\
                      Last callee-side argument object: %a@ \
                      Last update: %a@ \
@@ -493,8 +492,8 @@ let pp_local_facts pp
                      Points-to map: @[< hov 2 >%a@]@ @]"
     (Fmt.option Fmt.int) last_arguments
     (Fmt.option Reference.pp_versioned_reference) last_update
-    (Reference.pp_reference_map Format.pp_print_int) versions
-    (StringMap.pp (*~entry_sep:(Fmt.const Fmt.string " -> ")*) pp_fieldref) aliases
+    (Reference.pp_reference_map Fmt.int) versions
+    (StringMap.pp (*~entry_sep:(Fmt.const Fmt.string " -> ")*) Reference.pp_reference) names
     Reference.pp_points_to_map points_to
 
 let pp_enriched_trace fmt =

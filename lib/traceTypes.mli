@@ -274,8 +274,8 @@ type local_facts = {
   last_update: Reference.versioned_reference option;
   (** The current version of all known references. *)
   versions: int Reference.ReferenceMap.t;
-  (** All currently-existing aliases. *)
-  aliases: Types.fieldref StringMap.t;
+  (** All visible variable names. *)
+  names: Reference.reference StringMap.t;
   (** The current state of the points-to map. *)
   points_to: Reference.points_to_map
 }
