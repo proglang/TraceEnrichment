@@ -301,8 +301,15 @@ val pp_enriched_tracefile: (Format.formatter -> 'a -> unit) ->
 val pp_facts_trace: Format.formatter -> facts_trace -> unit
 val pp_facts_tracefile: Format.formatter -> facts_tracefile -> unit
 
+(** Rich facts [rich_facts] contains a subset of local facts. *)
+type rich_facts = {
+  last_update: Reference.versioned_reference option;
+  versions: int Reference.ReferenceMap.t;
+  points_to: Reference.points_to_map
+}
+
 (** A rich event is a pair of a rich operation and the associated local facts *)
-type rich_event = rich_operation * local_facts
+type rich_event = rich_operation * rich_facts
 (** A rich trace contains rich operations and local facts. *)
 type rich_trace = rich_event list
 (** A rich trace file contains the original function and object descriptions,

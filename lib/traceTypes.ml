@@ -289,8 +289,15 @@ type rich_operation =
   | REndExpression
   | RConditional of jsval
 
+(** Rich facts [rich_facts] contains a subset of local facts. *)
+type rich_facts = {
+  last_update: Reference.versioned_reference option;
+  versions: int Reference.ReferenceMap.t;
+  points_to: Reference.points_to_map
+}
+
 (** A rich event is a pair of a rich operation and the associated local facts *)
-type rich_event = rich_operation * local_facts
+type rich_event = rich_operation * rich_facts
 (** A rich trace contains rich operations and local facts. *)
 type rich_trace = rich_event list
 (** A rich trace file contains the original function and object descriptions,
@@ -513,10 +520,7 @@ let dump_facts = ref false
 let enable_dump_facts () = dump_facts := true
 
 let pp_rich_operation_with_facts pp (op, facts) =
-  if !dump_facts then
-    Format.fprintf pp "@[<v 2>%a@.%a@]" pp_rich_operation op pp_local_facts facts
-  else
-    pp_rich_operation pp op
+  pp_rich_operation pp op
 let pp_rich_trace = Fmt.list pp_rich_operation_with_facts
 
 let pp_rich_tracefile pp
