@@ -97,24 +97,23 @@ let calculate_rich_tracefile
 let calculate_rich_stream (init: initials) stream =
   StreamEnrich.to_rich_tracefile init.globals_are_properties stream
 
+
 let tracefile_to_rich_tracefile trace =
-  raise Exit (* FIXME *)
-    (*
-  trace
+  let module E = EnrichTrace.Make(Streaming.ListTransformers)
+  in let do_enrichment
+           (functions, objects, trace, globals, globals_are_properties) =
+    (functions, objects,
+     E.collect { functions; objects; globals; globals_are_properties } trace,
+     globals, globals_are_properties)
+  in
+    trace
     |> CleanTrace.clean_tracefile
-    |> LocalFacts.collect_arguments_tracefile
-    |> CalculateVersions.collect_versions_trace
-    |> CalculatePointsTo.calculate_pointsto
+    |> do_enrichment
     |> calculate_rich_tracefile
-     *)
 
 let trace_stream_to_rich_stream init stream =
-  raise Exit (* FIXME *)
-    (*
+  let module E = EnrichTrace.Make(Streaming.StreamTransformers) in
   stream
     |> CleanTrace.clean_stream init
-    |> LocalFacts.collect_arguments_stream
-    |> CalculateVersions.collect_versions_stream init
-    |> CalculatePointsTo.collect_pointsto_stream init
+    |> E.collect init
     |> calculate_rich_stream init
-     *)
