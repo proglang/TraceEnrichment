@@ -1,15 +1,48 @@
 open Types
 open TraceTypes
 
-(** Local facts are facts that change depending on the position
- in the trace. *)
-
-(** Transform a clean trace into a trace with arguments information. *)
-val collect_arguments_trace: clean_trace -> arguments_trace
-(** Transform a clean trace file into a trace file with arguments information. *)
-val collect_arguments_tracefile: clean_tracefile -> arguments_tracefile
-(** Transform a clean trace stream into a trace stream with arguments information. *)
-val collect_arguments_stream: clean_stream -> arguments_stream
+(** Facts that are local to a position in the trace. *)
+type arguments_and_closures = {
+  (** The last argument object that was created by a function call. *)
+  last_arguments: int option;
+  (** Closure enviroments for functions. *)
+  closures: int IntMap.t
+}
+type names_resolved = {
+  (** The last argument object that was created by a function call. *)
+  last_arguments: int option;
+  (** Closure enviroments for functions. *)
+  closures: int IntMap.t;
+  (** All visible variable names. *)
+  names: Reference.reference StringMap.t
+}
+type versions_resolved = {
+  (** The last argument object that was created by a function call. *)
+  last_arguments: int option;
+  (** Closure enviroments for functions. *)
+  closures: int IntMap.t;
+  (** The last reference that was modified. *)
+  last_update: Reference.versioned_reference option;
+  (** The current version of all known references. *)
+  versions: int Reference.ReferenceMap.t;
+  (** All visible variable names. *)
+  names: Reference.reference StringMap.t;
+}
+type local_facts = {
+  (** The last argument object that was created by a function call. *)
+  last_arguments: int option;
+  (** Closure enviroments for functions. *)
+  closures: int IntMap.t;
+  (** The last reference that was modified. *)
+  last_update: Reference.versioned_reference option;
+  (** The current version of all known references. *)
+  versions: int Reference.ReferenceMap.t;
+  (** All visible variable names. *)
+  names: Reference.reference StringMap.t;
+  (** The current state of the points-to map. *)
+  points_to: Reference.points_to_map
+}
+val pp_local_facts: Format.formatter -> local_facts -> unit
 
 (** Create a reference for a variable.
 

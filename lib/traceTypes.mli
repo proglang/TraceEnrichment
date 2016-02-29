@@ -266,40 +266,15 @@ type rich_operation =
   | REndExpression
   | RConditional of jsval
 
-(** Facts that are local to a position in the trace. *)
-type local_facts = {
-  (** The last argument object that was created by a function call. *)
-  last_arguments: int option;
-  (** The last reference that was modified. *)
-  last_update: Reference.versioned_reference option;
-  (** The current version of all known references. *)
-  versions: int Reference.ReferenceMap.t;
-  (** All visible variable names. *)
-  names: Reference.reference StringMap.t;
-  (** The current state of the points-to map. *)
-  points_to: Reference.points_to_map
-}
-
 (** Traces and tracefiles enrichted with local facts. *)
 type 'a enriched_trace = (clean_operation * 'a) list
 type 'a enriched_tracefile = functions * objects * 'a enriched_trace * globals * bool
 type 'a enriched_stream = (clean_operation * 'a) Streaming.Stream.t
-type facts_trace = local_facts enriched_trace
-type facts_tracefile = local_facts enriched_tracefile
-type facts_stream = local_facts enriched_stream
-type full_facts_trace = local_facts enriched_trace
-type full_facts_tracefile = local_facts enriched_tracefile
-type full_facts_stream = local_facts enriched_stream
-type arguments_trace = int option enriched_trace
-type arguments_tracefile = int option enriched_tracefile
-type arguments_stream = int option enriched_stream
 
 val pp_enriched_trace: (Format.formatter -> 'a -> unit) ->
   Format.formatter -> 'a enriched_trace -> unit
 val pp_enriched_tracefile: (Format.formatter -> 'a -> unit) ->
   Format.formatter -> 'a enriched_tracefile -> unit
-val pp_facts_trace: Format.formatter -> facts_trace -> unit
-val pp_facts_tracefile: Format.formatter -> facts_tracefile -> unit
 
 (** Rich facts [rich_facts] contains a subset of local facts. *)
 type rich_facts = {
@@ -338,7 +313,6 @@ val pp_alias_source : Format.formatter -> alias_source -> unit
 val pp_rich_operation : Format.formatter -> rich_operation -> unit
 val pp_rich_trace : Format.formatter -> rich_trace -> unit
 val pp_rich_tracefile : Format.formatter -> rich_tracefile -> unit
-val pp_local_facts: Format.formatter -> local_facts -> unit
 
 (** Debugging helper: When writing rich events, also dump associated facts. *)
 val enable_dump_facts: unit -> unit
