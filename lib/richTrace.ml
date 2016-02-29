@@ -71,49 +71,48 @@ let enrich_step globals_are_properties (op, facts) =
     | CConditional value -> [RConditional value] in
   List.map (fun op -> (op, facts)) res
 
-module GenericEnrich(S: Streaming.Transformers) = struct
-  let to_rich_tracefile globals_are_properties trace =
+module ToRich(S: Streaming.Transformers) = struct
+  let enriched_trace_to_rich_trace globals_are_properties trace =
     trace
       |> S.map_list (enrich_step globals_are_properties)
       |> S.map (fun (op, ({ last_update; versions; points_to }: local_facts)) ->
                    (op, {last_update; versions; points_to }))
+  module C = CleanTrace.CleanGeneric(S)
+  module E = EnrichTrace.Make(S)
+  let trace_to_rich_trace initials trace =
+    trace
+      |> C.calculate_clean_trace initials
+      |> E.collect initials
+      |> enriched_trace_to_rich_trace initials.globals_are_properties
 end;;
 
-module ListEnrich = GenericEnrich(Streaming.ListTransformers)
-module StreamEnrich = GenericEnrich(Streaming.StreamTransformers)
+module ListToRich = ToRich(Streaming.ListTransformers)
+module StreamToRich = ToRich(Streaming.StreamTransformers)
+
+let get_points_to functions objects globals globals_are_properties (trace: rich_trace) =
+  match List.rev trace with
+    | [] ->
+        CalculatePointsTo.initial_pointsto
+          { functions; objects; globals; globals_are_properties }
+    | (_, { points_to }) :: _ -> points_to
 
 let calculate_rich_tracefile
       (funcs, objs, trace, globals, globals_are_properties) =
-  let trace = ListEnrich.to_rich_tracefile globals_are_properties trace in
-  let points_to = match List.rev trace with
-    | [] ->
-        let open Reference in
-        CalculatePointsTo.initial_pointsto
-          { functions = funcs; objects = objs; globals; globals_are_properties }
-    | (_, { points_to }) :: _ -> points_to
-  in
+  let trace = ListToRich.enriched_trace_to_rich_trace globals_are_properties trace in
+  let points_to = get_points_to funcs objs globals globals_are_properties trace in
   { funcs; objs; globals; globals_are_properties; trace; points_to }
 
 let calculate_rich_stream (init: initials) stream =
-  StreamEnrich.to_rich_tracefile init.globals_are_properties stream
+  StreamToRich.enriched_trace_to_rich_trace init.globals_are_properties stream
 
 
-let tracefile_to_rich_tracefile trace =
-  let module E = EnrichTrace.Make(Streaming.ListTransformers)
-  in let do_enrichment
-           (functions, objects, trace, globals, globals_are_properties) =
-    (functions, objects,
-     E.collect { functions; objects; globals; globals_are_properties } trace,
-     globals, globals_are_properties)
-  in
-    trace
-    |> CleanTrace.clean_tracefile
-    |> do_enrichment
-    |> calculate_rich_tracefile
+let tracefile_to_rich_tracefile
+      (functions, objects, trace, globals, globals_are_properties) =
+  let initials = { objects; functions; globals; globals_are_properties } in
+  let trace = ListToRich.trace_to_rich_trace initials trace in
+    { funcs = functions; objs = objects; globals; globals_are_properties; trace;
+      points_to = get_points_to functions objects globals globals_are_properties trace }
 
 let trace_stream_to_rich_stream init stream =
-  let module E = EnrichTrace.Make(Streaming.StreamTransformers) in
-  stream
-    |> CleanTrace.clean_stream init
-    |> E.collect init
-    |> calculate_rich_stream init
+  StreamToRich.trace_to_rich_trace init stream
+

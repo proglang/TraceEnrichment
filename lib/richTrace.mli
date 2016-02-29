@@ -1,3 +1,12 @@
+module ToRich(S: Streaming.Transformers): sig
+  open TraceTypes
+  val enriched_trace_to_rich_trace:
+    bool -> (clean_operation * LocalFacts.local_facts) S.sequence ->
+    TraceTypes.rich_event S.sequence
+  val trace_to_rich_trace:
+      Types.initials -> event S.sequence -> TraceTypes.rich_event S.sequence
+end
+
 (** Calculation of rich traces *)
 open TraceTypes
 (** Transform a trace file with facts to a rich trace file. *)

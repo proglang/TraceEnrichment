@@ -637,7 +637,10 @@ module CleanGeneric = functor(S: Transformers) -> struct
     |> synthesize_getters_and_setters
     |> synthesize_events funcs
     |> validate SynthesizedEvents globals objs 
-end;;
+
+  let calculate_clean_trace (initials: initials) trace =
+    clean_trace initials.globals initials.functions initials.objects trace
+end
 
 module CleanStream = CleanGeneric(StreamTransformers)
 module CleanList = CleanGeneric(ListTransformers)
@@ -649,6 +652,5 @@ let clean_tracefile (funs, objs, rawtr, globals, gap) =
   (funs, objs, CleanList.clean_trace globals funs objs rawtr, globals, gap)
 
 let clean_stream (data: initials) raw =
-  let open Reference in
-  CleanStream.clean_trace data.globals data.functions data.objects raw
+  CleanStream.calculate_clean_trace data raw
 
