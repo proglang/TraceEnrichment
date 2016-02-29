@@ -43,7 +43,7 @@ type local_facts = {
   points_to: Reference.points_to_map
 }
 
-module GenericCollectArguments = functor(S: Transformers) -> struct
+module CollectArguments = functor(S: Transformers) -> struct
   let collect =
     S.map_state []
       (fun stack op ->
@@ -54,7 +54,7 @@ module GenericCollectArguments = functor(S: Transformers) -> struct
          in ((op, BatList.Exceptionless.hd stack'), stack'))
 
 end
-module GenericCollectClosures = functor(S: Transformers) -> struct
+module CollectClosures = functor(S: Transformers) -> struct
   let collect =
     S.map_state IntMap.empty (fun closures (op, arg) ->
              match op, arg with
