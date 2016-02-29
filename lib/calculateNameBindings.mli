@@ -1,4 +1,3 @@
-val initial_vars : bool -> Reference.reference StringMap.t
 module type S =
   sig
     type 'a trace
