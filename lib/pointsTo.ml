@@ -3,6 +3,7 @@ open TraceTypes
 module VersionedReferenceMap = Reference.VersionedReferenceMap
 
 let find_object_facts id ver pt =
+  let open LocalFacts in
   let vrefs = Reference.ReferenceMap.fold (fun ref ver acc ->
       match ref with
       | Reference.Field (id', fld) when id = id' -> ((ref, ver), fld) :: acc

@@ -3,81 +3,25 @@ open Types
 open Streaming
 open TraceTypes
 
-type saved_variable =
-  | Unknown
-  | Version of int
-  | Alias of fieldref
-
 type version_state = {
-  save_stack: saved_variable StringMap.t list;
-  versions_bound: int ReferenceMap.t;
-  versions_current: int ReferenceMap.t;
-  aliases: fieldref StringMap.t;
+  current_version: int ReferenceMap.t;
   last_update: versioned_reference option
 }
 
-let save_version state name =
-  match state.save_stack with
-  | [] -> state (* var at toplevel *)
-  | fr :: stack ->
-    let lv = reference_of_local_name name in
-    let saveval = begin
-      if ReferenceMap.mem lv state.versions_current
-      then begin
-        assert (not (StringMap.mem name state.aliases));
-        Version (ReferenceMap.find lv state.versions_current)
-      end else if StringMap.mem name state.aliases then
-        Alias (StringMap.find name state.aliases)
-      else Unknown end in
-    { state with
-      save_stack = StringMap.add name saveval fr :: stack;
-      versions_current = ReferenceMap.remove lv state.versions_current;
-      aliases = StringMap.remove name state.aliases }
-
-let push state = { state with save_stack = StringMap.empty :: state.save_stack }
-let pop state =
-  match state.save_stack with
-  | [] -> failwith "Pop on empty stack"
-  | frame :: stack ->
-    StringMap.fold
-      (fun name save state ->
-         let lv = reference_of_local_name name in
-         match save with
-         | Unknown ->
-           { state with versions_current =
-                          ReferenceMap.remove lv state.versions_current;
-                        aliases = StringMap.remove name state.aliases }
-         | Alias (obj, fld) ->
-           { state with versions_current =
-                          ReferenceMap.remove lv state.versions_current;
-                        aliases = StringMap.add name (obj, fld) state.aliases }
-         | Version v ->
-           { state with versions_current =
-                          ReferenceMap.add lv v state.versions_current;
-                        aliases = StringMap.remove name state.aliases })
-      frame { state with save_stack = stack }
-
 let increment_reference state ref =
-  let ver =
-    try ReferenceMap.find ref state.versions_current with Not_found -> 0
-  and ver' =
-    try ReferenceMap.find ref state.versions_bound + 1 with Not_found -> 0
-  in { state with
-       versions_bound = ReferenceMap.add ref ver' state.versions_bound;
-       versions_current = ReferenceMap.add ref ver' state.versions_current;
-       last_update = Some (ref, ver)
-     }
+  { state with
+        current_version = ReferenceMap.modify_def 0 ref ((+) 1) state.current_version }
 
 let warnings: string list ref = ref []
 
 let provide_read ref state =
-  if ReferenceMap.mem ref state.versions_current then
+  if ReferenceMap.mem ref state.current_version then
     state
   else
     increment_reference state ref
 
 let provide_write (objects: objects) ref state =
-  if ReferenceMap.mem ref state.versions_current then
+  if ReferenceMap.mem ref state.current_version then
     match ref with
     | Field (obj, fld) ->
       (* If the field is not writable, do nothing. *)
@@ -102,14 +46,14 @@ let provide_write (objects: objects) ref state =
           (* A new field. TODO: Can objects prevent this from happening? *)
           increment_reference state ref
       end
-    | GlobalVariable name ->
+    | Variable (Global, name) ->
       (* Apparently, global variables may be read-only (e.g., console in
        * node.js. Since we cannot detect this as of now, just assume
        * it goes through and warn about possible unsoundness. *)
       let msg = Format.sprintf "Writing to global variable %s" name in
       warnings := msg :: !warnings;
       increment_reference state ref
-    | LocalVariable _ ->
+    | Variable (Local _, _) ->
       increment_reference state ref
   else
     increment_reference state ref
@@ -121,7 +65,7 @@ let provide_object (objects: objects) state obj =
     StringMap.fold
       (fun name (field: fieldspec) state ->
          let ref = reference_of_fieldref (obj, name) in
-         if ReferenceMap.mem ref state.versions_current then
+         if ReferenceMap.mem ref state.current_version then
            state
          else
            increment_reference state ref |> recurse_value field.value)
@@ -135,27 +79,28 @@ let provide_argument_alias objects state name arguments i =
   let field = string_of_int i in
   match arguments with
   | Some params when StringMap.mem field (BatDynArray.get objects params) ->
-    { state with aliases =
-                   StringMap.add name (Object params, field) state.aliases }
-  | Some _ ->
+      state (* It's an alias, no need for updating *)
+  | Some arguments ->
     (* Argh. Javascript.
      * arguments reflects the *actual* parameters, while name bindings reflect
      * the *formal* parameters. Of course,  if there are less actual then formal
      * parameters, we cannot possibly name-bind some field in the arguments
      * object, can we? *)
-    provide_write objects (reference_of_local_name name) state
+    provide_write objects (reference_of_local_name arguments name) state
   | None -> failwith "No arguments to alias!"
+
 let provide_literal (objs: objects) state = function
   | (OFunction _ | OOther _ | OObject _) as o ->
     provide_object objs state (objectid_of_jsval o)
   | _ -> state
 
-let collect_versions_step (objects: objects) globals_are_properties state arguments op =
-  let nameref isGlobal =
-    reference_of_name globals_are_properties state.aliases isGlobal in
-  let declare_local name state =
-    save_version state name
-      |> provide_write objects (reference_of_local_name name) in
+let collect_versions_step (objects: objects) globals_are_properties state
+      (facts: LocalFacts.names_resolved) op =
+  let open LocalFacts in
+  let nameref =
+    reference_of_name globals_are_properties facts.names in
+  let declare_local name =
+      provide_write objects (reference_of_name globals_are_properties facts.names name) in
   let res = match op with
     | CFunPre { base; args } ->
         let state = provide_literal objects state args
@@ -163,7 +108,7 @@ let collect_versions_step (objects: objects) globals_are_properties state argume
     | CLiteral { value } ->
       provide_literal objects state value
     | CDeclare { name; declaration_type = ArgumentBinding i } ->
-      provide_argument_alias objects (save_version state name) name arguments i
+      provide_argument_alias objects state name facts.last_arguments i
     | CDeclare { name } ->
         declare_local name state
     | CGetField { base; offset } ->
@@ -171,27 +116,25 @@ let collect_versions_step (objects: objects) globals_are_properties state argume
     | CPutField { base; offset } ->
       provide_write objects (reference_of_field base offset) state
     | CRead { name } ->
-      provide_read (nameref false (*isGlobal*) name) state
+      provide_read (nameref name) state
     | CWrite { name } ->
-      provide_write objects (nameref false (*isGlobal*) name) state
+      provide_write objects (nameref name) state
     | CFunEnter { this; args } ->
-        let state =  provide_literal objects (push state) args in
+        let state =  provide_literal objects state args in
         let state = provide_literal objects state this in
           declare_local "this" state
-    | CFunExit _ ->
-      pop state
     | _ ->
       state in
-  ( (op, { last_arguments = arguments;
-           versions = res.versions_current;
-           aliases = res.aliases;
+  ( (op, { last_arguments = facts.last_arguments;
+           closures = facts.closures;
            last_update = res.last_update;
-           points_to = Reference.VersionedReferenceMap.empty }),
+           versions = res.current_version;
+           names = facts.names }),
     res )
 
 let initial_refs objects globals_are_properties globals =
   let reference_of_global =
-    reference_of_name globals_are_properties StringMap.empty true
+    reference_of_name globals_are_properties StringMap.empty
   in StringMap.fold
     (fun var id refs ->
        let refs =
@@ -202,36 +145,26 @@ let initial_refs objects globals_are_properties globals =
        in provide_object objects refs (objectid_of_jsval id))
     globals
     {
-      save_stack = [];
-      versions_bound = ReferenceMap.empty;
-      aliases = StringMap.empty;
-      versions_current = ReferenceMap.empty;
+      current_version = ReferenceMap.empty;
       last_update = None
     }
 
-module GenericCollectVersions = functor (S: Transformers) -> struct
-  let collect_versions objects globals_are_properties globals tr =
-    S.map_state
+let initial_versions objs globals gap  =
+  (initial_refs objs gap globals).current_version
+
+module type S = sig
+  type 'a trace
+  val collect: initials ->
+    (clean_operation * LocalFacts.names_resolved) trace ->
+    (clean_operation * LocalFacts.versions_resolved) trace
+end
+module Make (T: Transformers) = struct
+  type 'a trace = 'a T.sequence
+  let collect {objects; globals_are_properties; globals} tr =
+    T.map_state
       (initial_refs objects globals_are_properties globals)
       (fun state (op, facts) ->
          collect_versions_step objects globals_are_properties state facts op)
       tr
-end;;
-
-module StreamCollectVersions = GenericCollectVersions(StreamTransformers)
-module ListCollectVersions = GenericCollectVersions(ListTransformers)
-
-let collect_versions_trace
-    ((functions, objects, trace, globals, globals_are_properties): arguments_tracefile):
-  facts_tracefile =
-  (functions, objects,
-   ListCollectVersions.collect_versions objects globals_are_properties globals trace,
-   globals, globals_are_properties)
-
-let collect_versions_stream init stream =
-  StreamCollectVersions.collect_versions
-    init.objects init.globals_are_properties init.globals stream
-
-let initial_versions objects globals globals_are_properties =
-  (initial_refs objects globals_are_properties globals).versions_current
+end
 

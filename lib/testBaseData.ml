@@ -1,6 +1,7 @@
 (** Basic data for tests. *)
 open Types
 open TraceTypes
+open LocalFacts
 
 (** Common instances of JavaScript values - base instances. *)
 let vundef = OUndefined
@@ -221,7 +222,7 @@ let get_facts_for (objtab: objects) =
   and empty_facts = {
     last_arguments = None;
     last_update = None;
-    aliases = StringMap.empty;
+    names = StringMap.empty;
     versions = Reference.ReferenceMap.empty;
     points_to = Reference.VersionedReferenceMap.empty
   } in

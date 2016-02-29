@@ -1,11 +1,23 @@
 open Types
 open TraceTypes
+open LocalFacts
+
+module type S = sig
+  type 'a trace
+  val collect: initials ->
+    (clean_operation * LocalFacts.versions_resolved) trace ->
+    (clean_operation * LocalFacts.local_facts) trace
+end
 module VersionedReferenceMap = Reference.VersionedReferenceMap
 module ReferenceMap = Reference.ReferenceMap
 type points_to_map = Reference.points_to_map
 
-let add_write facts state ref value may_be_known: points_to_map =
-  let vref = LocalFacts.make_versioned facts ref in
+let make_versioned ({ versions }: LocalFacts.versions_resolved) ref =
+  LocalFacts.make_versioned_impl versions ref
+
+let add_write (facts: LocalFacts.versions_resolved)
+      state ref value may_be_known: points_to_map =
+  let vref = make_versioned facts ref in
     if VersionedReferenceMap.mem vref state then begin
       (* This write was dropped; most likely, the field was marked
        * "not writable". *)
@@ -18,8 +30,8 @@ let add_write facts state ref value may_be_known: points_to_map =
     end else
       VersionedReferenceMap.add vref value state
 
-let add_read facts state ref value: points_to_map =
-  let vref = LocalFacts.make_versioned facts ref in
+let add_read (facts: LocalFacts.versions_resolved) state ref value: points_to_map =
+  let vref = make_versioned facts ref in
   if VersionedReferenceMap.mem vref state then begin
     if (value <> VersionedReferenceMap.find vref state) then begin
       Format.eprintf
@@ -32,7 +44,7 @@ let add_read facts state ref value: points_to_map =
   end else
     VersionedReferenceMap.add vref value state
 
-let add_known_new_object objects facts state obj =
+let add_known_new_object objects (facts: LocalFacts.versions_resolved) state obj =
   Log.debug (fun m -> m "Adding known object %a" pp_jsval obj);
   let id = objectid_of_jsval obj in
   let may_be_known = (Some (get_object_id id) = facts.last_arguments) in
@@ -44,7 +56,7 @@ let add_known_new_object objects facts state obj =
     (BatDynArray.get objects(get_object_id id))
     state
 
-let add_literal objects facts state value =
+let add_literal objects (facts: versions_resolved) state value =
   (* HACK use the fact that all references in state.versions should be *)
   (* mapped to find missing fields.  *)
   ReferenceMap.fold
@@ -65,13 +77,18 @@ let add_literal objects facts state value =
     facts.versions
     state
 
-let is_alias { aliases } name = StringMap.mem name aliases
+let is_argument_binding ({ names; last_arguments }: versions_resolved) name =
+  match StringMap.find name names with
+    | (Reference.Field (obj, _)) -> Some (get_object_id obj) = last_arguments
+    | _ -> false
+    | exception Not_found -> false
 
 let pp_versions =
   let open Fmt in
     using ReferenceMap.bindings (list (pair Reference.pp_reference int))
 
-let collect_pointsto_step globals_are_properties objects state facts =
+let collect_pointsto_step globals_are_properties objects state (facts: versions_resolved) =
+  let mkref = Reference.reference_of_name globals_are_properties facts.names in
   fun step -> Log.debug (fun m -> m "points-to collection step: %a, %a"
                 pp_clean_operation step
                 pp_versions facts.versions);
@@ -83,27 +100,23 @@ let collect_pointsto_step globals_are_properties objects state facts =
   | CLiteral { value } ->
     add_literal objects facts state value
   | CDeclare { name; declaration_type = ArgumentBinding _ }
-    when is_alias facts name ->
+    when is_argument_binding facts name ->
     state
   | CDeclare { name; value } ->
     (* Note that this also catches ArgumentBinding cases where the name is *)
     (* not an alias. *)
-    add_write facts state (Reference.reference_of_local_name name) value false
+    add_write facts state (mkref name) value false
   | CGetField { base; offset; value } ->
     add_read facts state (Reference.reference_of_field base offset) value
   | CPutField { base; offset; value } ->
     add_write facts state (Reference.reference_of_field base offset) value false
   | CRead { name; value } ->
-    let ref =
-      LocalFacts.reference_of_variable globals_are_properties facts false (*isGlobal*) name
-    in add_read facts state ref value
+    add_read facts state (mkref name) value
   | CWrite { name; value } ->
-    let ref =
-      LocalFacts.reference_of_variable globals_are_properties facts false (*isGlobal*) name
-    in add_write facts state ref value false
+    add_write facts state (mkref name) value false
   | CFunEnter { args; this } ->
     let state = add_known_new_object objects facts state args in
-    let state = add_write facts state (Reference.reference_of_local_name "this") this true in
+    let state = add_write facts state (mkref "this") this true in
       add_literal objects facts state this
   | _ -> state
 
@@ -118,11 +131,11 @@ let globals_points_to (objects: objects) globals versions pt =
             failwith ("Can't find field " ^ field ^ " of " ^
                       (Fmt.to_to_string pp_objectid obj))
         end
-      | GlobalVariable name ->
+      | Variable (Global, name) ->
         begin try StringMap.find name globals
           with Not_found ->
             failwith ("Can't  find global variable "^ name) end
-      | LocalVariable name ->
+      | Variable (Local _, name) ->
         failwith ("Unexpected local variable " ^ name) in
     VersionedReferenceMap.add vref value pt
   in
@@ -134,27 +147,23 @@ let initial_pointsto init =
     CalculateVersions.initial_versions
       init.objects init.globals init.globals_are_properties
   in (VersionedReferenceMap.empty
-        |> VersionedReferenceMap.add (Reference.reference_of_local_name "this", 0) (OObject 0)
+        |> VersionedReferenceMap.add (Reference.Variable (Global, "this"), 0) (OObject 0)
         |> globals_points_to init.objects init.globals versions)
 
 open Reference
+let insert_points_to
+      ({ last_arguments; closures; last_update; versions; names }: versions_resolved)
+      points_to: local_facts =
+  { last_arguments; closures; last_update; versions; names; points_to }
+
 let update_points_to (init: initials) points_to (op, lf) =
   let points_to' =
     collect_pointsto_step init.globals_are_properties init.objects points_to lf op
-  in ((op, { lf with points_to = points_to' }), points_to')
+  in ((op, insert_points_to lf points_to'), points_to')
 
-module GenericPointsTo(S: Streaming.Transformers) = struct
-  let calculate init tr =
+module Make(S: Streaming.Transformers) = struct
+  type 'a trace = 'a S.sequence
+  let collect init tr =
     S.map_state (initial_pointsto init) (update_points_to init) tr
 end;;
 
-module ListPointsTo = GenericPointsTo(Streaming.ListTransformers);;
-module StreamPointsTo = GenericPointsTo(Streaming.StreamTransformers);;
-
-let calculate_pointsto (functions, objects, trace, globals, globals_are_properties) =
-  let init = 
-    { functions; objects; globals_are_properties; globals }
-  in let trace' = ListPointsTo.calculate init trace
-  in (functions, objects, trace', globals, globals_are_properties)
-
-let collect_pointsto_stream = StreamPointsTo.calculate

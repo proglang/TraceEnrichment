@@ -1,12 +1,13 @@
 open Types
 open TraceTypes
+open LocalFacts
 type versioned_reference = Reference.versioned_reference
 
 let enrich_step globals_are_properties (op, facts) =
   let mkfieldref base offset =
     Reference.reference_of_field base offset |> LocalFacts.make_versioned facts
-  and mkvarref isGlobal name =
-    Reference.reference_of_name globals_are_properties facts.aliases isGlobal name
+  and mkvarref name =
+    Reference.reference_of_name globals_are_properties facts.names name
     |> LocalFacts.make_versioned facts in
   let res = match op with
     | CFunPre { f; base; args; call_type } ->
@@ -15,23 +16,24 @@ let enrich_step globals_are_properties (op, facts) =
     | CLiteral { value; hasGetterSetter } -> [RLiteral { value; hasGetterSetter }]
     | CForIn value -> [RForIn value]
     | CDeclare { name; value; declaration_type = ArgumentBinding idx } ->
-      if StringMap.mem name facts.aliases then
-        let ref = StringMap.find name facts.aliases
-                        |> Reference.reference_of_fieldref
-                        |> LocalFacts.make_versioned facts
-        in
-          [RAlias { name; ref; source = Argument idx };
-           RWrite { ref; oldref = ref; value; success = true } ]
-      else
-        let ref = Reference.reference_of_local_name name |> LocalFacts.make_versioned facts in
-        [RLocal { name; ref };
-         RWrite { ref; oldref = ref; value = OUndefined; success = true } ]
+      begin match StringMap.find name facts.names with
+        | Reference.Field ref ->
+            let ref = StringMap.find name facts.names |> LocalFacts.make_versioned facts
+            in
+              [RAlias { name; ref; source = Argument idx };
+               RWrite { ref; oldref = ref; value; success = true } ]
+        | Reference.Variable _ ->
+            let ref = Reference.reference_of_name globals_are_properties facts.names name
+              |> LocalFacts.make_versioned facts in
+              [RLocal { name; ref };
+               RWrite { ref; oldref = ref; value = OUndefined; success = true } ]
+      end
     | CDeclare { name; value; declaration_type = CatchParam } ->
-      let ref = Reference.reference_of_local_name name |> LocalFacts.make_versioned facts in
+      let ref = Reference.reference_of_name globals_are_properties facts.names name |> LocalFacts.make_versioned facts in
       [RCatch { name; ref };
        RWrite { ref; oldref = ref; value; success = true } ]
     | CDeclare { name; value } ->
-      let ref = Reference.reference_of_local_name name |> LocalFacts.make_versioned facts in
+      let ref = Reference.reference_of_name globals_are_properties facts.names name |> LocalFacts.make_versioned facts in
       [RLocal { name; ref };
        RWrite { ref; oldref = ref; value; success = true } ]
     | CGetFieldPre _ -> Log.debug (fun m -> m "Unexpected get_field_pre"); []
@@ -46,11 +48,11 @@ let enrich_step globals_are_properties (op, facts) =
           value; success = true
         }]
     | CRead { name; value } ->
-      [RRead { ref = mkvarref false (*isGlobal*) name; value }]
+      [RRead { ref = mkvarref name; value }]
     | CWrite { name; lhs; value } ->
       (* FIXME success handling *)
       [RWrite {
-          ref = mkvarref false (*isGlobal*) name;
+          ref = mkvarref name;
           oldref = BatOption.get facts.last_update;
           value;
           success = true
@@ -70,8 +72,11 @@ let enrich_step globals_are_properties (op, facts) =
   List.map (fun op -> (op, facts)) res
 
 module GenericEnrich(S: Streaming.Transformers) = struct
-  let to_rich_tracefile globals_are_properties =
-    S.map_list (enrich_step globals_are_properties)
+  let to_rich_tracefile globals_are_properties trace =
+    trace
+      |> S.map_list (enrich_step globals_are_properties)
+      |> S.map (fun (op, ({ last_update; versions; points_to }: local_facts)) ->
+                   (op, {last_update; versions; points_to }))
 end;;
 
 module ListEnrich = GenericEnrich(Streaming.ListTransformers)
@@ -93,17 +98,23 @@ let calculate_rich_stream (init: initials) stream =
   StreamEnrich.to_rich_tracefile init.globals_are_properties stream
 
 let tracefile_to_rich_tracefile trace =
+  raise Exit (* FIXME *)
+    (*
   trace
     |> CleanTrace.clean_tracefile
     |> LocalFacts.collect_arguments_tracefile
     |> CalculateVersions.collect_versions_trace
     |> CalculatePointsTo.calculate_pointsto
     |> calculate_rich_tracefile
+     *)
 
 let trace_stream_to_rich_stream init stream =
+  raise Exit (* FIXME *)
+    (*
   stream
     |> CleanTrace.clean_stream init
     |> LocalFacts.collect_arguments_stream
     |> CalculateVersions.collect_versions_stream init
     |> CalculatePointsTo.collect_pointsto_stream init
     |> calculate_rich_stream init
+     *)

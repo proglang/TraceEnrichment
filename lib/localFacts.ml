@@ -44,7 +44,7 @@ type local_facts = {
 }
 
 module GenericCollectArguments = functor(S: Transformers) -> struct
-  let collect_arguments =
+  let collect =
     S.map_state []
       (fun stack op ->
          let stack' = match op with
