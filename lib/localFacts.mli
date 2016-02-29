@@ -12,7 +12,7 @@ type names_resolved = {
   (** The last argument object that was created by a function call. *)
   last_arguments: int option;
   (** Closure enviroments for functions. *)
-  closures: int IntMap.t;
+  closures: Reference.reference StringMap.t IntMap.t;
   (** All visible variable names. *)
   names: Reference.reference StringMap.t
 }
@@ -20,7 +20,7 @@ type versions_resolved = {
   (** The last argument object that was created by a function call. *)
   last_arguments: int option;
   (** Closure enviroments for functions. *)
-  closures: int IntMap.t;
+  closures: Reference.reference StringMap.t IntMap.t;
   (** The last reference that was modified. *)
   last_update: Reference.versioned_reference option;
   (** The current version of all known references. *)
@@ -32,7 +32,7 @@ type local_facts = {
   (** The last argument object that was created by a function call. *)
   last_arguments: int option;
   (** Closure enviroments for functions. *)
-  closures: int IntMap.t;
+  closures: Reference.reference StringMap.t IntMap.t;
   (** The last reference that was modified. *)
   last_update: Reference.versioned_reference option;
   (** The current version of all known references. *)
