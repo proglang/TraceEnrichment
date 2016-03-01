@@ -5,12 +5,23 @@ open TraceTypes
 open LocalFacts
 
 type name_map = reference StringMap.t
+let pp_name_map = StringMap.pp pp_reference
 type state = {
   local_names: name_map list;
   global_names: name_map;
   closures: Reference.reference StringMap.t IntMap.t;
-  closure_name: int list;
+  old_arguments: int option;
 }
+let pp_state pp { local_names; global_names; closures; old_arguments } =
+  Format.fprintf pp
+    "@[<v>local_names = @[<v>%a@];@ global_names = @[<hov>%a@];@ closures = @[<v>%a@]@ old_arguments = %a"
+    (Fmt.list (Fmt.box ~indent:2 pp_name_map)) local_names
+    pp_name_map global_names
+    (IntMap.pp ~pair_sep:(Fmt.always ":") ~entry_sep:Fmt.cut ~entry_frame:(Fmt.box ~indent:2)
+                            (StringMap.pp ~pair_sep:(Fmt.always " -> ") Reference.pp_reference))
+    closures
+    (Fmt.option Fmt.int) old_arguments
+
 
 let bind name ref state =
   match state.local_names with
@@ -67,15 +78,15 @@ let make_enter f args (facts: arguments_and_closures) state =
           end
       | None -> StringMap.empty
   in let env = StringMap.add "this" (Variable (Local fid, "this")) env
-  in { state with local_names = env :: state.local_names;
-                  closure_name = fid :: state.closure_name }
+  in { state with local_names = env :: state.local_names; old_arguments = facts.last_arguments }
 
-let make_exit { local_names; global_names; closures; closure_name } =
-  match closure_name, local_names with
-    | closure :: closure_name, local :: local_names ->
-        { local_names; global_names; closures = IntMap.add closure local closures;
-          closure_name }
-    | _, _ -> failwith "Empty closure or local stack"
+let make_exit { local_names; global_names; closures; old_arguments } =
+  match local_names with
+    | local :: local_names ->
+        let arg = BatOption.get old_arguments in
+        { local_names; global_names; old_arguments;
+          closures = IntMap.add arg local closures }
+    | _ -> failwith "Empty local stack"
 
 let merge =
   StringMap.merge (fun _ global local ->
@@ -99,8 +110,8 @@ let collect_names_step (objects: objects) globals_are_properties state
     | _ ->
       state in
   ( (op, { last_arguments = facts.last_arguments;
-           closures = state.closures;
-           names = merge state.global_names (List.hd state.local_names) }),
+           closures = res.closures;
+           names = merge res.global_names (List.hd res.local_names) }),
     res )
 
 let initial_vars globals_are_properties =
@@ -109,8 +120,7 @@ let initial_vars globals_are_properties =
       StringMap.add "this" (Variable (Global, "this")) StringMap.empty
     else
       failwith "Initial variable calculation not supported for non-property globals"
-  in { global_names; local_names = [ StringMap.empty ]; closures = IntMap.empty;
-       closure_name = [] }
+  in { global_names; local_names = [ StringMap.empty ]; closures = IntMap.empty; old_arguments = None }
 
 module type S = sig
   type 'a trace
