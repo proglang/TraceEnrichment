@@ -4,7 +4,6 @@
 type scope = Global | Local of int
 (** Boilerplate code. *)
 val pp_scope : Format.formatter -> scope -> Ppx_deriving_runtime.unit
-val show_scope : scope -> Ppx_deriving_runtime.string
 val compare_scope : scope -> scope -> Ppx_deriving_runtime.int
 val equal_scope : scope -> scope -> Ppx_deriving_runtime.bool
 

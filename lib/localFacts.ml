@@ -2,12 +2,30 @@ open Types
 open Streaming
 open TraceTypes
 
+let filter_bound = ref 0
+
+let pp_versions_filtered pp map =
+  Reference.ReferenceMap.pp Fmt.int pp
+    (Reference.ReferenceMap.filter
+       (fun ref _ -> match ref with
+          | Reference.Field (id, _) -> get_object_id id >= !filter_bound
+          | Reference.Variable _ -> true)
+       map)
+
+let pp_points_to_filtered pp map =
+  Reference.VersionedReferenceMap.pp ~pair_sep:(Fmt.always " ->@ ") Types.pp_jsval pp
+    (Reference.VersionedReferenceMap.filter
+       (fun ref _ -> match ref with
+          | (Reference.Field (id, _), _) -> get_object_id id >= !filter_bound
+          | (Reference.Variable _, _) -> true)
+       map)
+
 type arguments_and_closures = {
   (** The last argument object that was created by a function call. *)
   last_arguments: int option;
   (** Closure enviroments for functions. *)
   closures: int IntMap.t
-}
+} [@@deriving show]
 type names_resolved = {
   (** The last argument object that was created by a function call. *)
   last_arguments: int option;
@@ -15,7 +33,7 @@ type names_resolved = {
   closures: Reference.reference StringMap.t IntMap.t;
   (** All visible variable names. *)
   names: Reference.reference StringMap.t
-}
+} [@@deriving show]
 type versions_resolved = {
   (** The last argument object that was created by a function call. *)
   last_arguments: int option;
@@ -24,10 +42,10 @@ type versions_resolved = {
   (** The last reference that was modified. *)
   last_update: Reference.versioned_reference option;
   (** The current version of all known references. *)
-  versions: int Reference.ReferenceMap.t;
+  versions: int Reference.ReferenceMap.t [@printer pp_versions_filtered];
   (** All visible variable names. *)
   names: Reference.reference StringMap.t;
-}
+} [@@deriving show]
 type local_facts = {
   (** The last argument object that was created by a function call. *)
   last_arguments: int option;
@@ -36,11 +54,11 @@ type local_facts = {
   (** The last reference that was modified. *)
   last_update: Reference.versioned_reference option;
   (** The current version of all known references. *)
-  versions: int Reference.ReferenceMap.t;
+  versions: int Reference.ReferenceMap.t [@printer pp_versions_filtered];
   (** All visible variable names. *)
   names: Reference.reference StringMap.t;
   (** The current state of the points-to map. *)
-  points_to: Reference.points_to_map
+  points_to: Reference.points_to_map [@printer pp_points_to_filtered]
 }
 
 module CollectArguments = functor(S: Transformers) -> struct
@@ -77,9 +95,9 @@ let pp_local_facts pp { last_arguments; last_update; versions; names; points_to 
                      Points-to map: @[< hov 2 >%a@]@ @]"
     (Fmt.option Fmt.int) last_arguments
     (Fmt.option Reference.pp_versioned_reference) last_update
-    (Reference.pp_reference_map Fmt.int) versions
+    pp_versions_filtered versions
     (StringMap.pp (*~entry_sep:(Fmt.const Fmt.string " -> ")*) Reference.pp_reference) names
-    Reference.pp_points_to_map points_to
+    pp_points_to_filtered points_to
 
 let pp_facts_trace = pp_enriched_trace pp_local_facts
 let pp_facts_tracefile = pp_enriched_tracefile pp_local_facts

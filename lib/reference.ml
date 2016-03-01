@@ -1,17 +1,26 @@
 type scope =
   | Global
   | Local of int
-  [@@deriving show, ord, eq]
+  [@@deriving ord, eq]
+let pp_scope pp = function
+  | Global -> Fmt.string pp "Global"
+  | Local env -> Format.fprintf pp "Local(%d)" env
 
 module Reference = struct
   type t =
     | Field of Types.fieldref
     | Variable of scope * string
-    [@@deriving show, ord, eq]
+    [@@deriving ord, eq]
+  let pp pp = function
+    | Field (obj, field) ->
+        Format.fprintf pp "%a:%s" Types.pp_objectid obj field
+    | Variable (scope, name) ->
+        Format.fprintf pp "%a:%s" pp_scope scope name
 end
 open Reference
-type reference = Reference.t = Field of Types.fieldref
-    | Variable of scope * string
+type reference = Reference.t =
+  | Field of Types.fieldref
+  | Variable of scope * string
 
 let pp_reference = Reference.pp
 let equal_reference = Reference.equal

@@ -8,6 +8,7 @@ type arguments_and_closures = {
   (** Closure enviroments for functions. *)
   closures: int IntMap.t
 }
+val pp_arguments_and_closures: Format.formatter -> arguments_and_closures -> unit
 type names_resolved = {
   (** The last argument object that was created by a function call. *)
   last_arguments: int option;
@@ -16,6 +17,7 @@ type names_resolved = {
   (** All visible variable names. *)
   names: Reference.reference StringMap.t
 }
+val pp_names_resolved: Format.formatter -> names_resolved -> unit
 type versions_resolved = {
   (** The last argument object that was created by a function call. *)
   last_arguments: int option;
@@ -28,6 +30,7 @@ type versions_resolved = {
   (** All visible variable names. *)
   names: Reference.reference StringMap.t;
 }
+val pp_versions_resolved: Format.formatter -> versions_resolved -> unit
 type local_facts = {
   (** The last argument object that was created by a function call. *)
   last_arguments: int option;
@@ -65,3 +68,7 @@ module CollectClosures(S: Streaming.Transformers) : sig
   val collect: (clean_operation * int option) S.sequence ->
     (clean_operation * arguments_and_closures) S.sequence
 end
+
+(** Object bound for filtered pretty-printing. *)
+val filter_bound: int ref
+
