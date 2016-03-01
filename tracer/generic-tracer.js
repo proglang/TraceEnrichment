@@ -546,7 +546,6 @@
         if (xhr.readyState != 4) { throw new Exception("XHR session initialisation failed"); }
         var session = xhr.response;
         var url = urlbase + session + "/facts";
-        console.debug("Fact URL: " + url);
         var facts = [];
 
         var canSend = true;
@@ -556,7 +555,6 @@
 
         function sendXHR() {
             if (facts != []) {
-                console.debug("Sending facts to " + url + ": " + JSON.stringify(facts));
                 canSend = false;
                 xhr = new XMLHttpRequest();
                 xhr.open("POST", url, true);
@@ -634,6 +632,5 @@
         xhr: xhrStrategy
     }
     var whichStrategy = J$.initParams.strategy || "debug";
-    console.debug("Strategy: " + whichStrategy);
     sandbox.analysis = new GenericAnalysis(this, strategies[whichStrategy]);
 })(J$);
