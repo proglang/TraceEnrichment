@@ -6,7 +6,7 @@ type raw_funpre = {
   args : jsval;
   isConstructor : bool;
   isMethod : bool;
-}
+} [@@deriving show]
 type raw_funpost = {
   f : jsval;
   base : jsval;
@@ -14,21 +14,21 @@ type raw_funpost = {
   result : jsval;
   isConstructor : bool;
   isMethod : bool;
-}
-type literal = { value : jsval; hasGetterSetter : bool; }
+} [@@deriving show]
+type literal = { value : jsval; hasGetterSetter : bool; } [@@deriving show]
 type raw_declare = {
   name : string;
   value : jsval;
   argument : int option;
   isCatchParam : bool;
-}
+} [@@deriving show]
 type raw_getfieldpre = {
   base : jsval;
   offset : string;
   isComputed : bool;
   isOpAssign : bool;
   isMethodCall : bool;
-}
+} [@@deriving show]
 type raw_getfieldpost = {
   base : jsval;
   offset : string;
@@ -36,27 +36,27 @@ type raw_getfieldpost = {
   isComputed : bool;
   isOpAssign : bool;
   isMethodCall : bool;
-}
+} [@@deriving show]
 type raw_putfield = {
   base : jsval;
   offset : string;
   value : jsval;
   isComputed : bool;
   isOpAssign : bool;
-}
+} [@@deriving show]
 type raw_access = {
   name : string;
   value : jsval;
   isGlobal : bool;
   isScriptLocal : bool;
-}
+} [@@deriving show]
 type raw_writeaccess = {
   name : string;
   lhs : jsval;
   value : jsval;
   isGlobal : bool;
   isScriptLocal : bool;
-}
+} [@@deriving show]
 type raw_binpre = {
   op : string;
   left : jsval;
@@ -64,7 +64,7 @@ type raw_binpre = {
   isOpAssign : bool;
   isSwitchCaseComparison : bool;
   isComputed : bool;
-}
+} [@@deriving show]
 type raw_binary = {
   op : string;
   left : jsval;
@@ -73,11 +73,11 @@ type raw_binary = {
   isOpAssign : bool;
   isSwitchCaseComparison : bool;
   isComputed : bool;
-}
-type raw_unpre = { op : string; arg : jsval; }
-type unary = { op : string; arg : jsval; result : jsval; }
-type funenter = { f : jsval; this : jsval; args : jsval; }
-type funexit = { ret : jsval; exc : jsval; }
+} [@@deriving show]
+type raw_unpre = { op : string; arg : jsval; } [@@deriving show]
+type unary = { op : string; arg : jsval; result : jsval; } [@@deriving show]
+type funenter = { f : jsval; this : jsval; args : jsval; } [@@deriving show]
+type funexit = { ret : jsval; exc : jsval; } [@@deriving show]
 (** The type of operations in a trace.
   * This covers exactly the possible cases in the JSON trace. *)
 type event =
@@ -106,12 +106,13 @@ type event =
   | UnaryPost of int * unary
   | EndExpression of int
   | Conditional of jsval
+  [@@deriving show]
   (** A trace is a sequence of events. *)
-type trace = event list
+type trace = event list [@@deriving show]
 type raw_stream = event Streaming.Stream.t
 
 (** A trace file is a tuple containing the various components defined above. *)
-type tracefile = functions * objects * trace * globals * bool
+type tracefile = functions * objects * trace * globals * bool [@@deriving show]
 
 (** * Cleaned-up traces. *)
 (** A cleaned-up trace is a version of a trace that has
@@ -144,40 +145,40 @@ type funpre = {
   base : jsval;
   args : jsval;
   call_type: call_type
-}
+} [@@deriving show]
 type funpost = {
   f : jsval;
   base : jsval;
   args : jsval;
   result : jsval;
   call_type: call_type
-}
+} [@@deriving show]
 type declare = {
   name : string;
   value : jsval;
   declaration_type: declaration_type
-}
+} [@@deriving show]
 type accessfield = {
   base : jsval;
   offset : string;
   value : jsval
-}
+} [@@deriving show]
 type read = {
   name : string;
   value : jsval
-}
+} [@@deriving show]
 type write = {
   name : string;
   lhs : jsval;
   value : jsval;
   isSuccessful: bool
-}
+} [@@deriving show]
 type binary = {
   op : string;
   left : jsval;
   right : jsval;
   result : jsval
-}
+} [@@deriving show]
 
 (** Events that can occur in a cleaned-up trace. Note that certain
   * events in a [Trace.trace] are redundant for out task, so we drop them. *)
@@ -205,41 +206,41 @@ type clean_operation =
   | CUnary of unary
   | CEndExpression
   | CConditional of jsval
-
+  [@@deriving show]
 (** A clean trace is a list of cleaned-up events. *)
-type clean_trace = clean_operation list
+type clean_trace = clean_operation list [@@deriving show]
 (** A clean trace file is like a trace file, only it contains a clean trace. *)
-type clean_tracefile = functions * objects * clean_trace * globals * bool
+type clean_tracefile = functions * objects * clean_trace * globals * bool [@@deriving show]
 type clean_stream = clean_operation Streaming.Stream.t
 
 open Format
 
 (** This contains an explanation of where an alias comes from. *)
-type alias_source = Argument of int | With of Reference.versioned_reference
+type alias_source = Argument of int | With of Reference.versioned_reference  [@@deriving show]
 
 (** Structures that sum up data about certain operations. *)
 type local = {
   name : string;
   ref : Reference.versioned_reference;
-}
+} [@@deriving show]
 type alias = {
   name : string;
   source : alias_source;
   ref : Reference.versioned_reference;
-}
+} [@@deriving show]
 type rread = {
   ref : Reference.versioned_reference;
   value : jsval;
-}
+} [@@deriving show]
 type rwrite = {
   ref : Reference.versioned_reference;
   oldref: Reference.versioned_reference;
   value : jsval;
   success : bool;
-}
+} [@@deriving show]
 
-type 'a enriched_trace = (clean_operation * 'a) list
-type 'a enriched_tracefile = functions * objects * 'a enriched_trace * globals * bool
+type 'a enriched_trace = (clean_operation * 'a) list [@@deriving show]
+type 'a enriched_tracefile = functions * objects * 'a enriched_trace * globals * bool [@@deriving show]
 type 'a enriched_stream = (clean_operation * 'a) Streaming.Stream.t
 
 (** Events that make use of the facts calculated by the [LocalFacts] module
@@ -269,18 +270,18 @@ type rich_operation =
   | RUnary of unary
   | REndExpression
   | RConditional of jsval
-
+  [@@deriving show]
 (** Rich facts [rich_facts] contains a subset of local facts. *)
 type rich_facts = {
   last_update: Reference.versioned_reference option;
   versions: int Reference.ReferenceMap.t;
   points_to: Reference.points_to_map
-}
+} [@@deriving show]
 
 (** A rich event is a pair of a rich operation and the associated local facts *)
-type rich_event = rich_operation * rich_facts
+type rich_event = rich_operation * rich_facts [@@deriving show]
 (** A rich trace contains rich operations and local facts. *)
-type rich_trace = rich_event list
+type rich_trace = rich_event list [@@deriving show]
 (** A rich trace file contains the original function and object descriptions,
   * as well as global object information and the [globals_are_properties] flag.
   * Furthermore, it contains a rich trace and a points - to map for the references
@@ -292,9 +293,10 @@ type rich_tracefile = {
   globals : globals;
   globals_are_properties : bool;
   points_to : Reference.points_to_map;
-}
+} [@@deriving show]
 type rich_stream = rich_event Streaming.Stream.t
 
+                     (*
 let pp_operation pp = function
   | FunPre (_, { isConstructor; isMethod; f; base; args }) ->
     fprintf pp "FunPre(f=%a, base=%a, args=%a, isConstructor=%b, isMethod = %b"
@@ -482,9 +484,6 @@ let pp_enriched_tracefile fmt pp (f, o, t, g, gap) =
      @[< hov >%a@]@]"
     gap pp_functions f pp_objects o pp_globals g (pp_enriched_trace fmt) t
 
-let dump_facts = ref false
-let enable_dump_facts () = dump_facts := true
-
 let pp_rich_operation_with_facts pp (op, facts) =
   pp_rich_operation pp op
 let pp_rich_trace = Fmt.list pp_rich_operation_with_facts
@@ -504,3 +503,8 @@ let pp_rich_tracefile pp
     pp_globals globals
     pp_rich_trace trace
     Reference.pp_points_to_map points_to
+                      *)
+let dump_facts = ref false
+let enable_dump_facts () = dump_facts := true
+let pp_operation = pp_event
+

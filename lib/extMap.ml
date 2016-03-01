@@ -12,10 +12,8 @@ end
 module Make(T: FmtOrderedType): S with type key = T.t = struct
   include BatMap.Make(T)
   let of_list l = of_enum (BatList.enum l)
-  let pp ?pair_sep ?entry_sep ?entry_frame ppval =
-    let frame = match entry_frame with
-      | Some frame -> frame
-      | None -> (fun fmt pp value -> fmt pp value)
-    in let open Fmt in
-      using bindings (list ?sep:entry_sep (frame (pair ?sep:pair_sep T.pp ppval)))
+  let pp ?(pair_sep=Fmt.always ",@ ") ?(entry_sep=Fmt.always ";@ ") ?(entry_frame = Fmt.hbox) ppval =
+    let open Fmt in
+    let frame = entry_frame in
+      using bindings (list ~sep:entry_sep (frame (pair ~sep:pair_sep T.pp ppval)))
 end

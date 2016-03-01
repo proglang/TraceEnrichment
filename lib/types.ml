@@ -65,20 +65,27 @@ let pp_fieldspec pp { value; set; get; writable; enumerable; configurable } =
       (Fmt.option pp_jsval) get
       (Fmt.option pp_jsval) set
 
+let pp_dynarray fmt =
+  Fmt.using (BatDynArray.mapi (fun i v -> (i,v)))
+    (Fmt.using BatDynArray.to_list
+       (Fmt.vbox (Fmt.list ~sep:(Fmt.always ",@ ")
+                    (Fmt.pair ~sep:(Fmt.always ". ") Fmt.int fmt))))
+
 type objectspec = fieldspec StringMap.t [@@deriving show, eq]
 type objects = objectspec BatDynArray.t
-let pp_objects = Fmt.using BatDynArray.to_list (Fmt.list pp_objectspec)
+let pp_objects = pp_dynarray (Fmt.vbox pp_objectspec)
 let equal_objects o1 o2 =
   BatEnum.equal equal_objectspec (BatDynArray.enum o1) (BatDynArray.enum o2)
 
 type funcspec =
-  | Instrumented of string
+  | Instrumented of string [@printer (!% "instrumented: ") %< pp_shortened]
   | Uninstrumented of string * string
-  | External of int
+    [@printer (!% "uninstrumented: ") %< Fmt.using snd pp_shortened]
+  | External of int [@printer (!% "external: ") %< Fmt.int]
   [@@deriving ord, eq, show]
 
 type functions = funcspec BatDynArray.t
-let pp_functions = Fmt.using BatDynArray.to_list (Fmt.list pp_funcspec)
+let pp_functions = pp_dynarray pp_funcspec
 let equal_functions f1 f2 =
   BatEnum.equal equal_funcspec (BatDynArray.enum f1) (BatDynArray.enum f2)
 
