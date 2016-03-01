@@ -109,7 +109,7 @@
                 case "string":
                 case "symbol":
                     return {
-                        type : typeof obj,
+                        type : typeof val,
                         val : val.toString()
                     }
                 case "function":
