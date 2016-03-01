@@ -92,11 +92,8 @@ let get_object_array ?(required=false) objects objval index =
 
 let lookup globals (objs: objects) path =
   try
-  match path with
-  | [] -> global_object
-  | objname :: path ->
     List.fold_left (get_object ~required:true objs)
-      (StringMap.find objname globals)
+      (StringMap.find "global" globals)
       path
   with
       Not_found ->
