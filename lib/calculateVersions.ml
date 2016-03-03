@@ -7,6 +7,10 @@ type version_state = {
   current_version: int ReferenceMap.t;
   last_update: versioned_reference option
 }
+let pp_version_state pp { current_version; last_update } =
+  Format.fprintf pp "@[<v 2>last_update = %a, current versions:@ %a@]"
+    (Fmt.option Reference.pp_versioned_reference) last_update
+    (ReferenceMap.pp ~entry_sep:Fmt.cut ~pair_sep:(Fmt.always ": ") Fmt.int) current_version
 
 let increment_reference state ref =
   { state with
@@ -125,6 +129,13 @@ let collect_versions_step (objects: objects) globals_are_properties state
           declare_local "this" state
     | _ ->
       state in
+  Logs.debug
+    (fun fmt ->
+       fmt "@[<v 2>Collecting versions for %a where %a.@ Old state: %a@ New state: %a@]"
+         pp_clean_operation op
+         pp_names_resolved facts
+         pp_version_state state
+         pp_version_state res);
   ( (op, { last_arguments = facts.last_arguments;
            closures = facts.closures;
            last_update = res.last_update;

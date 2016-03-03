@@ -110,6 +110,15 @@ let collect_names_step (objects: objects) globals_are_properties state
         make_exit state
     | _ ->
       state in
+    (*
+    Logs.debug (fun fmt ->
+                  fmt "@[<v 2>Collecting names for %a@ Arguments: %a@ Closures: [%a]@ @[<v 2>Old state:@ %a@]@ @[<v 2>New state:@ %a@]@ @]"
+                    pp_clean_operation op
+                    (Fmt.option Fmt.int) facts.last_arguments
+                    (IntMap.pp Fmt.int) facts.closures
+                    pp_state state
+                    pp_state res);
+     *)
   ( (op, { last_arguments = facts.last_arguments;
            closures = res.closures;
            names = merge res.global_names (List.hd res.local_names) }),

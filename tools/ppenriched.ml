@@ -86,7 +86,7 @@ let fmt_points_to pp pointsto =
   let module F = FmtDiff(Reference.VersionedReferenceMap) in
     F.fmt Types.pp_jsval "points-to" pp (filter_points_to pointsto)
 let fmt_option fmt key pp = function
-  | Some x -> Format.fprintf pp "%s: %a" key fmt x
+  | Some x -> Format.fprintf pp "%s: %a@ " key fmt x
   | None -> ()
   
 
