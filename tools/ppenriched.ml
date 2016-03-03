@@ -27,60 +27,117 @@ let calculate_filter_bound objects =
         next max
   in find_max 0 0 + 1
 
-let delta_encode mkdelta init trace =
-  let rec mkpairs_impl vold = function
-    | [] -> []
-    | (_, vnew) :: l -> mkdelta vold vnew :: mkpairs_impl vnew l
-  in let mkpairs = function
-    | [] -> [init]
-    | (_, v0) :: l ->
-        v0 :: mkpairs_impl v0 l
-  in if !delta then
-    List.map2 (fun (op, _) data -> (op, data))
-      trace (mkpairs trace)
-  else
-    trace
+let rec list_delta init diff = function
+  | [] -> []
+  | value :: list ->
+      diff init value :: list_delta value diff list
 
-let pp_enriched_trace_delta fmt mkdelta init =
-  Fmt.using (delta_encode mkdelta init)
-    (Fmt.vbox (Fmt.list ~sep:(Fmt.prefix Fmt.cut Fmt.cut)
-                 (Fmt.pair ~sep:(Fmt.always " with@ ")
-                    TraceTypes.pp_clean_operation fmt)))
+let delta_encode init diff list =
+  let (ops, data) = List.split list in
+    List.combine ops (list_delta init diff data)
+
+let pp_enriched_trace init diff fmt fmtdiff pp list =
+  let double_sep = Fmt.cut
+  and with_sep = Fmt.always " with@ " in
+  let list_fmt fmt =
+    Fmt.vbox (Fmt.list ~sep:double_sep
+                 (Fmt.vbox ~indent:2 (Fmt.pair ~sep:with_sep
+                    TraceTypes.pp_clean_operation
+                    fmt))) in
+  if !delta then
+    Fmt.using (delta_encode init diff) (list_fmt fmtdiff) pp list
+  else
+    list_fmt fmt pp list
+
+type versions_resolved_delta = {
+  last_arguments : int option;
+  closures : Reference.reference StringMap.t ExtMap.diff IntMap.t;
+  last_update : Reference.versioned_reference option;
+  versions : int ExtMap.diff Reference.ReferenceMap.t;
+  names : Reference.reference ExtMap.diff StringMap.t;
+}
+let filter_versions m =
+  Reference.ReferenceMap.filter (fun key _ -> match key with
+                                   | Reference.Field (obj, _) -> Types.get_object_id obj >= !LocalFacts.filter_bound
+                                   | _ -> true) m
+let filter_points_to m =
+  Reference.VersionedReferenceMap.filter (fun key _ -> match key with
+                                   | (Reference.Field (obj, _), _) -> Types.get_object_id obj >= !LocalFacts.filter_bound
+                                   | _ -> true) m
+
+module FmtDiff(M: ExtMap.S) = struct
+  let fmt pp_entry key pp map =
+    if not (M.is_empty map) then
+      Format.fprintf pp "@[<v 2>%s@ %a@]@ "
+        key
+        (M.pp ~pair_sep:(Fmt.always ": ")
+           ~entry_sep:Fmt.cut (ExtMap.pp_diff pp_entry)) map
+end
+let fmt_versions pp versions =
+  let module F = FmtDiff(Reference.ReferenceMap) in
+    F.fmt Fmt.int "versions" pp (filter_versions versions)
+let fmt_names =
+  let module F = FmtDiff(StringMap) in
+    F.fmt Reference.pp_reference "names"
+let fmt_closures =
+  let module F = FmtDiff(IntMap) in
+    F.fmt (Fmt.braces (StringMap.pp Reference.pp_reference)) "closures"
+let fmt_points_to pp pointsto =
+  let module F = FmtDiff(Reference.VersionedReferenceMap) in
+    F.fmt Types.pp_jsval "points-to" pp (filter_points_to pointsto)
+let fmt_option fmt key pp = function
+  | Some x -> Format.fprintf pp "%s: %a" key fmt x
+  | None -> ()
+  
+
+let pp_versions_resolved_delta pp 
+      { last_arguments; closures; last_update; versions; names } =
+  Format.pp_open_vbox pp 0;
+  fmt_option Fmt.int "last_argument" pp last_arguments;
+  fmt_option Reference.pp_versioned_reference "last_update" pp last_update;
+  fmt_versions pp versions;
+  fmt_names pp names;
+  fmt_closures pp closures;
+  Format.pp_close_box pp ()
 
 let pp_enriched_trace_versions =
   let open LocalFacts in
-  pp_enriched_trace_delta LocalFacts.pp_versions_resolved
-    (fun { versions = old_versions; names = old_names }
-           ({ versions; names } as facts) ->
-       { facts with
-             versions = Reference.ReferenceMap.merge
-                          (fun _ vold vnew -> if vold = None then vnew else None)
-                          old_versions versions;
-             names = StringMap.merge
-                       (fun _ vold vnew -> if vold = None then vnew else None)
-                       old_names names })
+  pp_enriched_trace 
     { last_arguments = None;
       closures = IntMap.empty;
       last_update = None;
       versions = Reference.ReferenceMap.empty;
       names = StringMap.empty }
+    (fun { versions = old_versions; names = old_names; closures = old_closures }
+           ({ versions; names; closures; last_update; last_arguments }) ->
+       ({ last_update; last_arguments;
+          closures = IntMap.delta (StringMap.equal (Reference.equal_reference)) old_closures closures;
+          versions = Reference.ReferenceMap.delta (=) old_versions versions;
+          names = StringMap.delta (Reference.equal_reference) old_names names }: versions_resolved_delta))
+    pp_versions_resolved pp_versions_resolved_delta
+    
+type local_facts_delta = {
+  last_arguments : int option;
+  closures : Reference.reference StringMap.t ExtMap.diff IntMap.t;
+  last_update : Reference.versioned_reference option;
+  versions : int ExtMap.diff Reference.ReferenceMap.t;
+  names : Reference.reference ExtMap.diff StringMap.t;
+  points_to: Types.jsval ExtMap.diff Reference.VersionedReferenceMap.t
+}
+let pp_local_facts_delta pp 
+      { last_arguments; closures; last_update; versions; names; points_to } =
+  Format.pp_open_vbox pp 0;
+  fmt_option Fmt.int "last_argument" pp last_arguments;
+  fmt_option Reference.pp_versioned_reference "last_update" pp last_update;
+  fmt_versions pp versions;
+  fmt_names pp names;
+  fmt_closures pp closures;
+  fmt_points_to pp points_to;
+  Format.pp_close_box pp ()
 
 let pp_enriched_trace_points_to =
   let open LocalFacts in
-  pp_enriched_trace_delta LocalFacts.pp_local_facts
-    (fun { versions = old_versions; names = old_names; points_to = old_points_to }
-           ({ versions; names; points_to } as facts) ->
-       { facts with
-             versions = Reference.ReferenceMap.merge
-                          (fun _ vold vnew -> if vold = None then vnew else None)
-                          old_versions versions;
-             names = StringMap.merge
-                       (fun _ vold vnew -> if vold = None then vnew else None)
-                       old_names names;
-             points_to = Reference.VersionedReferenceMap.merge
-                          (fun _ vold vnew -> if vold = None then vnew else None)
-                          old_points_to points_to;
-       })
+  pp_enriched_trace 
     { last_arguments = None;
       closures = IntMap.empty;
       last_update = None;
@@ -88,6 +145,19 @@ let pp_enriched_trace_points_to =
       names = StringMap.empty;
       points_to = Reference.VersionedReferenceMap.empty
     }
+    (fun { versions = old_versions; names = old_names; closures = old_closures;
+           points_to = old_points_to }
+           ({ versions; names; closures; last_update; last_arguments;
+              points_to }) ->
+       ({ last_update; last_arguments;
+          closures = IntMap.delta (StringMap.equal (Reference.equal_reference))
+                       old_closures closures;
+          versions = Reference.ReferenceMap.delta (=) old_versions versions;
+          names = StringMap.delta Reference.equal_reference old_names names;
+          points_to = Reference.VersionedReferenceMap.delta Types.equal_jsval
+                        old_points_to points_to
+       }: local_facts_delta))
+    pp_local_facts pp_local_facts_delta
 
 let enrich_and_print mode
       (functions, objects, trace, globals, globals_are_properties) =
@@ -151,8 +221,8 @@ let () =
        ("-4", Arg.Unit (fun () -> mode := VersionedResolved), "Perform four steps of enrichment");
        ("-5", Arg.Unit (fun () -> mode := PointsToResolved), "Perform five steps of enrichment");
        ("-V", Arg.Unit Debug.enable_validate, "Enable validation");
-       ("-f", Arg.Set filter, "Calculate filter bound");
        ("-d", Arg.Set delta, "Display deltas");
+       ("-f", Arg.Set filter, "Calculate filter bound");
       ]
       (fun file -> files := !files @ [file])
       "ppcleantrace [-D] [-V] files";

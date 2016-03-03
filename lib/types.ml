@@ -23,7 +23,8 @@ type jsval =
   | OObject of int [@printer (!% "object:") %< Fmt.int]
   | OOther of string * int [@printer (Fmt.pair ~sep:(!% ":") Fmt.string Fmt.int)]
   (*[@@deriving show, eq, ord]*)
-  [@@deriving eq, ord]
+  [@@deriving ord]
+let equal_jsval x y = compare_jsval x y = 0
 
 let pp_jsval pp = let open Format in function
     | OUndefined -> pp_print_string pp "undefined"
@@ -80,7 +81,6 @@ let equal_objects o1 o2 =
 type funcspec =
   | Instrumented of string [@printer (!% "instrumented: ") %< pp_shortened]
   | Uninstrumented of string * string
-    [@printer (!% "uninstrumented: ") %< Fmt.using snd pp_shortened]
   | External of int [@printer (!% "external: ") %< Fmt.int]
   [@@deriving ord, eq, show]
 
