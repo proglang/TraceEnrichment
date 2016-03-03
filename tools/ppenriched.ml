@@ -58,10 +58,12 @@ type versions_resolved_delta = {
 }
 let filter_versions m =
   Reference.ReferenceMap.filter (fun key _ -> match key with
+                                   | Reference.Field (Types.Object 0, _) -> true
                                    | Reference.Field (obj, _) -> Types.get_object_id obj >= !LocalFacts.filter_bound
                                    | _ -> true) m
 let filter_points_to m =
   Reference.VersionedReferenceMap.filter (fun key _ -> match key with
+                                   | (Reference.Field (Types.Object 0, _), _) -> true
                                    | (Reference.Field (obj, _), _) -> Types.get_object_id obj >= !LocalFacts.filter_bound
                                    | _ -> true) m
 
