@@ -10,7 +10,7 @@ type version_state = {
 
 let increment_reference state ref =
   { state with
-        current_version = ReferenceMap.modify_def 0 ref ((+) 1) state.current_version }
+        current_version = ReferenceMap.modify_opt ref (function Some v -> Some (v+1) | None -> Some 0) state.current_version }
 
 let warnings: string list ref = ref []
 
