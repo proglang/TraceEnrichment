@@ -124,12 +124,14 @@ let collect_names_step (objects: objects) globals_are_properties state
            names = merge res.global_names (List.hd res.local_names) }),
     res )
 
-let initial_vars globals_are_properties =
+let initial_vars objects globals_are_properties =
   let global_names =
-    if globals_are_properties then
-      StringMap.add "this" (Variable (Global, "this")) StringMap.empty
-    else
-      failwith "Initial variable calculation not supported for non-property globals"
+    if not globals_are_properties then
+      failwith "Initial variable calculation not supported for non-property globals";
+    let init_names = StringMap.mapi
+                       (fun name _ -> Field (Object 0, name))
+                       (BatDynArray.get objects 0)
+    in StringMap.add "this" (Variable (Global, "this")) init_names
   in { global_names; local_names = [ StringMap.empty ]; closures = IntMap.empty; old_arguments = None }
 
 module type S = sig
@@ -142,7 +144,7 @@ module Make (T: Transformers) = struct
   type 'a trace = 'a T.sequence
   let collect {objects; globals_are_properties; globals} tr =
     T.map_state
-      (initial_vars globals_are_properties)
+      (initial_vars objects globals_are_properties)
       (fun state (op, facts) ->
          collect_names_step objects globals_are_properties state facts op)
       tr
