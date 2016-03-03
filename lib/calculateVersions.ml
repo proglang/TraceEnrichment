@@ -13,8 +13,13 @@ let pp_version_state pp { current_version; last_update } =
     (ReferenceMap.pp ~entry_sep:Fmt.cut ~pair_sep:(Fmt.always ": ") Fmt.int) current_version
 
 let increment_reference state ref =
-  { state with
-        current_version = ReferenceMap.modify_opt ref (function Some v -> Some (v+1) | None -> Some 0) state.current_version }
+  match ReferenceMap.Exceptionless.find ref state.current_version with
+    | Some v ->
+        { current_version = ReferenceMap.add ref (v + 1) state.current_version;
+          last_update = Some (ref, v) }
+    | None ->
+        { current_version = ReferenceMap.add ref 0 state.current_version;
+          last_update = Some (ref, 0) }
 
 let warnings: string list ref = ref []
 
