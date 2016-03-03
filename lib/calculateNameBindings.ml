@@ -29,7 +29,8 @@ let bind name ref state =
     | local_names :: local_names' ->
         let local_names = StringMap.add name ref local_names :: local_names'
         in match ref with
-          | Variable (Global, _) ->
+          | Variable (Global, _)
+          | Field (Object 0, _) ->
               { state with local_names;
                            global_names = StringMap.add name ref state.global_names }
           | _ -> { state with local_names }
