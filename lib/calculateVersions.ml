@@ -103,7 +103,7 @@ let collect_versions_step (objects: objects) globals_are_properties state
   let open LocalFacts in
   let nameref =
     reference_of_name globals_are_properties facts.names in
-  let declare_local name =
+  let declare_var name =
       provide_write objects (reference_of_name globals_are_properties facts.names name) in
   let res = match op with
     | CFunPre { base; args } ->
@@ -114,7 +114,7 @@ let collect_versions_step (objects: objects) globals_are_properties state
     | CDeclare { name; declaration_type = ArgumentBinding i } ->
       provide_argument_alias objects state name facts.last_arguments i
     | CDeclare { name } ->
-        declare_local name state
+        declare_var name state
     | CGetField { base; offset } ->
       provide_read (reference_of_field base offset) state
     | CPutField { base; offset } ->
@@ -126,7 +126,7 @@ let collect_versions_step (objects: objects) globals_are_properties state
     | CFunEnter { this; args } ->
         let state =  provide_literal objects state args in
         let state = provide_literal objects state this in
-          declare_local "this" state
+          declare_var "this" state
     | _ ->
       state in
   Logs.debug
