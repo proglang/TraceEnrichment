@@ -78,7 +78,7 @@ let make_enter f args (facts: arguments_and_closures) state =
             failwith ("Closure environment for " ^ string_of_int fid ^ " not found")
           end
       | None -> StringMap.empty
-  in let env = StringMap.add "this" (Variable (Local fid, "this")) env
+  in let env = StringMap.add "this" (Variable (Local (BatOption.get facts.last_arguments), "this")) env
   in { state with local_names = env :: state.local_names; old_arguments = facts.last_arguments }
 
 let make_exit { local_names; global_names; closures; old_arguments } =
