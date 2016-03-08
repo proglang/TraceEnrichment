@@ -60,21 +60,33 @@ let find_analysis_script () =
     | Some path ->
         if good path then () else failwith "Analysis script not found in given path!"
     | None ->
-        match find_first good [ "."; "tracer"; CompilationConfig.datadir /: "jstools" ] with
+        match find_first good [ "."; "tracer"; CompilationConfig.datadir /: "js-trace-enrichment" ] with
           | Some path -> analysis_script_path := Some path
           | None -> failwith "Analysis script not found!"
 
 let setup () =
   if not !setup_done then begin
+    Log.info (fun m -> m "Starting set-up");
     find_jalangi();
+    Log.info (fun m -> m "Found jalangi");
     find_analysis_script();
-    setup_done := true
-  end
+    Log.info (fun m -> m "Found the analysis script");
+    setup_done := true;
+    Log.info (fun m -> m "Set-up finished")
+  end else Log.debug (fun m -> m "Set-up already done")
 
 
 let get_node_path () = !node_path
-let get_jalangi2_path () = setup (); BatOption.get !jalangi2_path
-let get_analysis_script_path () = setup (); BatOption.get !analysis_script_path
+let get_jalangi2_path () =
+  setup (); match !jalangi2_path with
+    | Some path -> path
+    | None -> Log.err (fun m -> m "No jalangi2 path after setup, and no exception");
+              raise Not_found
+let get_analysis_script_path () =
+  setup (); match !analysis_script_path with
+    | Some path -> path
+    | None -> Log.err (fun m -> m "No jalangi2 path after setup, and no exception");
+              raise Not_found
 let get_xhr_server_address () = !xhr_server_address
 let get_xhr_server_port () = !xhr_server_port
 let get_keep_temporaries () = !keep_temporaries

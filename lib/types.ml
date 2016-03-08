@@ -115,7 +115,7 @@ let objectid_of_jsval = function
   | OObject o -> Object o
   | OFunction (o, f) -> Function (o, f)
   | OOther (t, o) -> Other (t, o)
-  | _ -> failwith "Not an object"
+  | _ -> raise NotAnObject
 
 let get_object_id = function
   | Object id | Function (id, _) | Other (_, id) -> id

@@ -6,14 +6,20 @@ let instrument_script_path =
 exception InstrumentationError
 
 let instrument_make_html basename =
+  Log.debug (fun m -> m "starting to make html");
+  let path = Config.get_analysis_script_path () /: "analysisDriver.html" in
+    Log.debug (fun m -> m "analysis script path: %s" path);
   let model = Hashtbl.create 1
   and buffer = Buffer.create 512
   and tmpl = CamlTemplate.Cache.get_template
                Common.template_cache
-               (Config.get_analysis_script_path () /: "analysisDriver.html")
+               path
   in
+    Log.debug (fun m -> m "Preparations complete");
     Hashtbl.add model "basename" (CamlTemplate.Model.Tstr (Filename.basename basename));
+    Log.debug (fun m -> m "Preparing merge");
     CamlTemplate.merge tmpl model buffer;
+    Log.debug (fun m -> m "Merged");
     Buffer.contents buffer
 
 let unlink_files files =
@@ -83,18 +89,28 @@ let clean_up () =
 
 let instrument_for_browser ?basename ~providejs =
   let%lwt (tmpdir, insdir) = get_instrument_tmp_dir () in
+    Log.debug (fun m -> m "tmpdir = %s, insdir = %s" tmpdir insdir);
   let basename = match basename with
     | Some basename -> tmpdir /: Filename.basename basename
     | None -> Filename.temp_file ~temp_dir:tmpdir "gen" ""
-  in let jsfile = basename ^ ".js" and htmlfile = basename ^ ".html" in
+  in
+    Log.debug (fun m -> m "basename = %s" basename);
+  let jsfile = basename ^ ".js" and htmlfile = basename ^ ".html" in
+    Log.debug (fun m -> m "jsfile = %s, htmlfile = %s" jsfile htmlfile);
   let%lwt () = providejs jsfile in
+    Log.debug (fun m -> m "instrumented successfully");
   let driver = instrument_make_html basename in
+    Log.debug (fun m -> m "driver file: %s" driver);
   let%lwt () = Lwt_io.with_file Lwt_io.Output htmlfile (fun c -> Lwt_io.write c driver) in
+    Log.debug (fun m -> m "wrote driver");
   let%lwt () = jalangi2_instrument "xhr" [ jsfile; htmlfile ] insdir in
+    Log.debug (fun m -> m "instrumented");
   let%lwt () =
     if Config.get_keep_temporaries () then
       Lwt.return_unit
     else
       unlink_files [ jsfile; htmlfile; basename ]
-  in Lwt.return (insdir /: Filename.basename basename)
+  in
+    Log.debug (fun m -> m "dealt with temporaries");
+    Lwt.return (insdir /: Filename.basename basename)
   

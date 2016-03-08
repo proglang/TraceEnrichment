@@ -75,7 +75,7 @@ let make_enter f args (facts: arguments_and_closures) state =
           begin try
             IntMap.find closure state.closures
           with Not_found ->
-            failwith ("Closure environment for " ^ string_of_int fid ^ " not found")
+            failwith ("Closure environment " ^ string_of_int closure ^ " for " ^ string_of_int fid ^ " not found in " ^ Fmt.to_to_string (IntMap.pp (StringMap.pp pp_reference)) state.closures)
           end
       | None -> StringMap.empty
   in let env = StringMap.add "this" (Variable (Local (BatOption.get facts.last_arguments), "this")) env

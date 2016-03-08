@@ -41,7 +41,12 @@ let pp_reference_map = ReferenceMap.pp
 
 let global_object = Types.Object 0
 
-let reference_of_field base offset = Field (Types.objectid_of_jsval base, offset)
+let reference_of_field base offset =
+  try
+    Field (Types.objectid_of_jsval base, offset)
+  with Types.NotAnObject ->
+    failwith ("Trying to build field access to " ^ Fmt.to_to_string Types.pp_jsval base)
+
 let reference_of_fieldref (base, offset) = Field (base, offset)
 let reference_of_local_name scope name = Variable (Local scope, name)
 let reference_of_name globals_are_properties bindings name =
