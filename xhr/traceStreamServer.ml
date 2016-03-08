@@ -35,7 +35,10 @@ module TraceStreamServer(S: STREAMSTRATEGY): TSS = struct
   end
   include TraceCollector.Server(Strategy)
   let run_server () =
-    Log.default_setup false;
+    let usage = Sys.argv.(0) ^ " [options]" in
+    Arg.parse Config.args (fun _ -> Arg.usage Config.args usage; exit 1) usage;
+    Log.default_setup true;
+    Config.setup();
     Lwt_main.run server
 end
 
