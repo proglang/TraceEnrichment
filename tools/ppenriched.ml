@@ -166,7 +166,13 @@ let enrich_and_print mode
   let open Types in
   let open TraceTypes in
   let open LocalFacts in
-  let initials = { functions; objects; globals; globals_are_properties } in
+  let initials = { functions; objects; globals; globals_are_properties;
+                   function_call = OUndefined;
+                   function_apply = OUndefined;
+                   function_eval = OUndefined;
+                   function_constructor = OUndefined;
+  } in
+    lookup_functions initials;
   let module Step1 = LocalFacts.CollectArguments(Streaming.ListTransformers) in
   let module Step2 = LocalFacts.CollectClosures(Streaming.ListTransformers) in
   let module Step3 = CalculateNameBindings.Make(Streaming.ListTransformers) in

@@ -93,7 +93,10 @@ let get_points_to functions objects globals globals_are_properties (trace: rich_
   match List.rev trace with
     | [] ->
         CalculatePointsTo.initial_pointsto
-          { functions; objects; globals; globals_are_properties }
+          { functions; objects; globals; globals_are_properties;
+            function_call = OUndefined; function_apply = OUndefined;
+            function_constructor = OUndefined; function_eval = OUndefined
+          }
     | (_, { points_to }) :: _ -> points_to
 
 let calculate_rich_tracefile
@@ -108,7 +111,10 @@ let calculate_rich_stream (init: initials) stream =
 
 let tracefile_to_rich_tracefile
       (functions, objects, trace, globals, globals_are_properties) =
-  let initials = { objects; functions; globals; globals_are_properties } in
+  let initials = { objects; functions; globals; globals_are_properties;
+                   function_call = OUndefined; function_apply = OUndefined;
+                   function_constructor = OUndefined; function_eval = OUndefined
+  } in
   let trace = ListToRich.trace_to_rich_trace initials trace in
     { funcs = functions; objs = objects; globals; globals_are_properties; trace;
       points_to = get_points_to functions objects globals globals_are_properties trace }

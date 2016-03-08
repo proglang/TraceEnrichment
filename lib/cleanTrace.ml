@@ -73,37 +73,11 @@ let clean_impl_cases stack locals globals =
 
 let global_object = OObject 0
 
-exception ObjectNotFound
-let get_object ?(required=false) (objects: objects) objval fieldname =
-  try
-    BatDynArray.get objects (get_object objval)
-    |> StringMap.find fieldname
-    |> fun { value } -> value
-  with Not_found ->
-    Log.debug (fun m -> m "Could not find object %a, field %s"
-      pp_jsval objval fieldname);
-    if required then
-      raise ObjectNotFound
-    else
-      OUndefined
-
 let get_object_array ?(required=false) objects objval index =
-  get_object objects objval (string_of_int index) ~required
-
-let lookup globals (objs: objects) path =
-  try
-    List.fold_left (get_object ~required:true objs)
-      (StringMap.find "global" globals)
-      path
-  with
-      Not_found ->
-        Format.eprintf "Can't find %a@."
-          (Fmt.list ~sep:(Fmt.const Fmt.string ".") Fmt.string)
-          path;
-        raise Not_found
+  lookup_object objects objval (string_of_int index) ~required
 
 let has_field objs obj fld =
-  StringMap.mem fld (BatDynArray.get objs (Types.get_object obj))
+  StringMap.mem fld (BatDynArray.get objs (get_object obj))
 let has_index objs obj idx = has_field objs obj (string_of_int idx)
 
 let debug_get_array objects base =
@@ -116,7 +90,7 @@ let debug_get_array objects base =
     in get 0 []
   with ObjectNotFound ->
     Log.debug (fun m -> m "Not a proper array: %a, containing @[<hov 2>%a@]" pp_jsval base
-      pp_objectspec (BatDynArray.get objects (Types.get_object base)));
+      pp_objectspec (BatDynArray.get objects (get_object base)));
     raise ObjectNotFound
       
 let resolve_call objects function_apply function_call f base args call_type =
@@ -287,25 +261,24 @@ module CleanGeneric = functor(S: Transformers) -> struct
          | Simple op -> ([op], (stack, locals, globals))
          | Drop -> ([]), (stack, locals, globals))
 
-  let normalize_calls globals (objs: objects) =
+  let normalize_calls initials =
     Log.debug (fun m -> m "Normalizing calls");
-    let function_apply = lookup globals objs ["Function"; "prototype"; "apply"]
-    and function_call = lookup globals objs ["Function"; "prototype"; "call"] in 
     S.map (function
         | CFunPre { f; base; args; call_type }
-          when f = function_apply || f = function_call ->
+          when f = initials.function_apply || f = initials.function_call ->
           CFunPre
-            (resolve_call objs function_apply function_call f base args call_type)
+            (resolve_call initials.objects initials.function_apply initials.function_call
+               f base args call_type)
         | CFunPost { f; base; args; call_type; result }
-          when f = function_apply || f = function_call ->
+          when f = initials.function_apply || f = initials.function_call ->
             let ({ f; args; base; call_type }: funpre) =
-              resolve_call objs function_apply function_call f base args call_type
+              resolve_call initials.objects initials.function_apply initials.function_call
+                f base args call_type
             in CFunPost { f; base; args; call_type; result }
         | ev -> ev)
 
-  let normalize_function_constructor globals objs =
+  let normalize_function_constructor initials =
     Log.debug (fun m -> m "Normalizing function constructor");
-    let function_constructor = lookup globals objs ["Function"] in
     S.map_list_state false
       (fun in_constructor op ->
          match in_constructor, op with
@@ -324,7 +297,7 @@ module CleanGeneric = functor(S: Transformers) -> struct
            | true, _ ->
                prerr_endline "Bad event in a Function constructor body";
                ([op], true)
-           | false, CFunPre { f; base; args } when f = function_constructor ->
+           | false, CFunPre { f; base; args } when f = initials.function_constructor ->
                ([op; CFunEnter { f; this=base; args }], true)
            | false, _ -> ([op], false))
 
@@ -363,10 +336,13 @@ module CleanGeneric = functor(S: Transformers) -> struct
           prerr_endline "Unexpected special handling request when handling regular event";
         ([op], (frames, false, None))
 
-  let normalize_eval globals objs =
+  let normalize_eval initials =
     Log.debug (fun m -> m "Normalizing eval constructor");
-    let eval = lookup globals objs ["global"; "eval"] in
-    S.map_list_state ([], false, None) (normalize_eval_step eval)
+    (*
+    let eval =  in
+     *)
+    S.map_list_state ([], false, None)
+      (fun state op -> normalize_eval_step initials.function_eval state op)
 
   let synthesize_events funcs trace =
     S.map_list_state []
@@ -606,37 +582,40 @@ module CleanGeneric = functor(S: Transformers) -> struct
     in state'
 
 
-  let validate level globals objs trace =
+  let validate level initials trace =
     Log.debug (fun m -> m "Validating trace, level: %s"
       (match level with
            Basic -> "basic"
          | NoUseStrict -> "no use strict"
          | NormalizedCalls -> "calls normalized, removing apply and call"
          | SynthesizedEvents -> "call framing completed"));
+    (*
     let function_apply = lookup globals objs ["Function"; "prototype"; "apply"]
     and function_call = lookup globals objs ["Function"; "prototype"; "call"] in 
+     *)
       if Debug.is_validate () then begin
         let init = { stack = []; saw_use_strict = false; saw_fun_pre = false; saw_fun_exit = None } in
-          S.validation (validate_step level function_apply function_call)  init trace
+          S.validation (validate_step level initials.function_apply initials.function_call)
+            init trace
       end else
         trace
 
-  let clean_trace globals funcs objs trace =
+  let clean_trace initials trace =
     trace
     |> clean
-    |> validate Basic globals objs 
+    |> validate Basic initials
     |> remove_use_strict
-    |> validate NoUseStrict globals objs 
-    |> normalize_calls globals objs
-    |> normalize_function_constructor globals objs
-    |> normalize_eval globals objs
-    |> validate NormalizedCalls globals objs 
+    |> validate NoUseStrict initials
+    |> normalize_calls initials
+    |> normalize_function_constructor initials
+    |> normalize_eval initials
+    |> validate NormalizedCalls initials
     |> synthesize_getters_and_setters
-    |> synthesize_events funcs
-    |> validate SynthesizedEvents globals objs 
+    |> synthesize_events initials.functions
+    |> validate SynthesizedEvents initials
 
   let calculate_clean_trace (initials: initials) trace =
-    clean_trace initials.globals initials.functions initials.objects trace
+    clean_trace initials trace
 end
 
 module CleanStream = CleanGeneric(StreamTransformers)
@@ -646,7 +625,11 @@ let synthesize_events funcs trace =
   CleanList.synthesize_events funcs trace
 
 let clean_tracefile (funs, objs, rawtr, globals, gap) =
-  (funs, objs, CleanList.clean_trace globals funs objs rawtr, globals, gap)
+  let initials = { objects = objs; functions = funs; globals; globals_are_properties = gap;
+                   function_apply = OUndefined; function_call = OUndefined;
+                   function_constructor = OUndefined; function_eval = OUndefined } in
+  lookup_functions initials;
+  (funs, objs, CleanList.clean_trace initials rawtr, globals, gap)
 
 let clean_stream (data: initials) raw =
   CleanStream.calculate_clean_trace data raw

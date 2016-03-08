@@ -8,6 +8,7 @@ type items =
   | ItemObject of int * objectspec
   | ItemStep of event
   | ItemEnd
+  | ItemStart
 
 exception InvalidItem
 
@@ -24,6 +25,8 @@ let parse_item json =
         ItemFunctionUninstrumented (id, code)
     | [`String "end" ] ->
         ItemEnd
+    | [`String "start" ] ->
+        ItemStart
     | _ ->
         raise InvalidItem
 
@@ -70,6 +73,11 @@ let function_uninstrumented_handler initials = function
       end; true
   | _ -> false
 
+let rec handle_start initials = function
+  | ItemStart :: items -> lookup_functions initials; items
+  | item :: items -> item :: handle_start initials items
+  | [] -> []
+
 let parse_packet initials event_push json_string =
   Log.debug (fun m -> m "Handling data packet %s" json_string);
   let items =
@@ -80,6 +88,7 @@ let parse_packet initials event_push json_string =
     |> extract (function_handler initials)
     |> extract (function_uninstrumented_handler initials)
     |> extract (object_handler initials)
+    |> handle_start initials
     |> handle_end 
   in
     Log.debug (fun m -> m "Extracted trace operations. At end: %b, %d operations"
@@ -105,7 +114,12 @@ let parse_setup_packet json_string =
         let initials =
           { globals_are_properties; globals;
             objects = BatDynArray.create ();
-            functions = BatDynArray.create () }
+            functions = BatDynArray.create ();
+            function_call = OUndefined;
+            function_apply = OUndefined;
+            function_eval = OUndefined;
+            function_constructor = OUndefined;
+          }
         in let (stream, push) = Lwt_stream.create ()
         in (initials, stream, parse_packet initials push)
     | _ -> raise InvalidItem

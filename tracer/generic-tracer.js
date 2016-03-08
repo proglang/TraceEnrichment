@@ -67,6 +67,7 @@
         console.log("Collecting globals");
         valid(global);
         console.log("Collected global-reachable objects");
+        strategy.start();
 
         // recurse along prototype chain
         function filter_special(at_top, name) {
@@ -495,6 +496,7 @@
                 trace: trace
             }));
         };
+        strategy.start = function () { };
         return strategy;
     }
 
@@ -521,6 +523,9 @@
         strategy.end = function () {
             console.log("Tracing finished");
         }
+        strategy.start = function () {
+            console.log("Tracing started");
+        };
         return strategy;
     }
 
@@ -621,6 +626,9 @@
         strategy.end = function () {
             sendFact([ "end" ], true);
             J$.next_page = urlbase + session
+        }
+        strategy.start = function () {
+            sendFact([ "start" ], true);
         }
         return strategy;
     }

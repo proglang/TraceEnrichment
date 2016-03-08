@@ -148,7 +148,17 @@ type initials = {
   objects : objects;
   globals : globals;
   globals_are_properties : bool;
+  mutable function_apply: jsval;
+  mutable function_call: jsval;
+  mutable function_constructor: jsval;
+  mutable function_eval: jsval;
 }
+
+(** Look up objects and functions *)
+exception ObjectNotFound
+val lookup_object: ?required:bool -> objects -> jsval -> string -> jsval
+val lookup_functions: initials -> unit
+
 (** Boilerplate code. *)
 val pp_initials : initials Fmt.t
 val show_initials : initials -> string

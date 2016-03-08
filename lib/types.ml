@@ -143,4 +143,42 @@ type initials = {
   objects: objects;
   globals: globals;
   globals_are_properties: bool;
+  mutable function_apply: jsval;
+  mutable function_call: jsval;
+  mutable function_constructor: jsval;
+  mutable function_eval: jsval;
 } [@@deriving show, eq]
+
+exception ObjectNotFound
+let lookup_object ?(required=false) (objects: objects) objval fieldname =
+  try
+    BatDynArray.get objects (get_object objval)
+    |> StringMap.find fieldname
+    |> fun { value } -> value
+  with Not_found ->
+    Log.debug (fun m -> m "Could not find object %a, field %s"
+      pp_jsval objval fieldname);
+    if required then
+      raise ObjectNotFound
+    else
+      OUndefined
+
+let lookup { globals; objects = objs } path =
+  try
+    List.fold_left (lookup_object ~required:true objs)
+      (StringMap.find "global" globals)
+      path
+  with
+      Not_found ->
+        Format.eprintf "Can't find %a@."
+          (Fmt.list ~sep:(Fmt.const Fmt.string ".") Fmt.string)
+          path;
+        raise Not_found
+
+let lookup_functions initials =
+  initials.function_apply <- lookup initials ["Function"; "prototype"; "apply"];
+  initials.function_call  <- lookup initials ["Function"; "prototype"; "call"];
+  initials.function_constructor <- lookup initials ["Function"];
+  initials.function_eval <- lookup initials ["eval"]
+
+
