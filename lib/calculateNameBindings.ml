@@ -87,7 +87,14 @@ let make_exit { local_names; global_names; closures; old_arguments } =
         let arg = BatOption.get old_arguments in
         { local_names; global_names; old_arguments;
           closures = IntMap.add arg local closures }
-    | _ -> failwith "Empty local stack"
+    | [] -> failwith "Empty local stack"
+
+let make_call { local_names; global_names; closures; old_arguments } =
+  match local_names, old_arguments with
+    | local :: _, Some arg ->
+        { local_names; global_names; old_arguments;
+          closures = IntMap.add arg local closures }
+    | _ -> { local_names; global_names; closures; old_arguments }
 
 let merge =
   StringMap.merge (fun _ global local ->
@@ -108,6 +115,8 @@ let collect_names_step (objects: objects) globals_are_properties state
         make_enter f args facts state
     | CFunExit _ ->
         make_exit state
+    | CFunPre _ ->
+        make_call state
     | _ ->
       state in
     (*
