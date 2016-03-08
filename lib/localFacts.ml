@@ -108,5 +108,5 @@ let make_versioned_impl versions ref =
                        Reference.pp_reference ref
                        (Reference.pp_reference_map Fmt.int) versions; raise Not_found)
 
-let make_versioned state ref = make_versioned_impl state.versions ref
+let make_versioned (state: rich_facts) ref = make_versioned_impl state.versions ref
 

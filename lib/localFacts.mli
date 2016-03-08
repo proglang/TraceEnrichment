@@ -59,7 +59,7 @@ val reference_of_variable: bool -> local_facts -> string -> Reference.reference
  version from the given facts. Note that this required the [versions] field
  to be filled in. *)
 val make_versioned_impl : int Reference.ReferenceMap.t -> Reference.reference -> Reference.versioned_reference
-val make_versioned : local_facts -> Reference.reference -> Reference.versioned_reference
+val make_versioned : rich_facts -> Reference.reference -> Reference.versioned_reference
 
 module CollectArguments(S: Streaming.Transformers) : sig
   val collect: clean_operation S.sequence -> (clean_operation * int option) S.sequence
