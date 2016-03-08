@@ -40,8 +40,8 @@ Library "js-enrichment-xhr"
   XMETAEnable: true
   FindLibParent: js-enrichment
   XMETADescription: Trace enrichment server for JavaScript traces
-  BuildDepends: yojson, str, lwt.ppx, lwt, fmt, batteries, cohttp, fileutils, uuidm, conduit, logs
-  Modules:    Config, Common, CompilationConfig, TraceCollector, TraceStream, JalangiInterface, TraceStreamServer
+  BuildDepends: yojson, str, lwt.ppx, lwt, fmt, batteries, cohttp, camltemplate, uuidm, conduit, logs
+  Modules:    Config, Common, CompilationConfig, TraceCollector, TraceStream, JalangiInterface, TraceStreamServer, Files
   DataFiles:  ../tracer/*.html, ../tracer/*.js
   
 #Library "js-enrichment.test"
