@@ -15,3 +15,5 @@ val get_xhr_server_address : unit -> string
 val get_xhr_server_port : unit -> int
 (** Get a flag stating whether temporary files should be kept. *)
 val get_keep_temporaries : unit -> bool
+(** Set up configuration variables. *)
+val setup: unit -> unit
