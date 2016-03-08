@@ -280,7 +280,8 @@ val pp_enriched_tracefile: (Format.formatter -> 'a -> unit) ->
 type rich_facts = {
   last_update: Reference.versioned_reference option;
   versions: int Reference.ReferenceMap.t;
-  points_to: Reference.points_to_map
+  points_to: Reference.points_to_map;
+  names: Reference.reference StringMap.t
 }
 
 (** A rich event is a pair of a rich operation and the associated local facts *)
