@@ -32,11 +32,11 @@ let parse_jsval json =
   with
   | ParseError -> report "Context" "jsval" json
 
-let native_pattern = Str.regexp_string "[native code]"
+let native_pattern = "[native code]"
 let parse_funcspec json =
   let instr = member "instrumented" json |> to_string "Function specification" in
-  if (Str.string_match native_pattern instr 0)
-  then External (json |> member "obj" |> to_int)
+  if (BatString.Exceptionless.find instr native_pattern <> None)
+  then External (json |> member "obj" |> member "funid" |> to_int)
   else match json |> member "uninstrumented" |> to_string_option with
     | Some uninstr -> Uninstrumented (instr, uninstr)
     | None -> Instrumented instr
