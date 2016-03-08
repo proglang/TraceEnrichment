@@ -21,6 +21,24 @@ let make_new_uuid () =
 
 let (/:) = Filename.concat
 
+let instrument uri providejs =
+  try 
+    let uri = Uri.path uri in
+    let basename =
+      if uri = "" then None else Some (Filename.basename uri)
+    in
+      Log.info (fun m -> m "Instrumenting JavaScript%a"
+                           (Fmt.option (Fmt.prefix (Fmt.const Fmt.string " with basename ") Fmt.string))
+                           basename);
+      let%lwt base =
+        JalangiInterface.instrument_for_browser ?basename ~providejs
+      in
+        Log.info (fun m -> m "Performed instrumentation, resulting in %s" base);
+        reply_plain_text (Filename.basename base)
+  with
+      e -> Log.warn (fun m -> m "Exception in instrumentation: %s" (Printexc.to_string e));
+           reply_error `Internal_server_error (Printexc.to_string e)
+
 type handler =
     Uri.t -> string Lwt.t -> (Cohttp.Response.t * Cohttp_lwt_body.t) Lwt.t
 
@@ -49,7 +67,7 @@ module Server(S: STRATEGY) = struct
     in let ops_view =
       List.map
         (fun ((op, meth), (name, _)) ->
-           let ht = Hashtbl.create 2 in
+           let ht = Hashtbl.create 3 in
              Hashtbl.add ht "path" (CamlTemplate.Model.Tstr op);
              Hashtbl.add ht "post" (CamlTemplate.Model.Tbool (meth = `POST));
              Hashtbl.add ht "name" (CamlTemplate.Model.Tstr name);
@@ -71,26 +89,10 @@ module Server(S: STRATEGY) = struct
       reply_plain_text id
 
   let handler_instrument uri body =
-    try 
-      let uri = Uri.path uri in
-      let basename =
-        if uri = "" then None else Some (Filename.basename uri)
-      in
-        Log.info (fun m -> m "Instrumenting JavaScript%a"
-                             (Fmt.option (Fmt.prefix (Fmt.const Fmt.string " with basename ") Fmt.string))
-                             basename);
-      let%lwt base =
-        JalangiInterface.instrument_for_browser ?basename
-          ~providejs:(fun path ->
-                        Lwt_io.with_file ~mode:Lwt_io.Output path
-                          (fun channel -> Lwt.bind body (Lwt_io.write channel)))
-      in
-        Log.info (fun m -> m "Performed instrumentation, resulting in %s" base);
-        reply_plain_text (Filename.basename base)
-    with
-        e -> Log.warn (fun m -> m "Exception in instrumentation: %s" (Printexc.to_string e));
-             reply_error `Internal_server_error (Printexc.to_string e)
-
+    instrument uri
+      (fun path ->
+         Lwt_io.with_file ~mode:Lwt_io.Output path
+           (fun channel -> Lwt.bind body (Lwt_io.write channel)))
 
   let handler_shutdown uri body =
     Log.info (fun m -> m "Shutting down server");
