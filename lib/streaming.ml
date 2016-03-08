@@ -50,10 +50,10 @@ module ListTransformers = struct
   let return x = x
 
   let map_state init f =
-    let rec ms s = function
-      | [] -> []
-      | x::l -> let (y, s') = f s x in y :: ms s' l
-    in ms init
+    let state = ref init in
+    BatList.map (fun x ->
+                   let (y, state') = f !state x in
+                     state := state'; y)
 
   let map_list_state init f =
     let rec ms s = function
@@ -61,10 +61,8 @@ module ListTransformers = struct
       | x::l -> let (y, s') = f s x in y @ ms s' l
     in ms init
 
-  let map = List.map
-  let rec map_list f = function
-    | [] -> []
-    | x::l -> f x @ map_list f l
+  let map = BatList.map
+  let map_list f l = BatList.map f l |> BatList.concat
 
   let validation f init l =
     List.fold_left (fun s o -> f o s) init l |> ignore; l
