@@ -21,6 +21,12 @@ module type Transformers = sig
   (** The sequence type. *)
   type 'a sequence
 
+  (** Bind operation for the monad. *)
+  val bind: 'a monad -> ('a -> 'b monad) -> 'b monad
+
+  (** Return operation for the monad. *)
+  val return: 'a -> 'a monad
+
   (** [map f s] transforms the sequence [s] to a new sequence
     by applying [f] to each element of the sequence in turn,
     and constructing a sequence from the results.

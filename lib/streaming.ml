@@ -5,6 +5,8 @@ module type Transformers = sig
   type 'a monad
   type 'a sequence
 
+  val bind: 'a monad -> ('a -> 'b monad) -> 'b monad
+  val return: 'a -> 'a monad
   val map: ('a -> 'b) -> 'a sequence -> 'b sequence
   val map_state: 's -> ('s -> 'a -> 'b * 's) -> 'a sequence -> 'b sequence
   val map_list: ('a -> 'b list) -> 'a sequence -> 'b sequence
@@ -16,6 +18,9 @@ end;;
 module StreamTransformers = struct
   type 'a monad = 'a Lwt.t
   type 'a sequence = 'a Stream.t
+
+  let bind = Lwt.bind
+  let return = Lwt.return
 
   let map = Stream.map
 
@@ -40,6 +45,9 @@ end;;
 module ListTransformers = struct
   type 'a monad = 'a
   type 'a sequence = 'a list
+
+  let bind x f = f x
+  let return x = x
 
   let map_state init f =
     let rec ms s = function
