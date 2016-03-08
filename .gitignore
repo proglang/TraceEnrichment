@@ -33,3 +33,4 @@ setup.*
 compilationConfig.ml
 *.odocl
 *.enriched
+_tags
