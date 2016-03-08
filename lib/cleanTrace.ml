@@ -344,6 +344,18 @@ module CleanGeneric = functor(S: Transformers) -> struct
     S.map_list_state ([], false, None)
       (fun state op -> normalize_eval_step initials.function_eval state op)
 
+  let normalize_string_subscripts_step = function
+    | CGetFieldPre (OString _, _) -> []
+    | CPutFieldPre { base = OString _ } -> []
+    | CGetField  { base = (OString _) as left; offset; value } ->
+        [ CBinary { op = "_string_subscript"; left; right = OString offset; result = value } ]
+    | CPutField { base =  OString _; offset; value } ->
+        failwith "Updating string by indexing is not yet supported"
+    | event -> [event]
+
+  let normalize_string_subscripts =
+    S.map_list normalize_string_subscripts_step
+
   let synthesize_events funcs trace =
     S.map_list_state []
       (fun stack op ->
@@ -609,6 +621,7 @@ module CleanGeneric = functor(S: Transformers) -> struct
     |> normalize_calls initials
     |> normalize_function_constructor initials
     |> normalize_eval initials
+    |> normalize_string_subscripts
     |> validate NormalizedCalls initials
     |> synthesize_getters_and_setters
     |> synthesize_events initials.functions
