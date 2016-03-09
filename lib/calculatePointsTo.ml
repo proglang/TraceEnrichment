@@ -56,6 +56,8 @@ let add_known_new_object objects (facts: LocalFacts.versions_resolved) state obj
     (BatDynArray.get objects(get_object_id id))
     state
 
+(* This is terribly inefficient! *)
+    (*
 let add_literal objects (facts: versions_resolved) state value =
   (* HACK use the fact that all references in state.versions should be *)
   (* mapped to find missing fields.  *)
@@ -76,6 +78,23 @@ let add_literal objects (facts: versions_resolved) state value =
              failwith ("Unexpected unmapped variable " ^ name))
     facts.versions
     state
+     *)
+
+let add_literal (objects: objects) ({ versions }: versions_resolved) state value =
+  let rec add_props state objid =
+    StringMap.fold (fun prop ({ value }: fieldspec) state ->
+                      let key = Reference.Field (objid, prop) in
+                      let ver = ReferenceMap.find key versions in
+                        if VersionedReferenceMap.mem state (key, ver) then
+                          state
+                        else
+                          add_value (VersionedReferenceMap.add state (key, ver) value) value)
+      (BatDynArray.get objects (get_object_id objid)) state
+  and add_value state value =
+    match try_objectid_of_jsval value with
+      | None -> state
+      | Some objid -> add_props state objid
+  in add_value state value
 
 let is_argument_binding ({ names; last_arguments }: versions_resolved) name =
   match StringMap.find name names with
