@@ -17,7 +17,7 @@ Library "js-enrichment"
   XMETADescription: Trace enrichment for JavaScript traces
   BuildDepends: yojson, str, lwt.ppx, lwt, fmt, batteries, logs, logs.fmt,
     ppx_deriving, ppx_deriving.show, ppx_deriving.ord, ppx_deriving.eq,
-    ppx_deriving.make
+    ppx_deriving.make, containers, containers.data
   Modules:    CalculatePointsTo, CalculateVersions, CleanTrace, 
     LocalFacts, PointsTo, Reference, RichTrace, Streaming, Trace,
     TraceTypes, Types, Debug, StringMap, IntMap, IntIntMap,

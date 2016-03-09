@@ -54,7 +54,7 @@ type versioned_reference = reference * int
 val pp_versioned_reference : versioned_reference Fmt.t
 
 (** Maps and sets of versioned references. *)
-module VersionedReferenceMap : ExtMap.S with type key = versioned_reference
+module VersionedReferenceMap : CCPersistentHashtbl.S with type key = versioned_reference
 module VersionedReferenceSet : Set.S with type elt = versioned_reference
 val pp_versioned_reference_map : 'a Fmt.t -> 'a VersionedReferenceMap.t Fmt.t
 val pp_versioned_reference_set : VersionedReferenceSet.t Fmt.t

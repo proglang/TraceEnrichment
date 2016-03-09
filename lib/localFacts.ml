@@ -13,7 +13,8 @@ let pp_versions_filtered pp map =
        map)
 
 let pp_points_to_filtered pp map =
-  Reference.VersionedReferenceMap.pp ~pair_sep:(Fmt.always " ->@ ") Types.pp_jsval pp
+  Reference.VersionedReferenceMap.print (*~pair_sep:(Fmt.always " ->@ ")*)
+    Reference.pp_versioned_reference Types.pp_jsval pp
     (Reference.VersionedReferenceMap.filter
        (fun ref _ -> match ref with
           | (Reference.Field (id, _), _) -> get_object_id id >= !filter_bound

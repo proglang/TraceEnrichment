@@ -57,14 +57,27 @@ let reference_of_name globals_are_properties bindings name =
   else
     Variable(Global, name)
 
-module VersionedReference = Pairs.Make(Reference)(struct include BatInt let pp = Fmt.int end)
+module VersionedReference = struct
+  type t = reference * int [@@deriving show]
+  let equal: t -> t -> bool = (=)
+  let compare: t -> t -> int = Pervasives.compare
+  let hash = let open Types in function
+    | (Field (Object id, name), ver)
+    | (Field (Function (id, _), name), ver)
+    | (Field (Other (_, id), name), ver) ->
+        0 + 2 * (id + 5 * (ver + 5 * Hashtbl.hash name))
+    | (Variable (Local id, name), ver) ->
+        1 + 2 * (id + 5 * (ver + 5 * Hashtbl.hash name))
+    | (Variable (Global, name), ver) ->
+        1 + 2 * (5 * (ver + 5 * Hashtbl.hash name))
+end
 type versioned_reference = VersionedReference.t
 let pp_versioned_reference = VersionedReference.pp
 
-module VersionedReferenceMap = ExtMap.Make(VersionedReference);;
+module VersionedReferenceMap = CCPersistentHashtbl.Make(VersionedReference)
 module VersionedReferenceSet = Set.Make(VersionedReference);;
 let pp_versioned_reference_map fmtval =
-  VersionedReferenceMap.pp fmtval
+  VersionedReferenceMap.print pp_versioned_reference fmtval
 let pp_versioned_reference_set =
   let open Fmt in
     using VersionedReferenceSet.elements (list pp_versioned_reference)

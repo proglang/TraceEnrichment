@@ -18,7 +18,7 @@ let make_versioned ({ versions }: LocalFacts.versions_resolved) ref =
 let add_write (facts: LocalFacts.versions_resolved)
       state ref value may_be_known: points_to_map =
   let vref = make_versioned facts ref in
-    if VersionedReferenceMap.mem vref state then begin
+    if VersionedReferenceMap.mem state vref then begin
       (* This write was dropped; most likely, the field was marked
        * "not writable". *)
       if not may_be_known then
@@ -28,21 +28,21 @@ let add_write (facts: LocalFacts.versions_resolved)
           Reference.pp_versioned_reference vref;
       state
     end else
-      VersionedReferenceMap.add vref value state
+      VersionedReferenceMap.add state vref value
 
 let add_read (facts: LocalFacts.versions_resolved) state ref value: points_to_map =
   let vref = make_versioned facts ref in
-  if VersionedReferenceMap.mem vref state then begin
-    if (value <> VersionedReferenceMap.find vref state) then begin
+  if VersionedReferenceMap.mem state vref then begin
+    if (value <> VersionedReferenceMap.find state vref) then begin
       Format.eprintf
         "Weirdness detected: In read of %a, expected %a, but got %a@."
         Reference.pp_reference ref
-        pp_jsval (VersionedReferenceMap.find vref state)
+        pp_jsval (VersionedReferenceMap.find state vref)
         pp_jsval value
     end;
     state
   end else
-    VersionedReferenceMap.add vref value state
+    VersionedReferenceMap.add state vref value
 
 let add_known_new_object objects (facts: LocalFacts.versions_resolved) state obj =
   Log.debug (fun m -> m "Adding known object %a" pp_jsval obj);
@@ -62,7 +62,7 @@ let add_literal objects (facts: versions_resolved) state value =
   ReferenceMap.fold
     (fun ref ver state ->
        let vref = (ref, ver) in
-       if VersionedReferenceMap.mem vref state then
+       if VersionedReferenceMap.mem state vref then
          state
        else
          match ref with
@@ -71,7 +71,7 @@ let add_literal objects (facts: versions_resolved) state value =
            let ({ value }: fieldspec) =
              StringMap.find field (BatDynArray.get objects objid)
            in
-           VersionedReferenceMap.add vref value state
+           VersionedReferenceMap.add state vref value
          | Reference.Variable (_, name) ->
              failwith ("Unexpected unmapped variable " ^ name))
     facts.versions
@@ -137,7 +137,7 @@ let globals_points_to (objects: objects) globals versions pt =
             failwith ("Can't  find global variable "^ name) end
       | Variable (Local _, name) ->
         failwith ("Unexpected local variable " ^ name) in
-    VersionedReferenceMap.add vref value pt
+    VersionedReferenceMap.add pt vref value
   in
   ReferenceMap.fold step versions pt
 
@@ -146,9 +146,9 @@ let initial_pointsto init =
   let versions =
     CalculateVersions.initial_versions
       init.objects init.globals init.globals_are_properties
-  in (VersionedReferenceMap.empty
-        |> VersionedReferenceMap.add (Reference.Variable (Global, "this"), 0) (OObject 0)
-        |> globals_points_to init.objects init.globals versions)
+  in let vmap = VersionedReferenceMap.empty ()
+  in let vmap = VersionedReferenceMap.add vmap (Reference.Variable (Global, "this"), 0) (OObject 0)
+  in globals_points_to init.objects init.globals versions vmap
 
 open Reference
 let insert_points_to

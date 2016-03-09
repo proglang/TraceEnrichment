@@ -85,8 +85,9 @@ let fmt_closures =
   let module F = FmtDiff(IntMap) in
     F.fmt (Fmt.braces (StringMap.pp Reference.pp_reference)) "closures"
 let fmt_points_to pp pointsto =
-  let module F = FmtDiff(Reference.VersionedReferenceMap) in
-    F.fmt Types.pp_jsval "points-to" pp (filter_points_to pointsto)
+  Reference.pp_versioned_reference_map
+    (ExtMap.pp_diff Types.pp_jsval)
+    pp (filter_points_to pointsto)
 let fmt_option fmt key pp = function
   | Some x -> Format.fprintf pp "%s: %a@ " key fmt x
   | None -> ()
@@ -137,6 +138,19 @@ let pp_local_facts_delta pp
   fmt_points_to pp points_to;
   Format.pp_close_box pp ()
 
+let pt_delta pt_old pt_new =
+  let module M = Reference.VersionedReferenceMap in
+    M.merge (fun _ vold vnew -> match vold, vnew with
+               | Some xold, Some xnew ->
+                   if xold = xnew then
+                     None
+                   else
+                     Some (ExtMap.Change (xold, xnew))
+               | Some xold, None -> Some (ExtMap.Remove xold)
+               | None, Some xnew -> Some (ExtMap.Add xnew)
+               | None, None -> None)
+      pt_old pt_new
+
 let pp_enriched_trace_points_to =
   let open LocalFacts in
   pp_enriched_trace 
@@ -145,7 +159,7 @@ let pp_enriched_trace_points_to =
       last_update = None;
       versions = Reference.ReferenceMap.empty;
       names = StringMap.empty;
-      points_to = Reference.VersionedReferenceMap.empty
+      points_to = Reference.VersionedReferenceMap.empty ()
     }
     (fun { versions = old_versions; names = old_names; closures = old_closures;
            points_to = old_points_to }
@@ -156,8 +170,7 @@ let pp_enriched_trace_points_to =
                        old_closures closures;
           versions = Reference.ReferenceMap.delta (=) old_versions versions;
           names = StringMap.delta Reference.equal_reference old_names names;
-          points_to = Reference.VersionedReferenceMap.delta Types.equal_jsval
-                        old_points_to points_to
+          points_to = pt_delta old_points_to points_to
        }: local_facts_delta))
     pp_local_facts pp_local_facts_delta
 
