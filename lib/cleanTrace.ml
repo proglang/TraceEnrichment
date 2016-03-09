@@ -350,7 +350,7 @@ module CleanGeneric = functor(S: Transformers) -> struct
     | CGetField  { base = (OString _) as left; offset; value } ->
         [ CBinary { op = "_string_subscript"; left; right = OString offset; result = value } ]
     | CPutField { base =  OString _; offset; value } ->
-        failwith "Updating string by indexing is not yet supported"
+        [] (* Thanks, JavaScript - string assignment is a no-op *)
     | event -> [event]
 
   let normalize_string_subscripts =
