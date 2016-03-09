@@ -89,6 +89,14 @@ Executable "ppenriched"
   BuildDepends: js-enrichment
   CompiledObject: best
 
+#Executable "richtrace_bench"
+  Path:         tools
+  BuildTools:   ocamlbuild
+  MainIs:       richtrace_bench.ml
+  Install:      false
+  BuildDepends: js-enrichment
+  CompiledObject: best
+
 #Executable "unittests"
 #  Path:       lib
 #  BuildTools: ocamlbuild
