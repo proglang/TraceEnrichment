@@ -3,7 +3,9 @@ open Streaming
 open TraceTypes
 
 let encode_type isMethod isConstructor = match isMethod, isConstructor with
-  | true, true -> failwith "Unexpected function type: both constructor and method"
+  | true, true ->
+      Log.debug (fun m -> m "Treating 'method constructor' as constructor");
+      Constructor
   | true, false -> Method
   | false, true -> Constructor
   | false, false -> Function
