@@ -162,11 +162,17 @@ let synthesize_events_step funcs op stack = match op, stack with
         (Push (ExtFunc f), [ op; CFunEnter { f; this=base; args }])
   | CFunPre _, (ExtFunc _ | ExtFuncExc _) :: _ ->
       failwith "pre seen in external code"
-  | CFunPost { f }, ((IntFunc _ :: _) | []) ->
+  | CFunPost { f }, ((IntFunc { f = f' } :: _)) ->
       if is_instrumented funcs f then
         (Keep, [ op ])
       else
-        failwith "post for external with internal TOS"
+        failwith (Fmt.strf "post for external function %a with internal top-of-stack %a"
+                    pp_jsval f pp_jsval  f')
+  | CFunPost { f }, [] ->
+      if is_instrumented funcs f then
+        (Keep, [ op ])
+      else
+        failwith (Fmt.strf "post for external function %a at top level" pp_jsval f)
   | CFunPost { f; result }, ExtFunc f' :: _ ->
       if f <> f' then
         failwith "post for an unexpected function"
