@@ -22,6 +22,9 @@ let pp_state pp { local_names; global_names; closures; old_arguments } =
     closures
     (Fmt.option Fmt.int) old_arguments
 
+let merge =
+  StringMap.merge (fun _ global local ->
+                     match local with None -> global | Some _ -> local)
 
 let bind name ref state =
   match state.local_names with
@@ -65,6 +68,13 @@ let make_global_if_new globals_are_properties name facts =
   else
     bind name (make_global globals_are_properties name) facts
 
+let bind_this scope env =
+  StringMap.add "this" (Variable (scope, "this")) env
+let bind_this_args args env = match args with
+  | None
+  | Some 0 -> bind_this Global env
+  | Some a -> bind_this (Local a) env
+
 let make_enter f args (facts: arguments_and_closures) state =
   let fid = match f with
     | OFunction (fid, _) -> fid
@@ -75,19 +85,25 @@ let make_enter f args (facts: arguments_and_closures) state =
           begin try
             IntMap.find closure state.closures
           with Not_found ->
-            failwith ("Closure environment " ^ string_of_int closure ^ " for " ^ string_of_int fid ^ " not found in " ^ Fmt.to_to_string (IntMap.pp (StringMap.pp pp_reference)) state.closures)
+            failwith ("Closure environment " ^ string_of_int closure ^
+                      " for " ^ string_of_int fid ^ " not found in " ^
+                      Fmt.to_to_string (IntMap.pp (StringMap.pp pp_reference))
+                        state.closures)
           end
       | None -> StringMap.empty
-  in let env = StringMap.add "this" (Variable (Local (BatOption.get facts.last_arguments), "this")) env
-  in { state with local_names = env :: state.local_names; old_arguments = facts.last_arguments }
+  in let env = bind_this_args facts.last_arguments env
+  in let env = merge state.global_names env
+  in { state with local_names = env :: state.local_names;
+                  old_arguments = facts.last_arguments }
 
 let make_exit { local_names; global_names; closures; old_arguments } =
   match local_names with
-    | local :: local_names ->
+    | local :: local' :: local_names ->
         let arg = BatOption.get old_arguments in
-        { local_names; global_names; old_arguments;
+        { local_names = merge global_names local' :: local_names;
+          global_names; old_arguments;
           closures = IntMap.add arg local closures }
-    | [] -> failwith "Empty local stack"
+    | [] | [_] -> failwith "Empty local stack"
 
 let make_call { local_names; global_names; closures; old_arguments } =
   match local_names, old_arguments with
@@ -95,10 +111,6 @@ let make_call { local_names; global_names; closures; old_arguments } =
         { local_names; global_names; old_arguments;
           closures = IntMap.add arg local closures }
     | _ -> { local_names; global_names; closures; old_arguments }
-
-let merge =
-  StringMap.merge (fun _ global local ->
-                     match local with None -> global | Some _ -> local)
 
 let collect_names_step (objects: objects) globals_are_properties state
       (facts: LocalFacts.arguments_and_closures) op =
@@ -130,7 +142,7 @@ let collect_names_step (objects: objects) globals_are_properties state
      *)
   ( (op, { last_arguments = facts.last_arguments;
            closures = res.closures;
-           names = merge res.global_names (List.hd res.local_names) }),
+           names = (*merge res.global_names*) (List.hd res.local_names) }),
     res )
 
 let initial_vars objects globals_are_properties =

@@ -136,6 +136,15 @@ Executable "synthesize_test"
   BuildTools: ocamlbuild
   CompiledObject: best
 
+Executable "namebind_test"
+  Install:    false
+  Build$:     flag(tests)
+  MainIs:     calculateNameBindingsUnit.ml
+  BuildDepends: js-enrichment, kaputt
+  Path:       lib
+  BuildTools: ocamlbuild
+  CompiledObject: best
+
 Executable "traceStreamTest"
   Install:    false
   Build$:     flag(tests)
