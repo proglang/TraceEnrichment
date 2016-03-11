@@ -8,6 +8,19 @@ type mode =
 
 let filter = ref false
 let delta = ref false
+let debug = ref false
+let output = ref true
+
+let maybe fmt arg =
+  if !output then fmt Fmt.stdout arg
+
+let time name fn x =
+  Log.info (fun m -> m "Starting %s" name);
+  let start = Sys.time () in
+  let result = fn x in
+  let stop = Sys.time () in
+  Log.info (fun m -> m "Finished %s, took ~%f seconds" name (stop-.start));
+  result
 
 let calculate_filter_bound objects =
   let open Types in
@@ -191,48 +204,52 @@ let enrich_and_print mode
   let module Step3 = CalculateNameBindings.Make(Streaming.ListTransformers) in
   let module Step4 = CalculateVersions.Make(Streaming.ListTransformers) in
   let module Step5 = CalculatePointsTo.Make(Streaming.ListTransformers) in
+  let step1 = time "collecting arguments" Step1.collect
+  and step2 = time "collecting closures" Step2.collect
+  and step3 = time "calculating name bindings" (Step3.collect initials)
+  and step4 = time "calculating versions" (Step4.collect initials)
+  and step5 = time "calculating points-to" (Step5.collect initials) in
     if !filter then begin
       LocalFacts.filter_bound := calculate_filter_bound objects
     end;
     match mode with
       | NoEnrichment ->
           trace |>
-            pp_clean_trace Fmt.stdout
+            maybe pp_clean_trace
       | Arguments ->
           trace |>
-            Step1.collect |>
-            pp_enriched_trace (Fmt.option Fmt.int) Fmt.stdout
+            step1 |>
+            maybe (pp_enriched_trace (Fmt.option Fmt.int))
       | ArgumentsAndClosures ->
           trace |>
-            Step1.collect |>
-            Step2.collect |>
-            pp_enriched_trace pp_arguments_and_closures Fmt.stdout
+            step1 |>
+            step2 |>
+            maybe (pp_enriched_trace pp_arguments_and_closures)
       | NamesResolved ->
           trace |>
-            Step1.collect |>
-            Step2.collect |>
-            Step3.collect initials |>
-            pp_enriched_trace pp_names_resolved Fmt.stdout
+            step1 |>
+            step2 |>
+            step3 |>
+            maybe (pp_enriched_trace pp_names_resolved)
       | VersionedResolved ->
           trace |>
-            Step1.collect |>
-            Step2.collect |>
-            Step3.collect initials |>
-            Step4.collect initials |>
-            pp_enriched_trace_versions Fmt.stdout
+            step1 |>
+            step2 |>
+            step3 |>
+            step4 |>
+            maybe pp_enriched_trace_versions
       | PointsToResolved ->
           trace |>
-            Step1.collect |>
-            Step2.collect |>
-            Step3.collect initials |>
-            Step4.collect initials |>
-            Step5.collect initials |>
-            pp_enriched_trace_points_to Fmt.stdout
+            step1 |>
+            step2 |>
+            step3 |>
+            step4 |>
+            step5 |>
+            maybe pp_enriched_trace_points_to
 
 let () =
   let files = ref []
-  and mode = ref NoEnrichment
-  and debug = ref false in
+  and mode = ref NoEnrichment in
     Arg.parse
       [("-D", Arg.Set debug, "Debugging mode");
        ("-0", Arg.Unit (fun () -> mode := NoEnrichment), "Perform no enrichment");
@@ -244,14 +261,18 @@ let () =
        ("-V", Arg.Unit Debug.enable_validate, "Enable validation");
        ("-d", Arg.Set delta, "Display deltas");
        ("-f", Arg.Set filter, "Calculate filter bound");
+       ("-O", Arg.Clear output, "Skip output")
       ]
       (fun file -> files := !files @ [file])
       "ppcleantrace [-D] [-V] files";
     Log.default_setup !debug;
+    if not !debug then begin
+      Logs.set_level ~all:true (Some Logs.Info)
+    end;
     List.iter
       (fun file -> file
          |> open_in
-         |> Trace.parse_tracefile
-         |> CleanTrace.clean_tracefile
+         |> time "parsing trace file" Trace.parse_tracefile
+         |> time "generating clean trace" CleanTrace.clean_tracefile
          |> enrich_and_print !mode)
       !files
