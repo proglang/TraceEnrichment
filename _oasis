@@ -140,7 +140,7 @@ Executable "namebind_test"
   Install:    false
   Build$:     flag(tests)
   MainIs:     calculateNameBindingsUnit.ml
-  BuildDepends: js-enrichment, kaputt
+  BuildDepends: js-enrichment, kaputt, ocamlgraph
   Path:       lib
   BuildTools: ocamlbuild
   CompiledObject: best
