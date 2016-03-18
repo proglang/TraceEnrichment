@@ -25,7 +25,7 @@ type result = {
   num_locals: int;
   num_globals: int;
   visible: varid list list
-}
+} [@@deriving show]
 
 let choose_local state visible locals =
   let var = List.nth locals (Random.State.int state (List.length locals))
@@ -153,11 +153,8 @@ let calculate_interference { visible; trace; num_locals; num_globals } =
         add_edge g (Global i) (Global j)
       done
     done;
-    let interlists = visible in
-      List.iter (fun inter ->
-                   List.iter (fun v1 ->
-                                List.iter (add_edge g v1) inter) inter)
-        interlists;
+    let all_pairs f l = List.iter (fun x -> List.iter (f x) l) l in
+    List.iter (all_pairs (add_edge g)) visible;
       g
 
 module StringSet = BatSet.Make(String)
@@ -252,29 +249,73 @@ let concretize trace name_map =
 let build_trace state =
   let { trace } as abs = make_abstract_trace state in
   let (inter, names) = calculate_names state abs in
-    (trace, concretize trace names, names, inter)
+    (abs, concretize trace names, names, inter)
 
 type trace_pair =
-    abstract_trace *
+    result *
     LocalFacts.arguments_and_closures TraceTypes.enriched_trace *
     string VarMap.t *
     InterferenceGraph.t
 
-let gen_trace: trace_pair Kaputt.Generator.t = build_trace, fun (abs, conc, map, graph) ->
-  Fmt.strf "@[<v>@[<v 2>Abstract:@ %a@]@ @[<v 2>Concrete:@ %a@]@ @[<v 2>Name map:@ %a@]@ @[<v 2>Interference clusters:@ %a@]@ @ @]"
-    pp_abstract_trace abs
-    (TraceTypes.pp_enriched_trace LocalFacts.pp_arguments_and_closures) conc
-    (Fmt.iter_bindings ~sep:Fmt.cut VarMap.iter
-       (fun pp (id, name) ->
-          Fmt.pf pp "%a -> %s" pp_varid id name))
-    map
-    (Fmt.list ~sep:(Fmt.always ",@ ")
-       (Fmt.pair ~sep:(Fmt.always ": ")
-          pp_varid
-          (Fmt.braces (Fmt.box (Fmt.list pp_varid)))))
-    (InterferenceGraph.fold_vertex (fun v succs -> (v, InterferenceGraph.succ graph v) :: succs)
-       graph [])
+module InterferenceGraphDOT = struct
+  include InterferenceGraph
+  let graph_attributes _ = []
+  let default_vertex_attributes _ = []
+  let vertex_name = function
+    | Global i -> "g" ^ string_of_int i
+    | Local  i -> "l" ^ string_of_int i
+  let vertex_attributes =
+    let open Graph.Graphviz.DotAttributes in
+    function
+    | Global i -> [ `Shape `Box; `Label (string_of_int i) ]
+    | Local i -> [ `Shape `Plaintext; `Label (string_of_int i) ]
+  let get_subgraph _ = None
+  let default_edge_attributes _ = []
+  let edge_attributes _ = []
+end
+module InterferenceDOT =
+  Graph.Graphviz.Dot(InterferenceGraphDOT)
 
+let output_counter = ref 0
+let gen_trace: trace_pair Kaputt.Generator.t = build_trace, fun (abs, conc, map, graph) ->
+  let rec make_files num =
+    begin
+      let base = Fmt.strf "output-%d" !output_counter in
+        incr output_counter;
+        let report_name = base ^ ".txt"
+        and graph_name = base ^ ".dot" in try
+          let mode = [ Open_wronly; Open_creat; Open_excl; Open_text ] in
+          let report_file = open_out_gen mode 0o644 report_name in
+            begin try
+              let graph_file = open_out_gen mode 0o644 graph_name in
+                (report_name, report_file, graph_name, graph_file)
+            with Sys_error e ->
+              close_out report_file;
+              Sys.remove report_name;
+              raise (Sys_error e)
+            end
+        with Sys_error _ ->
+          if (num <= 0) then
+            failwith "Can't find an available report file name"
+          else
+            make_files (num-1)
+    end
+  in let (report_name, report_file, graph_name, graph_file) =
+    make_files 20 in
+  let report_fmt = Format.formatter_of_out_channel report_file in
+    Fmt.pf report_fmt "@[<v>@[<v 2>Abstract trace:@ %a@]@ " pp_result abs;
+    Fmt.pf report_fmt "@[<v 2>Concrete trace:@ %a@]@ "
+      (TraceTypes.pp_enriched_trace LocalFacts.pp_arguments_and_closures) conc;
+    Fmt.pf report_fmt "@[<v 2>Name map:@ %a@]@ "
+      (Fmt.iter_bindings ~sep:Fmt.cut VarMap.iter
+         (Fmt.pair ~sep:(Fmt.const Fmt.string " → ") pp_varid Fmt.string))
+      map;
+    Fmt.pf report_fmt "Interference clusters: See %s@ @]" graph_name;
+    Format.pp_print_flush report_fmt ();
+    close_out report_file;
+    InterferenceDOT.output_graph graph_file graph;
+    close_out graph_file;
+    report_name
 
 module RM = Reference.ReferenceMap
 
