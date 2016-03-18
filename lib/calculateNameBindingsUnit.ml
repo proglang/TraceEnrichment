@@ -53,7 +53,7 @@ let rec make_abstract_trace state ctx visible locals =
             incr ctx_src;
             let ctx' = !ctx_src in
             let (trace, distinct, distincts) = make_abstract_trace state ctx' visible locals in
-              ((Call (fid, ctx', fresh), ctx) :: trace @ [ Exit fid, ctx ], fresh, distinct :: distincts)
+              ((Call (fid, ctx', fresh), ctx) :: trace @ [ Exit fid, ctx ], fresh @ distinct, distincts)
         end
     | 1 ->
         BatDynArray.add visible.funcs locals;
