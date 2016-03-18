@@ -75,6 +75,9 @@ let bind_this_args args env = match args with
   | Some 0 -> bind_this Global env
   | Some a -> bind_this (Local a) env
 
+exception ClosureEnvNotFound of
+  int * int * Reference.reference StringMap.t IntMap.t
+
 let make_enter f args (facts: arguments_and_closures) state =
   let fid = match f with
     | OFunction (fid, _) -> fid
@@ -85,10 +88,7 @@ let make_enter f args (facts: arguments_and_closures) state =
           begin try
             IntMap.find closure state.closures
           with Not_found ->
-            failwith ("Closure environment " ^ string_of_int closure ^
-                      " for " ^ string_of_int fid ^ " not found in " ^
-                      Fmt.to_to_string (IntMap.pp (StringMap.pp pp_reference))
-                        state.closures)
+            raise (ClosureEnvNotFound (closure, fid, state.closures))
           end
       | None -> StringMap.empty
   in let env = bind_this_args facts.last_arguments env
@@ -131,18 +131,9 @@ let collect_names_step (objects: objects) globals_are_properties state
         make_call state
     | _ ->
       state in
-    (*
-    Logs.debug (fun fmt ->
-                  fmt "@[<v 2>Collecting names for %a@ Arguments: %a@ Closures: [%a]@ @[<v 2>Old state:@ %a@]@ @[<v 2>New state:@ %a@]@ @]"
-                    pp_clean_operation op
-                    (Fmt.option Fmt.int) facts.last_arguments
-                    (IntMap.pp Fmt.int) facts.closures
-                    pp_state state
-                    pp_state res);
-     *)
   ( (op, { last_arguments = facts.last_arguments;
            closures = res.closures;
-           names = (*merge res.global_names*) (List.hd res.local_names) }),
+           names = (List.hd res.local_names) }),
     res )
 
 let initial_vars objects globals_are_properties =

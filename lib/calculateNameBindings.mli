@@ -8,3 +8,8 @@ module type S =
   end
 module Make :
   functor (T : Streaming.Transformers) -> S with type 'a trace = 'a T.sequence
+
+exception ClosureEnvNotFound of
+  int * int * Reference.reference StringMap.t IntMap.t
+
+

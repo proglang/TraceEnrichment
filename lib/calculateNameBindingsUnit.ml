@@ -204,20 +204,10 @@ let concretize trace name_map =
   let open TraceTypes in
   let open LocalFacts in
   let open Types in
-  let closure_map =
-    List.fold_left (fun closure_map (op, ctx) ->
-                      match op with
-                        | MakeClosure funid ->
-                            IntMap.add funid ctx closure_map
-                        | _ -> closure_map)
-      IntMap.empty trace
-  in
   BatList.flatten
     (BatList.map
        (fun (op, ctx) ->
-          let facts =
-            { last_arguments = if ctx = 0 then None else Some ctx; closures = closure_map }
-          in let ops = match op with
+          match op with
           | Call (fid, ctx', vars) ->
               CFunPre { f = OFunction(fid, fid); base = OObject 0; args = OObject ctx;
                         call_type = Function } ::
@@ -242,14 +232,60 @@ let concretize trace name_map =
               [ CWrite { name = VarMap.find var name_map; value = OUndefined;
                          lhs = OUndefined; isSuccessful = true } ]
               with Not_found -> failwith (Fmt.strf "Tried to map %a, no mapping found" pp_varid var)
-              end
-          in BatList.map (fun op -> (op, facts)) ops)
+              end)
        trace)
+
+module Args = LocalFacts.CollectArguments(Streaming.ListTransformers)
+module Clos = LocalFacts.CollectClosures(Streaming.ListTransformers)
+
+module IntSet = BatSet.Make(BatInt)
+
+let check_concrete_trace trace =
+  let open TraceTypes in
+  let open Types in
+  let rec check seen = function
+    | CLiteral { value = OFunction (id, _) } :: trace ->
+        if IntSet.mem id seen then
+          failwith "Double function id"
+        else
+          check (IntSet.add id seen) trace
+    | _ :: trace -> check seen trace
+    | [] -> ()
+  in check IntSet.empty trace
+
+let check_closure_trace 
+      (trace: LocalFacts.arguments_and_closures TraceTypes.enriched_trace) =
+  let open TraceTypes in
+  let open Types in
+  let open LocalFacts in
+  let count = ref 0 in try
+    List.iter (function
+                 | (CLiteral { value = OFunction (id, _) },
+                    ({ closures; last_arguments = Some _ }:
+                     LocalFacts.arguments_and_closures)) ->
+                     if not (IntMap.mem id closures) then
+                       raise Exit;
+                     incr count;
+                     if IntMap.cardinal closures <> !count then
+                       raise Exit
+                 | (_, {closures}) -> 
+                     if IntMap.cardinal closures <> !count then
+                       raise Exit)
+      trace
+  with Exit ->
+    Format.printf "@[<v 2>Bad trace w.r.t. closures:@ %a@]"
+      (pp_enriched_trace pp_arguments_and_closures) trace;
+    raise Exit
+
 
 let build_trace state =
   let { trace } as abs = make_abstract_trace state in
   let (inter, names) = calculate_names state abs in
-    (abs, concretize trace names, names, inter)
+  let concrete_trace = concretize trace names in
+  let enriched_trace = concrete_trace |> Args.collect |> Clos.collect in
+    check_concrete_trace concrete_trace;
+    check_closure_trace enriched_trace;
+    (abs, enriched_trace, names, inter)
 
 type trace_pair =
     result *
@@ -362,11 +398,31 @@ let initials =
     }
 
 module XFRM = CalculateNameBindings.Make(Streaming.ListTransformers)
-let collect (_, trace, _, _) = XFRM.collect initials trace
+let collect (_, trace, _, _) =
+  try XFRM.collect initials trace
+  with
+    | CalculateNameBindings.ClosureEnvNotFound (closure, fid, closuremap) as e ->
+        Format.printf
+          "Closure environment for function %d (closure id %d) not found@.@[<v 2>Closure map:@ %a@]@.@[<v 2>Trace:@ %a@]@."
+          fid closure
+        (Fmt.iter_bindings ~sep:Fmt.cut IntMap.iter
+           (Fmt.box ~indent:2
+              (Fmt.pair Fmt.int
+                 (Fmt.iter_bindings
+                    ~sep:(Fmt.prefix (Fmt.const Fmt.string ",") Fmt.cut)
+                    StringMap.iter (Fmt.pair Fmt.string Reference.pp_reference)))))
+          closuremap
+          (TraceTypes.pp_enriched_trace LocalFacts.pp_arguments_and_closures) trace;
+        raise e
+    | e ->
+        let bt = Printexc.get_backtrace () in
+          Format.printf "Caught exception %s. Backtrace:@.%s@." (Printexc.to_string e) bt;
+          raise e
+
 let constant_true _ = true
 
 let tests =
   Test.make_random_test ~title:"Random tests for CalculateNameBindings"
     ~nb_runs:50 gen_trace collect [ constant_true => check_name_maps_injective ]
                                                    
-let () = Test.run_test tests
+let () = Printexc.record_backtrace true; Test.run_test tests
