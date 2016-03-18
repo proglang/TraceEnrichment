@@ -218,6 +218,17 @@ let parse_tracefile source =
    parse_globals (member "globals" json),
    to_bool (member "globals_are_properties" json))
 
+let parse_tracefile_zlib source =
+  let source' = Gzip.open_in_chan source in
+  let lexbuf =
+    Lexing.from_function (fun buf num -> Gzip.input source' buf 0 num) in
+  let json = from_lexbuf (Yojson.init_lexer ()) lexbuf in
+  (parse_functions (member "func" json),
+   parse_objects (member "obj" json),
+   parse_trace (member "trace" json),
+   parse_globals (member "globals" json),
+   to_bool (member "globals_are_properties" json))
+
 let event_of_string str = from_string str |> parse_operation
 let jsval_of_string str = from_string str |> parse_jsval
 let objectspec_of_string str = from_string str |> parse_objectspec

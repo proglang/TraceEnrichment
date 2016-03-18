@@ -14,7 +14,7 @@ Library "js-enrichment"
   Install:    true
   XMETAEnable: true
   XMETADescription: Trace enrichment for JavaScript traces
-  BuildDepends: yojson, str, lwt.ppx, lwt, fmt
+  BuildDepends: yojson, str, lwt.ppx, lwt, fmt, camlzip
   Modules:    CalculatePointsTo, CalculateVersions, CleanTrace, 
     LocalFacts, Misc, PointsTo, Reference, RichTrace, Streaming, Trace,
     TraceTypes, Types, ExtArray, Debug, StringMap, IntMap, IntIntMap,
