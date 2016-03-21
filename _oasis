@@ -145,6 +145,15 @@ Executable "namebind_test"
   BuildTools: ocamlbuild
   CompiledObject: best
 
+Executable "closures_test"
+  Install:    false
+  Build$:     flag(tests)
+  MainIs:     localFactsUnit.ml
+  BuildDepends: js-enrichment, kaputt
+  Path:       lib
+  BuildTools: ocamlbuild
+  CompiledObject: best
+
 Executable "traceStreamTest"
   Install:    false
   Build$:     flag(tests)
