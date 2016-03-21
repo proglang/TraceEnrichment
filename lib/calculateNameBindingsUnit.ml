@@ -423,6 +423,6 @@ let constant_true _ = true
 
 let tests =
   Test.make_random_test ~title:"Random tests for CalculateNameBindings"
-    ~nb_runs:50 gen_trace collect [ constant_true => check_name_maps_injective ]
+    ~nb_runs:10000 gen_trace collect [ constant_true => check_name_maps_injective ]
                                                    
 let () = Printexc.record_backtrace true; Test.run_test tests
