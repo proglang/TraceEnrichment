@@ -22,16 +22,19 @@ let generate_closure state arg closures =
        (arg, closures') ],
      closures')
 
-let rec make_abstract_trace state arg closures =
-  match Random.State.int state 3 with
+let max = 20
+
+let rec make_abstract_trace state bound arg closures =
+  match Random.State.int state (if bound < max then 5 else 4) with
     | 0 when IntMap.is_empty closures -> generate_closure state arg closures
-    | 1 -> generate_closure state arg closures
-    | 0 ->
+    | 1 when IntMap.is_empty closures -> generate_closure state arg closures
+    | 2 | 3-> generate_closure state arg closures
+    | 0 | 1 ->
         incr arg_src;
         let arg_id = !arg_src
         and (fun_id, _) = choose_from_list state (IntMap.bindings closures) in
         let (trace, closures') =
-          make_abstract_trace state (Some arg_id) closures
+          make_abstract_trace state (bound - 1) (Some arg_id) closures
         in
           ([ CFunPre { f = OFunction(fun_id, -1); base = OObject 0;
                        args = OObject arg_id; call_type = Function },
@@ -48,8 +51,8 @@ let rec make_abstract_trace state arg closures =
              (arg, closures') ],
            closures')
     | _ -> 
-        let (trace1, closures1) = make_abstract_trace state arg closures in
-        let (trace2, closures2) = make_abstract_trace state arg closures1 in
+        let (trace1, closures1) = make_abstract_trace state (bound - 1) arg closures in
+        let (trace2, closures2) = make_abstract_trace state (bound - 1) arg closures1 in
           (trace1 @ trace2, closures2)
 
 type abstract_trace = (int option * int option IntMap.t) enriched_trace
@@ -61,7 +64,7 @@ let pp_abstract_trace =
 
 let generate_abstract_trace: abstract_trace Kaputt.Generator.t =
   (fun state -> arg_src := 0; fun_src := 0;
-                fst (make_abstract_trace state None IntMap.empty)),
+                fst (make_abstract_trace state 0 None IntMap.empty)),
   (Fmt.to_to_string pp_abstract_trace)
 
 module Args = LocalFacts.CollectArguments(Streaming.ListTransformers)
