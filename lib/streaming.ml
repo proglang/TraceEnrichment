@@ -49,11 +49,11 @@ module ListTransformers = struct
   let bind x f = f x
   let return x = x
 
-  let map_state init f =
+  let map_state init f l =
     let state = ref init in
     BatList.map (fun x ->
                    let (y, state') = f !state x in
-                     state := state'; y)
+                     state := state'; y) l
 
   let map_list_state init f =
     let rec ms s = function
