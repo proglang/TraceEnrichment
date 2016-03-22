@@ -6,6 +6,7 @@ let reply_plain_text ?(status=`OK) body = reply_text ~status "text/plain" body
 let reply_json_text ?(status=`OK) body = reply_text ~status "application/json" body
 let reply_html ?(status=`OK) body = reply_text ~status "text/html" body
 let reply_javascript ?(status=`OK) body = reply_text ~status "application/javascript" body
+let reply_binary ?(status=`OK) body = reply_text ~status "application/octet-stream" body
 let reply_error status body =
   let headers = Cohttp.Header.init_with "Content-Type" "text/plain" in
     Cohttp_lwt_unix.Server.respond_error ~status ~body ~headers ()
@@ -129,7 +130,7 @@ module Server(S: STRATEGY) = struct
     and sessions_view = ref [] in
     let model = Hashtbl.create 4
     and tmpl = CamlTemplate.Cache.get_template
-                 Common.template_cache (Config.get_analysis_script_path () /: "traceCollectorIndex.html")
+                 Common.template_cache "traceCollectorIndex.html"
     and buf = Buffer.create 4096 in
       Hashtbl.iter (fun key _ -> sessions_view := Tstr key :: !sessions_view) sessions;
       Hashtbl.add model "globals_operations" global_operations_view;
@@ -159,7 +160,7 @@ module Server(S: STRATEGY) = struct
             | _ ->
                 let model = Hashtbl.create 2
                 and tmpl = CamlTemplate.Cache.get_template
-                             Common.template_cache (Config.get_analysis_script_path () /: "operationMenu.html")
+                             Common.template_cache "operationMenu.html"
                 and buf = Buffer.create 4096 in
                   Hashtbl.add model "local_operations" local_operations_view;
                   Hashtbl.add model "session" (CamlTemplate.Model.Tstr id);

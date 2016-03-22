@@ -60,7 +60,7 @@ let find_analysis_script () =
     | Some path ->
         if good path then () else failwith "Analysis script not found in given path!"
     | None ->
-        match find_first good [ "."; "tracer"; CompilationConfig.datadir /: "js-trace-enrichment" ] with
+        match find_first good [ "."; "./tracer"; CompilationConfig.datadir /: "js-trace-enrichment" ] with
           | Some path -> analysis_script_path := Some path
           | None -> failwith "Analysis script not found!"
 

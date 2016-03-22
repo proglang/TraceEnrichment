@@ -74,7 +74,9 @@ let function_uninstrumented_handler initials = function
   | _ -> false
 
 let rec handle_start initials = function
-  | ItemStart :: items -> lookup_functions initials; items
+  | ItemStart :: items ->
+      lookup_functions initials;
+      items
   | item :: items -> item :: handle_start initials items
   | [] -> []
 
