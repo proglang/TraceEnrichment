@@ -153,15 +153,14 @@ let pp_local_facts_delta pp
 
 let pt_delta pt_old pt_new =
   let module M = Reference.VersionedReferenceMap in
-    M.merge (fun _ vold vnew -> match vold, vnew with
-               | Some xold, Some xnew ->
+    M.merge (fun _ -> function
+               | `Both (xold, xnew) ->
                    if xold = xnew then
                      None
                    else
                      Some (ExtMap.Change (xold, xnew))
-               | Some xold, None -> Some (ExtMap.Remove xold)
-               | None, Some xnew -> Some (ExtMap.Add xnew)
-               | None, None -> None)
+               | `Left xold -> Some (ExtMap.Remove xold)
+               | `Right xnew -> Some (ExtMap.Add xnew))
       pt_old pt_new
 
 let pp_enriched_trace_points_to =
