@@ -10,8 +10,7 @@ let () =
     Log.default_setup !debug;
     List.iter
       (fun file -> file
-         |> open_in
-         |> Trace.parse_tracefile
-         |> CleanTrace.clean_tracefile
+         |> Trace.read_tracefile
+         |> CleanTrace.clean_tracefile ~up_to:!level
          |> Printexc.print (Format.printf "%a@." TraceTypes.pp_clean_tracefile))
       !files

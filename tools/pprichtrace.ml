@@ -10,8 +10,7 @@ let () =
       "ppcleantrace [-D] [-V] [-f] files";
     Log.default_setup !debug;
     List.iter (fun file -> file
-                 |> open_in
-                 |> Trace.parse_tracefile
+                 |> Trace.read_tracefile
                  |> RichTrace.tracefile_to_rich_tracefile
                  |> Printexc.print (Format.printf "%a@." TraceTypes.pp_rich_tracefile))
       !files

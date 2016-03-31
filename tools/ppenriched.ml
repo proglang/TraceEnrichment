@@ -271,8 +271,7 @@ let () =
     end;
     List.iter
       (fun file -> file
-         |> open_in
-         |> time "parsing trace file" Trace.parse_tracefile
+         |> time "parsing trace file" Trace.read_tracefile
          |> time "generating clean trace" CleanTrace.clean_tracefile
          |> enrich_and_print !mode)
       !files
