@@ -224,3 +224,45 @@ let jsval_of_string str = from_string str |> parse_jsval
 let objectspec_of_string str = from_string str |> parse_objectspec
 let funcspec_of_string str = from_string str |> parse_funcspec
 
+let serialize_tracefile
+      (functions, objects, trace, globals, globals_are_properties) =
+  Marshal.to_bytes
+    (BatDynArray.to_list functions,
+     BatDynArray.to_list objects,
+     trace,
+     globals,
+     globals_are_properties) []
+
+let deserialize_tracefile bytes =
+  let (functions, objects, trace, globals, globals_are_properties) =
+    (Marshal.from_bytes bytes 0: funcspec list * objectspec list * trace * globals * bool)
+  in (BatDynArray.of_list functions,
+      BatDynArray.of_list objects,
+      trace,
+      globals,
+      globals_are_properties)
+
+let with_file filename handler =
+  let chan = open_in filename in
+    try
+      let result = handler chan in close_in chan; result
+    with e -> close_in chan; raise e
+
+let readbufsize = 1024
+let bytes_from_file handler file =
+  let buffer = Buffer.create 1024 in
+  let readbuf = Bytes.create readbufsize in
+  let rec fill () =
+    if input file readbuf 0 readbufsize = 0 then
+      Buffer.to_bytes buffer
+    else begin
+      Buffer.add_bytes buffer readbuf;
+      fill ()
+    end
+  in handler (fill ())
+
+let read_tracefile filename =
+  if Filename.check_suffix filename ".bin" then
+    with_file filename (bytes_from_file deserialize_tracefile)
+  else
+    with_file filename parse_tracefile 
