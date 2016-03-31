@@ -10,7 +10,7 @@ type items =
   | ItemEnd
   | ItemStart
 
-exception InvalidItem
+exception InvalidItem of string
 
 let parse_item json =
   let open Yojson.Basic in
@@ -28,7 +28,7 @@ let parse_item json =
     | [`String "start" ] ->
         ItemStart
     | _ ->
-        raise InvalidItem
+        raise (InvalidItem ("Bad item: " ^ Yojson.Basic.to_string json))
 
 let rec extract handler = function
   | x::l ->
@@ -69,7 +69,7 @@ let function_uninstrumented_handler initials = function
                 Log.err (fun m -> m "Adding uninstrumented code to a function that already has this.");
                 BatDynArray.set initials.functions id
                   (Uninstrumented (ins, code))
-            | External _ -> raise InvalidItem
+            | External _ -> raise (InvalidItem "functionUninstrumented for external")
       end; true
   | _ -> false
 
@@ -124,5 +124,5 @@ let parse_setup_packet json_string =
           }
         in let (stream, push) = Lwt_stream.create ()
         in (initials, stream, parse_packet initials push)
-    | _ -> raise InvalidItem
+    | _ -> raise (InvalidItem ("Bad setup packet: " ^ json_string))
 

@@ -210,9 +210,13 @@ module Server(S: STRATEGY) = struct
                  begin try
                    let (_, handler) = List.assoc (op, meth) handlers_local in
                      handler id (update_uri tail) body
-                 with Not_found ->
-                   Log.info (fun m -> m "No handler found for %s, session %s" op id);
-                   reply_error `Not_found ("No handler found")
+                 with
+                     Not_found ->
+                       Log.info (fun m -> m "No handler found for %s, session %s" op id);
+                       reply_error `Not_found ("No handler found")
+                   | e ->
+                       Log.err (fun m -> m "Got exception %s" (Printexc.to_string e));
+                       raise e
                  end
              | op::tail ->
                  begin try
@@ -236,6 +240,9 @@ module Server(S: STRATEGY) = struct
                        Log.info (fun m -> m "No handler available");
                        reply_error `Not_found "No handler found"
                      end
+                   | e ->
+                       Log.err (fun m -> m "Got exception %s" (Printexc.to_string e));
+                       raise e
                  end
     with 
       | e -> Log.err (fun m -> m "Got exception: %s" (Printexc.to_string e));
