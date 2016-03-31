@@ -256,6 +256,8 @@ let synthesize_events_step funcs op stack = match op, stack with
   | _, (ExtFunc _ | ExtFuncExc _) :: _ ->
       failwith "Bad event in external frame"
 
+type clean_level = SynthesizeEvents | Normalizations | SynthesizeGettersAndSetters | JustClean
+
 module CleanGeneric = functor(S: Transformers) -> struct
   let clean =
     S.map_list_state ([], ["this"], [])
@@ -620,23 +622,51 @@ module CleanGeneric = functor(S: Transformers) -> struct
       end else
         trace
 
-  let clean_trace initials trace =
-    trace
-    |> clean
-    |> validate Basic initials
-    |> remove_use_strict
-    |> validate NoUseStrict initials
-    |> normalize_calls initials
-    |> normalize_function_constructor initials
-    |> normalize_eval initials
-    |> normalize_string_subscripts
-    |> validate NormalizedCalls initials
-    |> synthesize_getters_and_setters
-    |> synthesize_events initials.functions
-    |> validate SynthesizedEvents initials
+  let clean_trace ?(up_to = SynthesizeEvents) initials trace =
+    match up_to with
+        SynthesizeEvents ->
+          trace
+            |> clean
+            |> validate Basic initials
+            |> remove_use_strict
+            |> validate NoUseStrict initials
+            |> normalize_calls initials
+            |> normalize_function_constructor initials
+            |> normalize_eval initials
+            |> normalize_string_subscripts
+            |> validate NormalizedCalls initials
+            |> synthesize_getters_and_setters
+            |> synthesize_events initials.functions
+            |> validate SynthesizedEvents initials
+      | SynthesizeGettersAndSetters ->
+          trace
+            |> clean
+            |> validate Basic initials
+            |> remove_use_strict
+            |> validate NoUseStrict initials
+            |> normalize_calls initials
+            |> normalize_function_constructor initials
+            |> normalize_eval initials
+            |> normalize_string_subscripts
+            |> validate NormalizedCalls initials
+            |> synthesize_getters_and_setters
+      | Normalizations ->
+          trace
+            |> clean
+            |> validate Basic initials
+            |> remove_use_strict
+            |> validate NoUseStrict initials
+            |> normalize_calls initials
+            |> normalize_function_constructor initials
+            |> normalize_eval initials
+            |> normalize_string_subscripts
+      | JustClean ->
+          trace
+            |> clean
 
-  let calculate_clean_trace (initials: initials) trace =
-    clean_trace initials trace
+
+  let calculate_clean_trace ?up_to (initials: initials) trace =
+    clean_trace ?up_to initials trace
 end
 
 module CleanStream = CleanGeneric(StreamTransformers)
@@ -645,13 +675,13 @@ module CleanList = CleanGeneric(ListTransformers)
 let synthesize_events funcs trace =
   CleanList.synthesize_events funcs trace
 
-let clean_tracefile (funs, objs, rawtr, globals, gap) =
+let clean_tracefile ?up_to (funs, objs, rawtr, globals, gap) =
   let initials = { objects = objs; functions = funs; globals; globals_are_properties = gap;
                    function_apply = OUndefined; function_call = OUndefined;
                    function_constructor = OUndefined; function_eval = OUndefined } in
   lookup_functions initials;
-  (funs, objs, CleanList.clean_trace initials rawtr, globals, gap)
+  (funs, objs, CleanList.clean_trace ?up_to initials rawtr, globals, gap)
 
-let clean_stream (data: initials) raw =
-  CleanStream.calculate_clean_trace data raw
+let clean_stream ?up_to (data: initials) raw =
+  CleanStream.calculate_clean_trace ?up_to data raw
 
