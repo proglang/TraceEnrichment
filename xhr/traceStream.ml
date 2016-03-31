@@ -21,8 +21,16 @@ let parse_item json =
         ItemObject (id, parse_objectspec spec)
     | [`String "step"; json] ->
         ItemStep (parse_operation json)
-    | [`String "function-uninstrumented"; `Int id; `String code] ->
-        ItemFunctionUninstrumented (id, code)
+    | [`String "function-uninstrumented"; `Assoc fval; `String code] ->
+        begin try
+          if List.assoc "type" fval = `String "function" then begin
+            let id = Yojson.Basic.Util.to_int (List.assoc "funid" fval) in
+              ItemFunctionUninstrumented (id, code)
+          end else
+            raise (InvalidItem ("FunctionUninstrumented of bad type"))
+        with e ->
+          raise (InvalidItem ("FunctionUninstrumented bad: " ^ Printexc.to_string e))
+        end
     | [`String "end" ] ->
         ItemEnd
     | [`String "start" ] ->
