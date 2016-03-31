@@ -65,6 +65,14 @@ Executable "pptrace"
   BuildDepends: js-enrichment
   CompiledObject: best
 
+Executable "ppfmttrace"
+  Path:         tools
+  BuildTools:   ocamlbuild
+  MainIs:       ppfmttrace.ml
+  Install$:     flag(prettyprint)
+  BuildDepends: js-enrichment
+  CompiledObject: best
+
 Executable "pprichtrace"
   Path:         tools
   BuildTools:   ocamlbuild
