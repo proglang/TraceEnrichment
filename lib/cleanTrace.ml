@@ -122,15 +122,15 @@ let resolve_call objects function_apply function_call f base args call_type =
         { f=f; base=base; args=args; call_type = call_type }
 
 type 'a stackop = Push of 'a | Keep | Pop | Replace of 'a | Pop2 | PopReplace of 'a | PushReplace of 'a * 'a | Pop2Replace of 'a
-let apply_stackop stack = function
-  | Push tos -> tos :: stack
+let apply_stackop pp_value stack = function
+  | Push tos -> Log.debug (fun m -> m "Stack: Pushing %a" pp_value tos); tos :: stack
   | Keep -> stack
-  | Pop -> List.tl stack
-  | Pop2 -> List.tl (List.tl stack)
-  | Replace tos -> tos :: List.tl stack
-  | PopReplace tos -> tos :: List.tl (List.tl stack)
-  | PushReplace (tos1, tos2) -> tos1 :: tos2 :: List.tl stack
-  | Pop2Replace tos -> tos :: List.tl (List.tl (List.tl stack))
+  | Pop -> Log.debug (fun m -> m "Stack: Popping"); List.tl stack
+  | Pop2 -> Log.debug (fun m -> m "Stack: Popping twice"); List.tl (List.tl stack)
+  | Replace tos -> Log.debug (fun m -> m "Stack: Replacing TOS with %a" pp_value tos); tos :: List.tl stack
+  | PopReplace tos -> Log.debug (fun m -> m "Stack: Popping and replacing TOS with %a" pp_value tos); tos :: List.tl (List.tl stack)
+  | PushReplace (tos1, tos2) -> Log.debug (fun m -> m "Stack: Pusing %a and %a" pp_value tos1 pp_value tos2); tos1 :: tos2 :: List.tl stack
+  | Pop2Replace tos -> Log.debug (fun m -> m "Stack: Popping twice and replacing TOS with %a" pp_value tos); tos :: List.tl (List.tl (List.tl stack))
 
 let is_instrumented funcs f =
   match f with
@@ -141,10 +141,12 @@ let is_instrumented funcs f =
     end
   | _ -> false
 
+let pp_funpre pp ({ f }: funpre) = pp_jsval pp f
 type func_type =
   | IntFunc of funpre
   | ExtFunc of jsval
   | ExtFuncExc of jsval * jsval
+  [@@deriving show]
 
 let make_silent_catch exc =
   CDeclare { name = ""; value = exc;
@@ -152,7 +154,11 @@ let make_silent_catch exc =
 let make_funpre ({ f; this; args }: funenter) =
   { f; base=this; args; call_type = Method }
 
-let synthesize_events_step funcs op stack = match op, stack with
+let synthesize_events_step funcs op stack =
+  Log.debug (fun m -> m "Matching %a with %a"
+                        pp_clean_operation op
+                        (Fmt.list pp_func_type) stack);
+  match op, stack with
   | _, (ExtFunc _ | ExtFuncExc _) :: (ExtFunc _ | ExtFuncExc _) ::_ ->
       failwith "Bad stack"
   | CFunPre ({ f; base; args } as funpre), (IntFunc _ :: _ | []) ->
@@ -370,7 +376,7 @@ module CleanGeneric = functor(S: Transformers) -> struct
     S.map_list_state []
       (fun stack op ->
          let (stackop, ops') = synthesize_events_step funcs op stack in
-         (ops', apply_stackop stack stackop))
+         (ops', apply_stackop pp_func_type stack stackop))
       trace
 
   let remove_use_strict trace =
@@ -404,11 +410,16 @@ module CleanGeneric = functor(S: Transformers) -> struct
       | CFunExit _, _, _ -> (Pop, Neither, [op])
       | _, _, _ -> (Keep, Neither, [op])
 
+  let pp_gs pp = function
+    | Some (f, this, args) ->
+        Format.fprintf pp "f=%a, this=%a, args=%a" pp_jsval f pp_jsval this pp_jsval args
+    | None -> Format.fprintf pp "(none)"
+
   let synthesize_getters_and_setters trace =
     S.map_list_state (Neither, [])
       (fun (mode, stack) op ->
          let (stackop, mode, ops') = synthesize_getters_and_setters_step op mode stack in
-           (ops', (mode, apply_stackop stack stackop)))
+           (ops', (mode, apply_stackop pp_gs stack stackop)))
       trace
 
   type exit_type = None | Value | Exception
