@@ -18,10 +18,10 @@ let vbeta = OString "beta"
 let vmain = OSymbol "main"
 
 (** Three versions of function tables, two equivalent but permuted, and one different. *)
-let funcin1 = Uninstrumented("func 1 toString", "func 1 jalangi")
-let funcin2 = Uninstrumented("func 2 toString", "func 2 jalangi")
-let funcin3 = Uninstrumented("func 3 toString", "func 3 jalangi")
-let funcstd = Instrumented "func std toString"
+let funcin1 = OrigCode("func 1 toString", "func 1 jalangi")
+let funcin2 = OrigCode("func 2 toString", "func 2 jalangi")
+let funcin3 = OrigCode("func 3 toString", "func 3 jalangi")
+let funcstd = ReflectedCode "func std toString"
 let funcext1 = External 1
 let funcext2 = External 2
 let funcapply = External 100

@@ -14,8 +14,8 @@ let gen_synthesize_inputs max_ht =
      let build_function_spec r =
        match Random.State.int r 3 with
          | 0 -> External (Random.State.bits r)
-         | 1 -> Instrumented (build_string 1024)
-         | _ -> Uninstrumented (build_string 1024, build_string 1024)
+         | 1 -> ReflectedCode (build_string 1024)
+         | _ -> OrigCode (build_string 1024, build_string 1024)
      in
      let build_function funcs r =
        let idx = Random.State.int r (BatDynArray.length funcs + 1) in
@@ -132,7 +132,7 @@ let gen_synthesize_inputs max_ht =
 
 let is_instrumented funcs f =
   match BatDynArray.get funcs f with
-    | Instrumented _ -> true
+    | ReflectedCode _ -> true
     | _ -> false
 
 let drop funcs trace =

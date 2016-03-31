@@ -38,8 +38,8 @@ let parse_funcspec json =
   if (BatString.Exceptionless.find instr native_pattern <> None)
   then External (json |> member "obj" |> member "funid" |> to_int)
   else match json |> member "uninstrumented" |> to_string_option with
-    | Some uninstr -> Uninstrumented (instr, uninstr)
-    | None -> Instrumented instr
+    | Some uninstr -> OrigCode (instr, uninstr)
+    | None -> ReflectedCode instr
 
 let parse_fieldspec json =
   let default_to d = function Some x -> x | None -> d in try

@@ -109,10 +109,10 @@ val equal_objects :
 (** {1 Description of JavaScript functions} *)
 (** Description of a Javascript function. *)
 type funcspec = 
-  | Instrumented of string (** Possibly insturmented JavaScript function. *)
-  | Uninstrumented of string * string
+  | ReflectedCode of string (** Possibly insturmented JavaScript function. *)
+  | OrigCode of string * string
     (** Function that has been instrumented by Jalangi.
-        [Instrumented (ins, unins)] contains the instrumented
+        [ReflectedCode (ins, unins)] contains the instrumented
         code in [ins] and the uninstrumented code in [unins]. *)
   | External of int (** External function, implemented in native code *)
 (** Boilerplate code. *)

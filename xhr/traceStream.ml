@@ -4,7 +4,7 @@ open Types
 
 type items =
   | ItemFunction of int * funcspec
-  | ItemFunctionUninstrumented of int * string
+  | ItemFunctionOrigCode of int * string
   | ItemObject of int * objectspec
   | ItemStep of event
   | ItemEnd
@@ -25,11 +25,11 @@ let parse_item json =
         begin try
           if List.assoc "type" fval = `String "function" then begin
             let id = Yojson.Basic.Util.to_int (List.assoc "funid" fval) in
-              ItemFunctionUninstrumented (id, code)
+              ItemFunctionOrigCode (id, code)
           end else
-            raise (InvalidItem ("FunctionUninstrumented of bad type"))
+            raise (InvalidItem ("FunctionOrigCode of bad type"))
         with e ->
-          raise (InvalidItem ("FunctionUninstrumented bad: " ^ Printexc.to_string e))
+          raise (InvalidItem ("FunctionOrigCode bad: " ^ Printexc.to_string e))
         end
     | [`String "end" ] ->
         ItemEnd
@@ -66,18 +66,18 @@ let object_handler initials = function
   | _ -> false
 
 let function_uninstrumented_handler initials = function
-  | ItemFunctionUninstrumented (id, code) ->
+  | ItemFunctionOrigCode (id, code) ->
       begin
         let open Reference in
           match BatDynArray.get initials.functions id with
-            | Instrumented ins ->
+            | ReflectedCode ins ->
                 BatDynArray.set initials.functions id
-                  (Uninstrumented (ins, code))
-            | Uninstrumented (ins, _) ->
+                  (OrigCode (ins, code))
+            | OrigCode (ins, _) ->
                 Log.err (fun m -> m "Adding uninstrumented code to a function that already has this.");
                 BatDynArray.set initials.functions id
-                  (Uninstrumented (ins, code))
-            | External _ -> raise (InvalidItem "functionUninstrumented for external")
+                  (OrigCode (ins, code))
+            | External _ -> raise (InvalidItem "functionOrigCode for external")
       end; true
   | _ -> false
 

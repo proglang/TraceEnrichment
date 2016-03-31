@@ -79,8 +79,8 @@ let equal_objects o1 o2 =
   BatEnum.equal equal_objectspec (BatDynArray.enum o1) (BatDynArray.enum o2)
 
 type funcspec =
-  | Instrumented of string [@printer (!% "instrumented: ") %< pp_shortened]
-  | Uninstrumented of string * string
+  | ReflectedCode of string [@printer (!% "instrumented: ") %< pp_shortened]
+  | OrigCode of string * string
   | External of int [@printer (!% "external: ") %< Fmt.int]
   [@@deriving ord, eq, show]
 

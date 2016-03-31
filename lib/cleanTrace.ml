@@ -136,7 +136,7 @@ let is_instrumented funcs f =
   match f with
   | OFunction (_, fid) ->
     begin match BatDynArray.get funcs fid with
-      | Instrumented _ -> true
+      | ReflectedCode _ -> true
       | _ -> false
     end
   | _ -> false
