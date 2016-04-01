@@ -146,6 +146,7 @@ type func_type =
   | IntFunc of funpre
   | ExtFunc of jsval
   | ExtFuncExc of jsval * jsval
+  | EventFunc of funpre
   [@@deriving show]
 
 let make_silent_catch exc =
@@ -159,9 +160,10 @@ let synthesize_events_step funcs op stack =
                         pp_clean_operation op
                         (Fmt.list pp_func_type) stack);
   match op, stack with
-  | _, (ExtFunc _ | ExtFuncExc _) :: (ExtFunc _ | ExtFuncExc _) ::_ ->
+  | _, (ExtFunc _ | ExtFuncExc _) :: (ExtFunc _ | ExtFuncExc _) ::_
+  | _, EventFunc _ :: _ :: _ ->
       failwith "Bad stack"
-  | CFunPre ({ f; base; args } as funpre), (IntFunc _ :: _ | []) ->
+  | CFunPre ({ f; base; args } as funpre), (IntFunc _ :: _ | EventFunc _ :: _ | []) ->
       if is_internal funcs f then
         (Push (IntFunc funpre), [ op ])
       else
@@ -173,6 +175,12 @@ let synthesize_events_step funcs op stack =
         (Keep, [ op ])
       else
         failwith (Fmt.strf "post for external function %a with internal top-of-stack %a"
+                    pp_jsval f pp_jsval  f')
+  | CFunPost { f }, ((EventFunc { f = f' } :: _)) ->
+      if is_internal funcs f then
+        (Keep, [ op ])
+      else
+        failwith (Fmt.strf "post for external function %a with event top-of-stack %a"
                     pp_jsval f pp_jsval  f')
   | CFunPost { f }, [] ->
       if is_internal funcs f then
@@ -207,10 +215,15 @@ let synthesize_events_step funcs op stack =
       let funpre = make_funpre funenter in
       (PushReplace (IntFunc funpre, ExtFunc f),
        [ make_silent_catch exc; CFunPre funpre; op ])
-  | CFunEnter _, [] ->
-      failwith "enter on empty stack"
-  | CFunExit { exc = OUndefined; ret }, IntFunc _ :: (IntFunc _ :: _ | []) ->
+  | CFunEnter _, EventFunc _ :: _ ->
+      failwith "Entry to an event function"
+  | CFunEnter funenter, [] ->
+      let funpre = make_funpre funenter in
+        (Push (EventFunc funpre), [ CFunPre funpre; op ])
+  | CFunExit { exc = OUndefined; ret }, IntFunc _ :: (IntFunc _ :: _ | EventFunc _ :: _ | []) ->
       (Pop, [ op ])
+  | CFunExit { exc = OUndefined; ret }, [ EventFunc { f; base; args } ] ->
+      (Pop, [ op; CFunPost { f; base; args; result = ret; call_type = Function } ])
   | CFunExit { exc = OUndefined; ret }, IntFunc { f; base; args } :: ExtFunc _ :: _ ->
       (Pop, [ op; CFunPost { f; base; args; result = ret; call_type = Method } ])
   | CFunExit { exc = OUndefined }, IntFunc _ :: ExtFuncExc _ :: _ ->
@@ -219,8 +232,10 @@ let synthesize_events_step funcs op stack =
       failwith "exit in the top frame"
   | CFunExit { exc = OUndefined }, (ExtFunc _ | ExtFuncExc _) :: _ ->
       failwith "exit seen in external frame"
-  | CFunExit { ret = OUndefined; exc }, IntFunc _ :: (IntFunc _ :: _ | []) ->
+  | CFunExit { ret = OUndefined; exc }, IntFunc _ :: (IntFunc _ :: _ | EventFunc _ :: _ | []) ->
       (Pop, [ op ])
+  | CFunExit { ret = OUndefined; exc }, [ EventFunc { f; base; args } ] ->
+      (Pop, [ op; make_silent_catch exc ])
   | CFunExit { ret = OUndefined; exc }, IntFunc _ :: ExtFunc f :: _ ->
       (PopReplace (ExtFuncExc (f, exc)), [ op ])
   | CFunExit { ret = OUndefined }, IntFunc _ :: ExtFuncExc _ :: _ ->
@@ -243,7 +258,8 @@ let synthesize_events_step funcs op stack =
         (Pop2, [ make_silent_catch exc'; CThrow exc; op; op])
   | CFunExit _, _ ->
       failwith "invalid exit: both return value and exception"
-  | _, (IntFunc _ :: _ | []) ->
+  | _, (IntFunc _ :: _ | [])
+  | _, EventFunc _ :: [] ->
       (Keep, [ op ])
   | CScriptExc exc, ExtFunc f :: _ ->
       (Pop, [ CThrow exc; CFunExit { ret = OUndefined; exc }; op ])
