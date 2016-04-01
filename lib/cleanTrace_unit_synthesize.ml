@@ -130,9 +130,9 @@ let gen_synthesize_inputs max_ht =
      in Printexc.print (build_trace 0) (BatDynArray.of_list [])),
   (fun x -> Fmt.to_to_string (Fmt.pair pp_functions pp_clean_trace) x ^ "\n")
 
-let is_instrumented funcs f =
+let is_internal funcs f =
   match BatDynArray.get funcs f with
-    | ReflectedCode _ -> true
+    | OrigCode (_, _) -> true
     | _ -> false
 
 let drop funcs trace =
@@ -141,7 +141,7 @@ let drop funcs trace =
     | event :: trace ->
         let trace'= match event with
           | CFunPre { f = OFunction (_, f) } ->
-              drop (is_instrumented funcs f :: stack) trace
+              drop (is_internal funcs f :: stack) trace
           | CFunExit _ ->
               drop (List.tl stack) trace
           | _ ->

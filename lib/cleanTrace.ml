@@ -132,11 +132,11 @@ let apply_stackop pp_value stack = function
   | PushReplace (tos1, tos2) -> Log.debug (fun m -> m "Stack: Pusing %a and %a" pp_value tos1 pp_value tos2); tos1 :: tos2 :: List.tl stack
   | Pop2Replace tos -> Log.debug (fun m -> m "Stack: Popping twice and replacing TOS with %a" pp_value tos); tos :: List.tl (List.tl (List.tl stack))
 
-let is_instrumented funcs f =
+let is_internal funcs f =
   match f with
   | OFunction (_, fid) ->
     begin match BatDynArray.get funcs fid with
-      | ReflectedCode _ -> true
+      | OrigCode _ -> true
       | _ -> false
     end
   | _ -> false
@@ -162,34 +162,34 @@ let synthesize_events_step funcs op stack =
   | _, (ExtFunc _ | ExtFuncExc _) :: (ExtFunc _ | ExtFuncExc _) ::_ ->
       failwith "Bad stack"
   | CFunPre ({ f; base; args } as funpre), (IntFunc _ :: _ | []) ->
-      if is_instrumented funcs f then
+      if is_internal funcs f then
         (Push (IntFunc funpre), [ op ])
       else
         (Push (ExtFunc f), [ op; CFunEnter { f; this=base; args }])
   | CFunPre _, (ExtFunc _ | ExtFuncExc _) :: _ ->
       failwith "pre seen in external code"
   | CFunPost { f }, ((IntFunc { f = f' } :: _)) ->
-      if is_instrumented funcs f then
+      if is_internal funcs f then
         (Keep, [ op ])
       else
         failwith (Fmt.strf "post for external function %a with internal top-of-stack %a"
                     pp_jsval f pp_jsval  f')
   | CFunPost { f }, [] ->
-      if is_instrumented funcs f then
+      if is_internal funcs f then
         (Keep, [ op ])
       else
         failwith (Fmt.strf "post for external function %a at top level" pp_jsval f)
   | CFunPost { f; result }, ExtFunc f' :: _ ->
       if f <> f' then
         failwith "post for an unexpected function"
-      else if is_instrumented funcs f then
+      else if is_internal funcs f then
         failwith "internal code treated as external"
       else
         (Pop, [ CFunExit { ret = result; exc = OUndefined }; op ])
   | CFunPost { f; result }, ExtFuncExc (f', exc) :: _ ->
       if f <> f' then
         failwith "post for an unexpected function"
-      else if is_instrumented funcs f then
+      else if is_internal funcs f then
         failwith "internal code treated as external"
       else
         (Pop, [ make_silent_catch exc;
