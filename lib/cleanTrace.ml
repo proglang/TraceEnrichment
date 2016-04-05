@@ -35,43 +35,39 @@ type action =
   | Simple of clean_operation
   | Drop
 
-let clean_impl_cases stack locals globals =
+let clean_impl_cases =
   let open Trace in function
-    | FunPre (_, fpre) -> Push (encode_pre fpre)
-    | FunPost (_, fpost) -> Pop (encode_post fpost)
+    | FunPre (_, fpre) -> [encode_pre fpre]
+    | FunPost (_, fpost) -> [encode_post fpost]
     | Literal (_, { value; hasGetterSetter }) ->
-      Simple (CLiteral { value; hasGetterSetter })
-    | ForIn (_, value) -> Simple (CForIn value)
-    | Declare (_, decl) -> AddLocal (decl.name, (encode_decl decl))
-    | GetFieldPre (_, { base; offset }) -> Simple (CGetFieldPre (base, offset))
+      [CLiteral { value; hasGetterSetter }]
+    | ForIn (_, value) -> [CForIn value]
+    | Declare (_, decl) -> [encode_decl decl]
+    | GetFieldPre (_, { base; offset }) -> [CGetFieldPre (base, offset)]
     | GetField (_, { base; offset; value }) ->
-      Simple (CGetField { base; offset; value })
+      [CGetField { base; offset; value }]
     | Read (_, { name; value }) ->
-      (* Throw away Jalangi2's isGlobal and isScriptLocal - they turn out to be useless *)
-      let (locals', globals', isGlobal) = check_global locals globals name in
-      UpdateLocalGlobals (locals', globals', CRead { name; value })
-    | PutFieldPre (_, { base; offset; value }) -> Simple (CPutFieldPre { base; offset; value })
-    | PutField (_, { base; offset; value }) -> Simple (CPutField { base; offset; value })
+      [CRead { name; value }]
+    | PutFieldPre (_, { base; offset; value }) -> [CPutFieldPre { base; offset; value }]
+    | PutField (_, { base; offset; value }) -> [CPutField { base; offset; value }]
     | Write (_, { name; lhs; value }) ->
-      let (locals', globals', isGlobal) = check_global locals globals name in
-      UpdateLocalGlobals (locals', globals',
-                          CWrite { name; lhs; value; isSuccessful = true })
-    | Return (_, value) -> Simple (CReturn value)
-    | Throw (_, value) -> Simple (CThrow value)
-    | With (_, value) -> Simple (CWith value)
-    | FunEnter (_, { f; this; args }) -> Simple (CFunEnter { f; this; args })
-    | FunExit (_, { ret; exc }) -> Simple (CFunExit { ret; exc })
-    | ScriptEnter -> Simple CScriptEnter
-    | ScriptExit -> Simple CScriptExit
-    | ScriptExc obj -> Simple (CScriptExc obj)
-    | BinPre _ -> Drop
+        [CWrite { name; lhs; value; isSuccessful = true }]
+    | Return (_, value) -> [CReturn value]
+    | Throw (_, value) -> [CThrow value]
+    | With (_, value) -> [CWith value]
+    | FunEnter (_, { f; this; args }) -> [CFunEnter { f; this; args }]
+    | FunExit (_, { ret; exc }) -> [CFunExit { ret; exc }]
+    | ScriptEnter -> [CScriptEnter]
+    | ScriptExit -> [CScriptExit]
+    | ScriptExc obj -> [CScriptExc obj]
+    | BinPre _ -> []
     | BinPost (_, { op; left; right; result }) ->
-      Simple (CBinary { op; left; right; result })
-    | UnaryPre _ -> Drop
+      [CBinary { op; left; right; result }]
+    | UnaryPre _ -> []
     | UnaryPost (_, { op; arg; result }) ->
-      Simple (CUnary { op; arg; result })
-    | EndExpression _ -> Simple CEndExpression
-    | Conditional (iid, value) -> Simple (CConditional (iid, value))
+      [CUnary { op; arg; result }]
+    | EndExpression _ -> [CEndExpression]
+    | Conditional (iid, value) -> [CConditional (iid, value)]
 
 let global_object = OObject 0
 
@@ -281,17 +277,7 @@ let synthesize_events_step funcs op stack =
 type clean_level = SynthesizeEvents | Normalizations | SynthesizeGettersAndSetters | JustClean
 
 module CleanGeneric = functor(S: Transformers) -> struct
-  let clean =
-    S.map_list_state ([], ["this"], [])
-      (fun (stack, locals, globals) op ->
-         match clean_impl_cases stack locals globals op with
-         | Push op -> ([op], (locals :: stack, locals, globals))
-         | Pop op -> ([op], (List.tl stack, List.hd stack, globals))
-         | AddLocal (var, op) -> ([op], (stack, var :: locals, globals))
-         | UpdateLocalGlobals (locals', globals', op) ->
-           ([op], (stack, locals', globals'))
-         | Simple op -> ([op], (stack, locals, globals))
-         | Drop -> ([]), (stack, locals, globals))
+  let clean = S.map_list clean_impl_cases
 
   let normalize_calls initials =
     Log.debug (fun m -> m "Normalizing calls");
