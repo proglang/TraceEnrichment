@@ -182,7 +182,7 @@ let parse_operation json =
         result = get_jsval "result"
       })
     | "exprend" -> EndExpression (get_int "iid")
-    | "conditional" -> Conditional (get_jsval "result")
+    | "conditional" -> Conditional (get_int "iid", get_jsval "result")
     | _ as op -> failwith ("Unknown event " ^ op)
   with ParseError -> report "Context" "event" json
 

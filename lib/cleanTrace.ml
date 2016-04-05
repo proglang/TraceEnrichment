@@ -71,7 +71,7 @@ let clean_impl_cases stack locals globals =
     | UnaryPost (_, { op; arg; result }) ->
       Simple (CUnary { op; arg; result })
     | EndExpression _ -> Simple CEndExpression
-    | Conditional value -> Simple (CConditional value)
+    | Conditional (iid, value) -> Simple (CConditional (iid, value))
 
 let global_object = OObject 0
 

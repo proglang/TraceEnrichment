@@ -108,7 +108,7 @@ type event =
   | UnaryPre of int * raw_unpre
   | UnaryPost of int * unary
   | EndExpression of int
-  | Conditional of jsval
+  | Conditional of int * jsval
 (** A trace is a sequence of events. *)
 type trace = event list
 type raw_stream = event Streaming.Stream.t
@@ -205,7 +205,7 @@ type clean_operation =
   | CBinary of binary
   | CUnary of unary
   | CEndExpression
-  | CConditional of jsval
+  | CConditional of int * jsval
 
 (** A clean trace is a list of cleaned-up events. *)
 type clean_trace = clean_operation list
@@ -264,7 +264,7 @@ type rich_operation =
   | RBinary of binary
   | RUnary of unary
   | REndExpression
-  | RConditional of jsval
+  | RConditional of int * jsval
 
 (** Traces and tracefiles enrichted with local facts. *)
 type 'a enriched_trace = (clean_operation * 'a) list

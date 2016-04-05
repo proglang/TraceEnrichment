@@ -68,7 +68,7 @@ let enrich_step globals_are_properties (op, facts) =
     | CBinary { op; left; right; result } -> [RBinary { op; left; right; result }]
     | CUnary { op; arg; result } -> [RUnary { op; arg; result }]
     | CEndExpression -> [REndExpression]
-    | CConditional value -> [RConditional value] in
+    | CConditional (iid, value) -> [RConditional (iid, value)] in
   List.map (fun op -> (op, facts)) res
 
 module ToRich(S: Streaming.Transformers) = struct

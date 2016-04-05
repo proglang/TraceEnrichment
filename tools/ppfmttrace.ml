@@ -76,9 +76,9 @@ let pp_event_nice pp =
       | UnaryPost (_, { op; arg; result }) ->
           if !full then
             fprintf pp "%s %a = %a@ " op pp_jsval arg pp_jsval result
-      | Conditional value ->
+      | Conditional (iid, value) ->
           if !full then
-            fprintf pp "Conditional: %a@ " pp_jsval value
+            fprintf pp "Conditional %d: %a@ " iid pp_jsval value
       | ScriptExc value ->
           fprintf pp "Script exit, exception %a@ " pp_jsval value
       | ScriptExit ->
