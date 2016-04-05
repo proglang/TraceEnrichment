@@ -46,6 +46,8 @@ type versions_resolved = {
   versions: int Reference.ReferenceMap.t [@printer pp_versions_filtered];
   (** All visible variable names. *)
   names: Reference.reference StringMap.t;
+  (** Fresh versioned references from the last step. *)
+  fresh_versioned_references: Reference.versioned_reference list
 } [@@deriving show]
 type local_facts = {
   (** The last argument object that was created by a function call. *)

@@ -5,21 +5,27 @@ open TraceTypes
 
 type version_state = {
   current_version: int ReferenceMap.t;
-  last_update: versioned_reference option
+  last_update: versioned_reference option;
+  fresh: versioned_reference list
 }
-let pp_version_state pp { current_version; last_update } =
-  Format.fprintf pp "@[<v 2>last_update = %a, current versions:@ %a@]"
+let pp_version_state pp { current_version; last_update; fresh } =
+  Format.fprintf pp "@[<v 2>last_update = %a, fresh = %a, current versions:@ %a@]"
     (Fmt.option Reference.pp_versioned_reference) last_update
+    (Fmt.list Reference.pp_versioned_reference) fresh
     (ReferenceMap.pp ~entry_sep:Fmt.cut ~pair_sep:(Fmt.always ": ") Fmt.int) current_version
 
 let increment_reference state ref =
   match ReferenceMap.Exceptionless.find ref state.current_version with
     | Some v ->
         { current_version = ReferenceMap.add ref (v + 1) state.current_version;
-          last_update = Some (ref, v) }
+          last_update = Some (ref, v);
+          fresh = (ref, v) :: state.fresh
+        }
     | None ->
         { current_version = ReferenceMap.add ref 0 state.current_version;
-          last_update = Some (ref, 0) }
+          last_update = Some (ref, 0);
+          fresh = (ref, 0) :: state.fresh
+        }
 
 let warnings: string list ref = ref []
 
@@ -106,6 +112,7 @@ let provide_literal (objs: objects) state = function
 let collect_versions_step (objects: objects) globals_are_properties state
       (facts: LocalFacts.names_resolved) op =
   let open LocalFacts in
+  let state = { state with fresh = [] } in
   let nameref =
     reference_of_name globals_are_properties facts.names in
   let declare_var name =
@@ -145,7 +152,8 @@ let collect_versions_step (objects: objects) globals_are_properties state
            closures = facts.closures;
            last_update = res.last_update;
            versions = res.current_version;
-           names = facts.names }),
+           names = facts.names;
+           fresh_versioned_references = res.fresh }),
     res )
 
 let initial_refs objects globals_are_properties globals =
@@ -162,7 +170,8 @@ let initial_refs objects globals_are_properties globals =
     globals
     {
       current_version = ReferenceMap.empty;
-      last_update = None
+      last_update = None;
+      fresh = []
     }
 
 let initial_versions objs globals gap  =

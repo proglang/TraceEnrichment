@@ -68,6 +68,7 @@ type versions_resolved_delta = {
   last_update : Reference.versioned_reference option;
   versions : int ExtMap.diff Reference.ReferenceMap.t;
   names : Reference.reference ExtMap.diff StringMap.t;
+  fresh_versioned_references: Reference.versioned_reference list
 }
 let filter_versions m =
   Reference.ReferenceMap.filter (fun key _ -> match key with
@@ -123,10 +124,12 @@ let pp_enriched_trace_versions =
       closures = IntMap.empty;
       last_update = None;
       versions = Reference.ReferenceMap.empty;
-      names = StringMap.empty }
+      names = StringMap.empty;
+      fresh_versioned_references = []
+    }
     (fun { versions = old_versions; names = old_names; closures = old_closures }
-           ({ versions; names; closures; last_update; last_arguments }) ->
-       ({ last_update; last_arguments;
+           ({ versions; names; closures; last_update; last_arguments; fresh_versioned_references }) ->
+       ({ last_update; last_arguments; fresh_versioned_references;
           closures = IntMap.delta (StringMap.equal (Reference.equal_reference)) old_closures closures;
           versions = Reference.ReferenceMap.delta (=) old_versions versions;
           names = StringMap.delta (Reference.equal_reference) old_names names }: versions_resolved_delta))
