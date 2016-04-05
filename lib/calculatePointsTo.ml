@@ -114,7 +114,7 @@ let collect_pointsto_step globals_are_properties objects state (facts: versions_
               step |>
   function
   | CFunPre { base; args } ->
-      let state = add_known_new_object objects facts state args
+      let state = add_literal objects facts state args
       in add_literal objects facts state base
   | CLiteral { value } ->
     add_literal objects facts state value
@@ -134,7 +134,7 @@ let collect_pointsto_step globals_are_properties objects state (facts: versions_
   | CWrite { name; value } ->
     add_write facts state (mkref name) value false
   | CFunEnter { args; this } ->
-    let state = add_known_new_object objects facts state args in
+    let state = add_literal objects facts state args in
     let state = add_write facts state (mkref "this") this true in
       add_literal objects facts state this
   | _ -> state
