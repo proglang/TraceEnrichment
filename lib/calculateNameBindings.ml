@@ -107,7 +107,7 @@ let make_exit { local_names; global_names; closures; old_arguments } =
 
 let make_call { local_names; global_names; closures; old_arguments } =
   match local_names, old_arguments with
-    | local :: _, Some arg ->
+    | local :: _, Some arg when not (IntMap.mem arg closures) ->
         { local_names; global_names; old_arguments;
           closures = IntMap.add arg local closures }
     | _ -> { local_names; global_names; closures; old_arguments }
