@@ -190,7 +190,7 @@ let pp_enriched_trace_points_to =
     pp_local_facts pp_local_facts_delta
 
 let enrich_and_print mode
-      (functions, objects, trace, globals, globals_are_properties) =
+      (functions, objects, trace, globals, globals_are_properties, _) =
   let open Types in
   let open TraceTypes in
   let open LocalFacts in
@@ -199,6 +199,7 @@ let enrich_and_print mode
                    function_apply = OUndefined;
                    function_eval = OUndefined;
                    function_constructor = OUndefined;
+                   iids = CCIntMap.empty
   } in
     lookup_functions initials;
   let module Step1 = LocalFacts.CollectArguments(Streaming.ListTransformers) in

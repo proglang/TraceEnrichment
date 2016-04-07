@@ -95,29 +95,33 @@ let get_points_to functions objects globals globals_are_properties (trace: rich_
         CalculatePointsTo.initial_pointsto
           { functions; objects; globals; globals_are_properties;
             function_call = OUndefined; function_apply = OUndefined;
-            function_constructor = OUndefined; function_eval = OUndefined
+            function_constructor = OUndefined; function_eval = OUndefined;
+            iids = CCIntMap.empty
           }
     | (_, { points_to }) :: _ -> points_to
 
 let calculate_rich_tracefile
-      (funcs, objs, trace, globals, globals_are_properties) =
+      (funcs, objs, trace, globals, globals_are_properties, iidmap) =
   let trace = ListToRich.enriched_trace_to_rich_trace globals_are_properties trace in
   let points_to = get_points_to funcs objs globals globals_are_properties trace in
-  { funcs; objs; globals; globals_are_properties; trace; points_to }
+  { funcs; objs; globals; globals_are_properties; trace; points_to; iidmap }
 
 let calculate_rich_stream (init: initials) stream =
   StreamToRich.enriched_trace_to_rich_trace init.globals_are_properties stream
 
 
 let tracefile_to_rich_tracefile
-      (functions, objects, trace, globals, globals_are_properties) =
+      (functions, objects, trace, globals, globals_are_properties, iids) =
   let initials = { objects; functions; globals; globals_are_properties;
                    function_call = OUndefined; function_apply = OUndefined;
-                   function_constructor = OUndefined; function_eval = OUndefined
+                   function_constructor = OUndefined; function_eval = OUndefined;
+                   iids
   } in
   let trace = ListToRich.trace_to_rich_trace initials trace in
     { funcs = functions; objs = objects; globals; globals_are_properties; trace;
-      points_to = get_points_to functions objects globals globals_are_properties trace }
+      points_to = get_points_to functions objects globals globals_are_properties trace;
+      iidmap = iids
+    }
 
 let trace_stream_to_rich_stream init stream =
   StreamToRich.trace_to_rich_trace init stream

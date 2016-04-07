@@ -101,6 +101,6 @@ let () =
     Log.default_setup !debug;
     List.iter (fun file -> file
                  |> Trace.read_tracefile
-                 |> fun (_, _, trace, _, _) ->
+                 |> fun (_, _, trace, _, _, _) ->
                     Format.printf "@[<v>%a@]@." (Fmt.list ~sep:(fun _ _ -> ()) pp_event_nice) trace)
       !files

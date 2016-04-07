@@ -116,13 +116,14 @@ let parse_packet initials event_push json_string =
 
 let parse_setup_packet json_string =
   match Yojson.Basic.from_string json_string |> Yojson.Basic.Util.to_list with
-    | [ `Bool globals_are_properties; `Assoc globals_json ] ->
+    | [ `Bool globals_are_properties; `Assoc globals_json; iids_json ] ->
         let globals = List.fold_left (fun globals (name, val_json) ->
                                         StringMap.add name (parse_jsval val_json) globals)
                         StringMap.empty globals_json
+        and iids = parse_iidmap iids_json
         in let open Reference in
         let initials =
-          { globals_are_properties; globals;
+          { globals_are_properties; globals; iids;
             objects = BatDynArray.create ();
             functions = BatDynArray.create ();
             function_call = OUndefined;

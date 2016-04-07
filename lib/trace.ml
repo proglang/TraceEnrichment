@@ -62,6 +62,17 @@ let parse_objectspec json =
       StringMap.empty
   with ParseError -> report "Context" "objectspec" json
 
+let parse_iidmap json: iidmap =
+  List.fold_left
+    (fun map (iid, json) ->
+       match to_list json with
+         | [ `Int first_line; `Int first_char; `Int last_line; `Int last_char ] ->
+             CCIntMap.add (int_of_string iid) { first_line; first_char; last_line; last_char } map
+         | _ ->
+             report "IID" "locations" json
+       )
+    CCIntMap.empty (to_assoc json)
+
 let parse_operation json =
   let get_int key = member key json |> to_int
   and get_string key = member key json |> to_string key
@@ -211,13 +222,15 @@ let parse_globals json: globals =
     StringMap.map parse_global_value
   with ParseError -> report "Context" "globals" json
 
-let parse_tracefile source =
+let parse_tracefile source: tracefile =
   let json = from_channel source in
   (parse_functions (member "func" json),
    parse_objects (member "obj" json),
    parse_trace (member "trace" json),
    parse_globals (member "globals" json),
-   to_bool (member "globals_are_properties" json))
+   to_bool (member "globals_are_properties" json),
+   try parse_iidmap (member "iid" json) with _ -> CCIntMap.empty
+  )
 
 let event_of_string str = from_string str |> parse_operation
 let jsval_of_string str = from_string str |> parse_jsval
@@ -225,22 +238,24 @@ let objectspec_of_string str = from_string str |> parse_objectspec
 let funcspec_of_string str = from_string str |> parse_funcspec
 
 let serialize_tracefile
-      (functions, objects, trace, globals, globals_are_properties) =
+      (functions, objects, trace, globals, globals_are_properties, iids) =
   Marshal.to_bytes
     (BatDynArray.to_list functions,
      BatDynArray.to_list objects,
      trace,
      globals,
-     globals_are_properties) []
+     globals_are_properties,
+     iids) []
 
 let deserialize_tracefile bytes =
-  let (functions, objects, trace, globals, globals_are_properties) =
-    (Marshal.from_bytes bytes 0: funcspec list * objectspec list * trace * globals * bool)
+  let (functions, objects, trace, globals, globals_are_properties, iids) =
+    (Marshal.from_bytes bytes 0: funcspec list * objectspec list * trace * globals * bool * iidmap)
   in (BatDynArray.of_list functions,
       BatDynArray.of_list objects,
       trace,
       globals,
-      globals_are_properties)
+      globals_are_properties,
+      iids)
 
 let with_file filename handler =
   let chan = open_in filename in

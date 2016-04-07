@@ -114,7 +114,7 @@ type trace = event list
 type raw_stream = event Streaming.Stream.t
 
 (** A trace file is a tuple containing the various components defined above. *)
-type tracefile = functions * objects * trace * globals * bool
+type tracefile = functions * objects * trace * globals * bool * iidmap
 
 (** {1 Cleaned-up traces} *)
 (** A cleaned-up trace is a version of a trace that has
@@ -211,7 +211,7 @@ type clean_operation =
 type clean_trace = clean_operation list
 type clean_stream = clean_operation Streaming.Stream.t
 (** A clean trace file is like a trace file, only it contains a clean trace. *)
-type clean_tracefile = functions * objects * clean_trace * globals * bool
+type clean_tracefile = functions * objects * clean_trace * globals * bool * iidmap
 
 (** {1 A nicer form of trace, with more uniform events} *)
 
@@ -268,7 +268,7 @@ type rich_operation =
 
 (** Traces and tracefiles enrichted with local facts. *)
 type 'a enriched_trace = (clean_operation * 'a) list
-type 'a enriched_tracefile = functions * objects * 'a enriched_trace * globals * bool
+type 'a enriched_tracefile = functions * objects * 'a enriched_trace * globals * bool * iidmap
 type 'a enriched_stream = (clean_operation * 'a) Streaming.Stream.t
 
 val pp_enriched_trace: (Format.formatter -> 'a -> unit) ->
@@ -299,6 +299,7 @@ type rich_tracefile = {
   globals : globals;
   globals_are_properties : bool;
   points_to : Reference.points_to_map;
+  iidmap: iidmap
 }
 type rich_stream = rich_event Streaming.Stream.t
 

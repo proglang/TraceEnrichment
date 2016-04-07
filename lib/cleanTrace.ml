@@ -688,12 +688,14 @@ module CleanList = CleanGeneric(ListTransformers)
 let synthesize_events funcs trace =
   CleanList.synthesize_events funcs trace
 
-let clean_tracefile ?up_to (funs, objs, rawtr, globals, gap) =
+let clean_tracefile ?up_to (funs, objs, rawtr, globals, gap, iids) =
   let initials = { objects = objs; functions = funs; globals; globals_are_properties = gap;
                    function_apply = OUndefined; function_call = OUndefined;
-                   function_constructor = OUndefined; function_eval = OUndefined } in
+                   function_constructor = OUndefined; function_eval = OUndefined;
+                   iids
+  } in
   lookup_functions initials;
-  (funs, objs, CleanList.clean_trace ?up_to initials rawtr, globals, gap)
+  (funs, objs, CleanList.clean_trace ?up_to initials rawtr, globals, gap, iids)
 
 let clean_stream ?up_to (data: initials) raw =
   CleanStream.calculate_clean_trace ?up_to data raw

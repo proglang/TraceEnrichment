@@ -137,6 +137,16 @@ val pp_globals : globals Fmt.t
 val show_globals : globals -> string
 val equal_globals : globals -> globals -> bool
 
+(** {1 IID maps} *)
+type location = {
+  first_line: int;
+  last_line: int;
+  first_char: int;
+  last_char: int
+}
+type iidmap = location CCIntMap.t
+val pp_iidmap : iidmap Fmt.t
+
 (** {1 The initial states} *)
 (**
   Initial state data, containing globals, object descriptions
@@ -148,6 +158,7 @@ type initials = {
   objects : objects;
   globals : globals;
   globals_are_properties : bool;
+  iids: iidmap;
   mutable function_apply: jsval;
   mutable function_call: jsval;
   mutable function_constructor: jsval;
@@ -163,3 +174,5 @@ val lookup_functions: initials -> unit
 val pp_initials : initials Fmt.t
 val show_initials : initials -> string
 val equal_initials : initials -> initials -> bool
+
+

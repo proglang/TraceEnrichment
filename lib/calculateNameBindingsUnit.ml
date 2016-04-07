@@ -395,6 +395,7 @@ let initials =
       function_call = OUndefined;
       function_constructor = OUndefined;
       function_eval = OUndefined;
+      iids = CCIntMap.empty
     }
 
 module XFRM = CalculateNameBindings.Make(Streaming.ListTransformers)

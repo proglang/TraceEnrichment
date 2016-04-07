@@ -112,7 +112,7 @@ type trace = event list [@@deriving show]
 type raw_stream = event Streaming.Stream.t
 
 (** A trace file is a tuple containing the various components defined above. *)
-type tracefile = functions * objects * trace * globals * bool [@@deriving show]
+type tracefile = functions * objects * trace * globals * bool * iidmap [@@deriving show]
 
 (** * Cleaned-up traces. *)
 (** A cleaned-up trace is a version of a trace that has
@@ -210,7 +210,7 @@ type clean_operation =
 (** A clean trace is a list of cleaned-up events. *)
 type clean_trace = clean_operation list [@@deriving show]
 (** A clean trace file is like a trace file, only it contains a clean trace. *)
-type clean_tracefile = functions * objects * clean_trace * globals * bool [@@deriving show]
+type clean_tracefile = functions * objects * clean_trace * globals * bool * iidmap [@@deriving show]
 type clean_stream = clean_operation Streaming.Stream.t
 
 open Format
@@ -240,7 +240,7 @@ type rwrite = {
 } [@@deriving show]
 
 type 'a enriched_trace = (clean_operation * 'a) list [@@deriving show]
-type 'a enriched_tracefile = functions * objects * 'a enriched_trace * globals * bool [@@deriving show]
+type 'a enriched_tracefile = functions * objects * 'a enriched_trace * globals * bool * iidmap [@@deriving show]
 type 'a enriched_stream = (clean_operation * 'a) Streaming.Stream.t
 
 (** Events that make use of the facts calculated by the [LocalFacts] module
@@ -294,6 +294,7 @@ type rich_tracefile = {
   globals : globals;
   globals_are_properties : bool;
   points_to : Reference.points_to_map;
+  iidmap: iidmap
 } [@@deriving show]
 type rich_stream = rich_event Streaming.Stream.t
 
