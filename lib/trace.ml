@@ -62,16 +62,35 @@ let parse_objectspec json =
       StringMap.empty
   with ParseError -> report "Context" "objectspec" json
 
-let parse_iidmap json: iidmap =
-  List.fold_left
-    (fun map (iid, json) ->
-       match to_list json with
-         | [ `Int first_line; `Int first_char; `Int last_line; `Int last_char ] ->
-             CCIntMap.add (int_of_string iid) { first_line; first_char; last_line; last_char } map
-         | _ ->
-             report "IID" "locations" json
-       )
+let parse_intmap parse_value json =
+  List.fold_left (fun map (key, json) ->
+                    try
+                      let key' = int_of_string key in
+                        CCIntMap.add key' (parse_value json) map
+                    with
+                      | Failure _ -> map
+                      | e -> Format.eprintf "Exception %s for %s@." (Printexc.to_string e) (Yojson.Basic.to_string json); raise e)
     CCIntMap.empty (to_assoc json)
+
+let parse_single_iidmap json =
+  let parse_location json =
+    match to_list json with
+      | [ `Int first_line; `Int first_char; `Int last_line; `Int last_char ] ->
+          { first_line; first_char; last_line; last_char }
+      | _ ->
+          report "IID" "locations" json
+      | exception e ->
+          Format.eprintf "Exception %s for %s@." (Printexc.to_string e) (Yojson.Basic.to_string json); raise e
+  in 
+    Format.eprintf "Trying to parse IID map entry %s@." (Yojson.Basic.to_string json);
+    parse_intmap parse_location json
+
+let parse_iidmap json =
+  try
+    Format.eprintf "Trying to parse IID map %s@." (Yojson.Basic.to_string json);
+    parse_intmap parse_single_iidmap json
+  with ParseError -> report "Context" "iidmap" json
+    | e -> Format.eprintf "Exception %s for %s@." (Printexc.to_string e) (Yojson.Basic.to_string json); raise e
 
 let parse_operation json =
   let get_int key = member key json |> to_int
@@ -194,6 +213,7 @@ let parse_operation json =
       })
     | "exprend" -> EndExpression (get_int "iid")
     | "conditional" -> Conditional (get_int "iid", get_jsval "result")
+    | "switchscript" -> SwitchScript (get_int "sid")
     | _ as op -> failwith ("Unknown event " ^ op)
   with ParseError -> report "Context" "event" json
 
@@ -229,7 +249,7 @@ let parse_tracefile source: tracefile =
    parse_trace (member "trace" json),
    parse_globals (member "globals" json),
    to_bool (member "globals_are_properties" json),
-   try parse_iidmap (member "iid" json) with _ -> CCIntMap.empty
+   (*try*) parse_iidmap (member "iid" json) (*with _ -> CCIntMap.empty*)
   )
 
 let event_of_string str = from_string str |> parse_operation

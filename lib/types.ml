@@ -144,22 +144,25 @@ type location = {
   last_line: int;
   first_char: int;
   last_char: int
-}
+} [@@deriving ord]
 let pp_location pp { first_line; last_line; first_char; last_char } =
   Fmt.pf pp "[%d:%d - %d:%d]" first_line first_char last_line last_char
 
-type iidmap = location CCIntMap.t
+type iidmap = location CCIntMap.t CCIntMap.t
 let pp_iidmap =
   Fmt.iter_bindings CCIntMap.iter
-    (Fmt.pair Fmt.int pp_location)
-let equal_iidmap: iidmap -> iidmap -> bool = CCIntMap.equal ~eq:(=)
+    (Fmt.pair Fmt.int
+       (Fmt.hbox (Fmt.brackets
+                    (Fmt.iter_bindings CCIntMap.iter
+                       (Fmt.pair Fmt.int pp_location)))))
+let equal_iidmap: iidmap -> iidmap -> bool = CCIntMap.equal ~eq:(CCIntMap.equal ~eq:(=))
 
 type initials = {
   functions: functions;
   objects: objects;
   globals: globals;
   globals_are_properties: bool;
-  iids: iidmap;
+  mutable iids: iidmap;
   mutable function_apply: jsval;
   mutable function_call: jsval;
   mutable function_constructor: jsval;

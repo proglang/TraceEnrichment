@@ -106,6 +106,7 @@ type event =
   | UnaryPost of int * unary
   | EndExpression of int
   | Conditional of int * jsval
+  | SwitchScript of int
   [@@deriving show]
   (** A trace is a sequence of events. *)
 type trace = event list [@@deriving show]
@@ -205,7 +206,7 @@ type clean_operation =
   | CBinary of binary
   | CUnary of unary
   | CEndExpression
-  | CConditional of int * jsval
+  | CConditional of location option * jsval
   [@@deriving show]
 (** A clean trace is a list of cleaned-up events. *)
 type clean_trace = clean_operation list [@@deriving show]
@@ -269,7 +270,7 @@ type rich_operation =
   | RBinary of binary
   | RUnary of unary
   | REndExpression
-  | RConditional of int * jsval
+  | RConditional of location option * jsval
   [@@deriving show]
 (** Rich facts [rich_facts] contains a subset of local facts. *)
 type rich_facts = {

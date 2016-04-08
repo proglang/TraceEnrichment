@@ -7,6 +7,7 @@ type items =
   | ItemFunctionOrigCode of int * string
   | ItemObject of int * objectspec
   | ItemStep of event
+  | ItemIID of int * location CCIntMap.t
   | ItemEnd
   | ItemStart
 
@@ -31,6 +32,8 @@ let parse_item json =
         with e ->
           raise (InvalidItem ("FunctionOrigCode bad: " ^ Printexc.to_string e))
         end
+    | [`String "iidmap"; `Int sid; iidmap_json ] ->
+        ItemIID (sid, parse_single_iidmap iidmap_json)
     | [`String "end" ] ->
         ItemEnd
     | [`String "start" ] ->
@@ -63,6 +66,12 @@ let object_handler initials = function
       let open Reference in
         BatDynArray.insert initials.objects id spec;
         true
+  | _ -> false
+
+let iid_handler initials = function
+  | ItemIID (sid, map) ->
+      initials.iids <- CCIntMap.add sid map initials.iids;
+      true
   | _ -> false
 
 let function_uninstrumented_handler initials = function
@@ -98,6 +107,7 @@ let parse_packet initials event_push json_string =
     |> extract (function_handler initials)
     |> extract (function_uninstrumented_handler initials)
     |> extract (object_handler initials)
+    |> extract (iid_handler initials)
     |> handle_start initials
     |> handle_end 
   in
@@ -116,14 +126,13 @@ let parse_packet initials event_push json_string =
 
 let parse_setup_packet json_string =
   match Yojson.Basic.from_string json_string |> Yojson.Basic.Util.to_list with
-    | [ `Bool globals_are_properties; `Assoc globals_json; iids_json ] ->
+    | [ `Bool globals_are_properties; `Assoc globals_json ] ->
         let globals = List.fold_left (fun globals (name, val_json) ->
                                         StringMap.add name (parse_jsval val_json) globals)
                         StringMap.empty globals_json
-        and iids = parse_iidmap iids_json
         in let open Reference in
         let initials =
-          { globals_are_properties; globals; iids;
+          { globals_are_properties; globals; iids = CCIntMap.empty;
             objects = BatDynArray.create ();
             functions = BatDynArray.create ();
             function_call = OUndefined;

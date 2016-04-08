@@ -88,6 +88,9 @@ let pp_event_nice pp =
       | EndExpression _ ->
           if !full then
             fprintf pp "end of expression@ "
+      | SwitchScript sid ->
+          if !full then
+            fprintf pp "Switching to script %d@ " sid
 
 let () =
   let files = ref []

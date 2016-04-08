@@ -69,7 +69,7 @@ let gen_synthesize_inputs max_ht =
          | 12 -> CWith (build_jsval r)
          | 13 -> CBinary { op = build_string 3; left = build_jsval r; right = build_jsval r; result = build_jsval r }
          | 14 -> CUnary { op = build_string 3; arg = build_jsval r; result = build_jsval r }
-         | 15 -> CConditional (Random.State.bits r, build_jsval r)
+         | 15 -> CConditional (None, build_jsval r)
          | _ -> CEndExpression
 
      in

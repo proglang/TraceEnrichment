@@ -68,6 +68,8 @@
         valid(global);
         console.log("Collected global-reachable objects");
         strategy.start();
+        var currentSID = undefined;
+        var sendIIDs = [];
 
         // recurse along prototype chain
         function filter_special(at_top, name) {
@@ -178,10 +180,21 @@
             }
         }
 
+        function addStep(message) {
+            if (J$.sid != currentSID) {
+                currentSID = J$.sid;
+                strategy.sendSID(currentSID);
+                if (sendIIDs.indexOf(currentSID) == -1) {
+                    sendIIDs.push(currentSID);
+                    strategy.addIIDMap(currentSID, J$.smap[currentSID] || {});
+                }
+            }
+            strategy.addStep(message);
+        }
         console.log("Preparing dynamic analysis");
         this.invokeFunPre = function(iid, f, base, args, isConstructor,
                 isMethod) {
-            strategy.addStep({
+            addStep({
                 step : "funpre",
                 iid : iid,
                 f : valid(f),
@@ -194,7 +207,7 @@
 
         this.invokeFun = function(iid, f, base, args, result, isConstructor,
                 isMethod) {
-            strategy.addStep({
+            addStep({
                 step : "funpost",
                 iid : iid,
                 f : valid(f),
@@ -209,7 +222,7 @@
         this.literal = function(iid, val, hasGetterSetter) {
             // Special handling for function literals.
             var id = valid(val);
-            strategy.addStep({
+            addStep({
                 step : "literal",
                 iid : iid,
                 val : id,
@@ -238,7 +251,7 @@
         };
 
         this.forinObject = function(iid, val) {
-            strategy.addStep({
+            addStep({
                 step : "forin",
                 iid : iid,
                 val : valid(val)
@@ -247,7 +260,7 @@
 
         this.declare = function(iid, name, val, isArgument, argumentIndex,
                 isCatchParam) {
-            strategy.addStep({
+            addStep({
                 step : "declare",
                 iid : iid,
                 name : name,
@@ -260,7 +273,7 @@
 
         this.getFieldPre = function(iid, base, offset, isComputed, isOpAssign,
                 isMethodCall) {
-            strategy.addStep({
+            addStep({
                 step : "getpre",
                 iid : iid,
                 base : valid(base),
@@ -273,7 +286,7 @@
 
         this.getField = function(iid, base, offset, val, isComputed,
                 isOpAssign, isMethodCall) {
-            strategy.addStep({
+            addStep({
                 step : "getpost",
                 iid : iid,
                 base : valid(base),
@@ -287,7 +300,7 @@
 
         this.putFieldPre = function(iid, base, offset, val, isComputed,
                 isOpAssign) {
-            strategy.addStep({
+            addStep({
                 step : "putpre",
                 iid : iid,
                 base : valid(base),
@@ -299,7 +312,7 @@
         };
 
         this.putField = function(iid, base, offset, val, isComputed, isOpAssign) {
-            strategy.addStep({
+            addStep({
                 step : "putpost",
                 iid : iid,
                 base : valid(base),
@@ -311,7 +324,7 @@
         };
 
         this.read = function(iid, name, val, isGlobal, isScriptLocal) {
-            strategy.addStep({
+            addStep({
                 step : "read",
                 iid : iid,
                 name : name,
@@ -322,7 +335,7 @@
         };
 
         this.write = function(iid, name, val, lhs, isGlobal, isScriptLocal) {
-            strategy.addStep({
+            addStep({
                 step : "write",
                 iid : iid,
                 name : name,
@@ -334,7 +347,7 @@
         };
 
         this._return = function(iid, val) {
-            strategy.addStep({
+            addStep({
                 step : "return",
                 iid : iid,
                 val : valid(val)
@@ -342,7 +355,7 @@
         };
 
         this._throw = function(iid, val) {
-            strategy.addStep({
+            addStep({
                 step : "throw",
                 iid : iid,
                 val : valid(val)
@@ -350,7 +363,7 @@
         };
 
         this.functionEnter = function(iid, f, dis, args) {
-            strategy.addStep({
+            addStep({
                 step : "funcenter",
                 iid : iid,
                 f : valid(f),
@@ -360,7 +373,7 @@
         };
 
         this.functionExit = function(iid, returnVal, wrappedExceptionVal) {
-            strategy.addStep({
+            addStep({
                 step : "funcexit",
                 iid : iid,
                 ret : valid(returnVal),
@@ -369,18 +382,18 @@
         };
 
         this.scriptEnter = function(iid, instrumentedFileName, originalFileName) {
-            strategy.addStep({
+            addStep({
                 step : "scriptenter"
             });
         };
 
         this.scriptExit = function(iid, wrappedExceptionVal) {
             if (wrappedExceptionVal === undefined) {
-                strategy.addStep({
+                addStep({
                     step : "scriptexit"
                 });
             } else {
-                strategy.addStep({
+                addStep({
                     step : "scriptexc",
                     exc : valid(wrappedExceptionVal)
                 });
@@ -390,7 +403,7 @@
 
         this.binaryPre = function(iid, op, left, right, isOpAssign,
                 isSwitchCaseComparison, isComputed) {
-            strategy.addStep({
+            addStep({
                 step : "binarypre",
                 iid : iid,
                 op : op,
@@ -404,7 +417,7 @@
 
         this.binary = function(iid, op, left, right, result, isOpAssign,
                 isSwitchCaseComparison, isComputed) {
-            strategy.addStep({
+            addStep({
                 step : "binarypost",
                 iid : iid,
                 op : op,
@@ -418,7 +431,7 @@
         };
 
         this.unaryPre = function(iid, op, left) {
-            strategy.addStep({
+            addStep({
                 step : "unarypre",
                 iid : iid,
                 op : op,
@@ -427,7 +440,7 @@
         };
 
         this.unary = function(iid, op, left, result) {
-            strategy.addStep({
+            addStep({
                 step : "unarypost",
                 iid : iid,
                 op : op,
@@ -437,7 +450,7 @@
         };
 
         this.conditional = function(iid, result) {
-            strategy.addStep({
+            addStep({
                 step : "conditional",
                 iid : iid,
                 result : valid(result)
@@ -445,7 +458,7 @@
         };
 
         this.endExpression = function(iid) {
-            strategy.addStep({
+            addStep({
                 step : "exprend",
                 iid : iid
             });
@@ -456,7 +469,7 @@
         };
 
         this._with = function(iid, val) {
-            strategy.addStep({
+            addStep({
                 step : "with",
                 iid : iid,
                 val : val
@@ -469,6 +482,7 @@
         var object_array = [];
         var function_array = [];
         var trace = [];
+        var iids = {};
         function pad(array, n) {
             while (array.length <= n) {
                 array.push(undefined);
@@ -493,9 +507,16 @@
                 globals: globals,
                 obj: object_array,
                 func: function_array,
-                trace: trace
+                trace: trace,
+                iid: iids
             }));
         };
+        strategy.sendSID = function (sid) {
+            trace.push({ step: "switchscript", sid: sid })
+        }
+        strategy.addIIDMap = function (sid, iidmap) {
+            iids[sid] = iidmap
+        }
         strategy.start = function () { };
         return strategy;
     }
@@ -526,12 +547,13 @@
         strategy.start = function () {
             console.log("Tracing started");
         };
+        strategy.sendSID = function (sid) {
+            console.log("Switching to SID " + sid);
+        };
+        strategy.addIIDMap = function(sid, iidmap) {
+            console.log("IID map for " + sid + ": " + JSON.stringify(iidmap));
+        }
         return strategy;
-    }
-
-    function dumpEnvStrategy() {
-        console.log(JSON.stringify(Object.getOwnPropertyNames(this)));
-
     }
 
     function xhrStrategy(gap, globals) {
@@ -630,13 +652,18 @@
         strategy.start = function () {
             sendFact([ "start" ], true);
         }
+        strategy.sendSID = function (sid) {
+            strategy.addStep({ step: "switchscript", sid: sid })
+        }
+        strategy.addIIDMap = function (sid, iidmap) {
+            sendFact([ "iidmap", sid, iidmap ])
+        }
         return strategy;
     }
 
     var strategies = {
         debug: debugStrategy,
         console: consoleJSONStrategy,
-        dumpEnv: dumpEnvStrategy,
         xhr: xhrStrategy
     }
     var whichStrategy = J$.initParams.strategy || "debug";

@@ -16,6 +16,7 @@ val parse_funcspec: Yojson.Basic.json -> funcspec
 val parse_objectspec: Yojson.Basic.json -> objectspec
 val parse_operation: Yojson.Basic.json -> event
 val parse_iidmap: Yojson.Basic.json -> iidmap
+val parse_single_iidmap: Yojson.Basic.json -> location CCIntMap.t
 
 val deserialize_tracefile: Bytes.t -> tracefile
 (** Deserialize a trace from a binary format. *)

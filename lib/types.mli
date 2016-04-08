@@ -144,7 +144,9 @@ type location = {
   first_char: int;
   last_char: int
 }
-type iidmap = location CCIntMap.t
+val pp_location : location Fmt.t
+val compare_location : location -> location -> int
+type iidmap = location CCIntMap.t CCIntMap.t
 val pp_iidmap : iidmap Fmt.t
 
 (** {1 The initial states} *)
@@ -158,7 +160,7 @@ type initials = {
   objects : objects;
   globals : globals;
   globals_are_properties : bool;
-  iids: iidmap;
+  mutable iids: iidmap;
   mutable function_apply: jsval;
   mutable function_call: jsval;
   mutable function_constructor: jsval;

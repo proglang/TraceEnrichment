@@ -35,39 +35,45 @@ type action =
   | Simple of clean_operation
   | Drop
 
-let clean_impl_cases =
+let clean_impl_cases initials sid =
   let open Trace in function
-    | FunPre (_, fpre) -> [encode_pre fpre]
-    | FunPost (_, fpost) -> [encode_post fpost]
+    | SwitchScript sid -> ([], sid)
+    | FunPre (_, fpre) -> ([encode_pre fpre], sid)
+    | FunPost (_, fpost) -> ([encode_post fpost], sid)
     | Literal (_, { value; hasGetterSetter }) ->
-      [CLiteral { value; hasGetterSetter }]
-    | ForIn (_, value) -> [CForIn value]
-    | Declare (_, decl) -> [encode_decl decl]
-    | GetFieldPre (_, { base; offset }) -> [CGetFieldPre (base, offset)]
+      ([CLiteral { value; hasGetterSetter }], sid)
+    | ForIn (_, value) -> ([CForIn value], sid)
+    | Declare (_, decl) -> ([encode_decl decl], sid)
+    | GetFieldPre (_, { base; offset }) -> ([CGetFieldPre (base, offset)], sid)
     | GetField (_, { base; offset; value }) ->
-      [CGetField { base; offset; value }]
+      ([CGetField { base; offset; value }], sid)
     | Read (_, { name; value }) ->
-      [CRead { name; value }]
-    | PutFieldPre (_, { base; offset; value }) -> [CPutFieldPre { base; offset; value }]
-    | PutField (_, { base; offset; value }) -> [CPutField { base; offset; value }]
+      ([CRead { name; value }], sid)
+    | PutFieldPre (_, { base; offset; value }) -> ([CPutFieldPre { base; offset; value }], sid)
+    | PutField (_, { base; offset; value }) -> ([CPutField { base; offset; value }], sid)
     | Write (_, { name; lhs; value }) ->
-        [CWrite { name; lhs; value; isSuccessful = true }]
-    | Return (_, value) -> [CReturn value]
-    | Throw (_, value) -> [CThrow value]
-    | With (_, value) -> [CWith value]
-    | FunEnter (_, { f; this; args }) -> [CFunEnter { f; this; args }]
-    | FunExit (_, { ret; exc }) -> [CFunExit { ret; exc }]
-    | ScriptEnter -> [CScriptEnter]
-    | ScriptExit -> [CScriptExit]
-    | ScriptExc obj -> [CScriptExc obj]
-    | BinPre _ -> []
+        ([CWrite { name; lhs; value; isSuccessful = true }], sid)
+    | Return (_, value) -> ([CReturn value], sid)
+    | Throw (_, value) -> ([CThrow value], sid)
+    | With (_, value) -> ([CWith value], sid)
+    | FunEnter (_, { f; this; args }) -> ([CFunEnter { f; this; args }], sid)
+    | FunExit (_, { ret; exc }) -> ([CFunExit { ret; exc }], sid)
+    | ScriptEnter -> ([CScriptEnter], sid)
+    | ScriptExit -> ([CScriptExit], sid)
+    | ScriptExc obj -> ([CScriptExc obj], sid)
+    | BinPre _ -> ([], sid)
     | BinPost (_, { op; left; right; result }) ->
-      [CBinary { op; left; right; result }]
-    | UnaryPre _ -> []
+      ([CBinary { op; left; right; result }], sid)
+    | UnaryPre _ -> ([], sid)
     | UnaryPost (_, { op; arg; result }) ->
-      [CUnary { op; arg; result }]
-    | EndExpression _ -> [CEndExpression]
-    | Conditional (iid, value) -> [CConditional (iid, value)]
+      ([CUnary { op; arg; result }], sid)
+    | EndExpression _ -> ([CEndExpression], sid)
+    | Conditional (iid, value) ->
+        let loc =
+          match CCIntMap.find sid initials.iids with
+            | Some iidmap -> CCIntMap.find iid iidmap
+            | None -> None
+        in ([CConditional (loc, value)], sid)
 
 let global_object = OObject 0
 
@@ -277,7 +283,7 @@ let synthesize_events_step funcs op stack =
 type clean_level = SynthesizeEvents | Normalizations | SynthesizeGettersAndSetters | JustClean
 
 module CleanGeneric = functor(S: Transformers) -> struct
-  let clean = S.map_list clean_impl_cases
+  let clean initials = S.map_list_state 0 (clean_impl_cases initials)
 
   let normalize_calls initials =
     Log.debug (fun m -> m "Normalizing calls");
@@ -639,7 +645,7 @@ module CleanGeneric = functor(S: Transformers) -> struct
     match up_to with
         SynthesizeEvents ->
           trace
-            |> clean
+            |> clean initials
             |> validate Basic initials
             |> remove_use_strict
             |> validate NoUseStrict initials
@@ -653,7 +659,7 @@ module CleanGeneric = functor(S: Transformers) -> struct
             |> validate SynthesizedEvents initials
       | SynthesizeGettersAndSetters ->
           trace
-            |> clean
+            |> clean initials
             |> validate Basic initials
             |> remove_use_strict
             |> validate NoUseStrict initials
@@ -665,7 +671,7 @@ module CleanGeneric = functor(S: Transformers) -> struct
             |> synthesize_getters_and_setters
       | Normalizations ->
           trace
-            |> clean
+            |> clean initials
             |> validate Basic initials
             |> remove_use_strict
             |> validate NoUseStrict initials
@@ -675,7 +681,7 @@ module CleanGeneric = functor(S: Transformers) -> struct
             |> normalize_string_subscripts
       | JustClean ->
           trace
-            |> clean
+            |> clean initials
 
 
   let calculate_clean_trace ?up_to (initials: initials) trace =
