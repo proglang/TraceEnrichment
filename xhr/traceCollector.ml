@@ -252,6 +252,8 @@ module Server(S: STRATEGY) = struct
     let open Lwt in
       Log.debug (fun m -> m "Starting JSCollector server");
       let server = Cohttp_lwt_unix.Server.make ~callback:multiplex () in
+        Log.info (fun m -> m "Bind address: %s" (Config.get_xhr_server_address ()));
+        Log.info (fun m -> m "Bind port: %d" (Config.get_xhr_server_port ()));
       let%lwt ctx = Conduit_lwt_unix.init ~src:(Config.get_xhr_server_address ()) () in
       let%lwt () =
         Cohttp_lwt_unix.Server.create
