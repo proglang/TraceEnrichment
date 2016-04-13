@@ -248,7 +248,7 @@ module Server(S: STRATEGY) = struct
       | e -> Log.err (fun m -> m "Got exception: %s" (Printexc.to_string e));
              raise e
 
-  let server =
+  let server () =
     let open Lwt in
       Log.debug (fun m -> m "Starting JSCollector server");
       let server = Cohttp_lwt_unix.Server.make ~callback:multiplex () in

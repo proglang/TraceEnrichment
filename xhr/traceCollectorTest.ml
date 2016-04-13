@@ -44,4 +44,4 @@ let _ =
   Arg.parse Config.args (fun _ -> prerr_endline "No arguments expected")
     "Usage: traceCollectorTest [options]\n\
      Run a testing version of TraceCollector";
-  Lwt_main.run(TestServer.server)
+  Lwt_main.run(TestServer.server ())

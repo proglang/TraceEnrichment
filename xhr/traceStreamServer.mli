@@ -10,7 +10,7 @@ module type STREAMSTRATEGY =
   end
 module type TSS =
   sig
-    val server : unit Lwt.t
+    val server : unit -> unit Lwt.t
     val run_server : unit -> unit
   end
 module TraceStreamServer : functor (S : STREAMSTRATEGY) -> TSS

@@ -9,7 +9,7 @@ module type STREAMSTRATEGY = sig
 end
 
 module type TSS = sig
-  val server: unit Lwt.t
+  val server: unit -> unit Lwt.t
   val run_server: unit -> unit
 end
 
@@ -40,7 +40,7 @@ module TraceStreamServer(S: STREAMSTRATEGY): TSS = struct
     Log.default_setup true;
     Log.info (fun m -> m "Setting up server");
     Config.setup();
-    Lwt_main.run server
     Log.info (fun m -> m "Starting server");
+    Lwt_main.run (server ())
 end
 
