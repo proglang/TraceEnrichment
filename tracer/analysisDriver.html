@@ -7,7 +7,9 @@
 // JALANGI DO NOT INSTRUMENT
 window.onload = function () {
     J$.endExecution();
-    window.location.assign(J$.next_page);
+    if (J$.next_page) {
+        window.location.assign(J$.next_page);
+    }
 }
         </script>
     </head>
