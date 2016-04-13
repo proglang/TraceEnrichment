@@ -33,7 +33,7 @@ Document "js-enrichment-api"
     TraceTypes, Types, Debug, StringMap, IntMap, IntIntMap,
     IntIntSet
 
-Library "js-enrichment-xhr"
+Library "xhr"
   Path:       xhr
   BuildTools: ocamlbuild
   Install:    true
@@ -166,7 +166,7 @@ Executable "traceStreamTest"
   Install:    false
   Build$:     flag(tests)
   MainIs:     traceStreamTest.ml
-  BuildDepends: js-enrichment, js-enrichment.js-enrichment-xhr, kaputt, lwt, lwt.unix
+  BuildDepends: js-enrichment, js-enrichment.xhr, kaputt, lwt, lwt.unix
   Path:       xhr
   BuildTools: ocamlbuild
   CompiledObject: best
@@ -175,7 +175,7 @@ Executable "jalangiInterfaceTest"
   Install:    false
   Build$:     flag(tests)
   MainIs:     jalangiInterfaceTest.ml
-  BuildDepends: js-enrichment, js-enrichment.js-enrichment-xhr, kaputt, lwt, lwt.unix, camltemplate
+  BuildDepends: js-enrichment, js-enrichment.xhr, kaputt, lwt, lwt.unix, camltemplate
   Path:       xhr
   BuildTools: ocamlbuild
   CompiledObject: best
@@ -184,7 +184,7 @@ Executable "traceCollectorTest"
   Install:    false
   Build$:     flag(tests)
   MainIs:     traceCollectorTest.ml
-  BuildDepends: js-enrichment, js-enrichment.js-enrichment-xhr,
+  BuildDepends: js-enrichment, js-enrichment.xhr,
         ppx_deriving.std, ppx_deriving_yojson,
         lwt, lwt.unix, cohttp, cohttp.lwt, camltemplate
   Path:       xhr
@@ -195,7 +195,7 @@ Executable "traceStreamServerTest"
   Install:    false
   Build$:     flag(tests)
   MainIs:     traceStreamServerTest.ml
-  BuildDepends: js-enrichment, js-enrichment.js-enrichment-xhr,
+  BuildDepends: js-enrichment, js-enrichment.xhr,
         ppx_deriving.std, ppx_deriving_yojson,
         lwt, lwt.unix, cohttp, cohttp.lwt, camltemplate
   Path:       xhr
@@ -206,7 +206,7 @@ Executable "traceStreamCleanServer"
   Install:    false
   Build$:     flag(tests)
   MainIs:     traceStreamCleanServer.ml
-  BuildDepends: js-enrichment, js-enrichment.js-enrichment-xhr,
+  BuildDepends: js-enrichment, js-enrichment.xhr,
         ppx_deriving.std, ppx_deriving_yojson,
         lwt, lwt.unix, cohttp, cohttp.lwt, camltemplate
   Path:       xhr
