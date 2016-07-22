@@ -54,18 +54,23 @@ let rec handle_end = function
   | item :: items -> let (items, at_end) = handle_end items in (item::items, at_end)
   | [] -> ([], false)
 
+let array_ensure arr num value =
+  for i = BatDynArray.length arr to num - 1 do
+    BatDynArray.add arr value
+  done
+
 let function_handler initials = function
   | ItemFunction (id, spec) ->
-      let open Reference in
-        BatDynArray.insert initials.functions id spec;
-        true
+      array_ensure initials.functions id (External (-1));
+      BatDynArray.insert initials.functions id spec;
+      true
   | _ -> false
 
 let object_handler initials = function
   | ItemObject (id, spec) ->
-      let open Reference in
-        BatDynArray.insert initials.objects id spec;
-        true
+      array_ensure initials.objects id StringMap.empty;
+      BatDynArray.insert initials.objects id spec;
+      true
   | _ -> false
 
 let iid_handler initials = function
