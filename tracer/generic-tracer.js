@@ -82,21 +82,7 @@
                 return { type: typeof obj, id: objects.get(obj) };
             } else {
                 var id = objids++;
-                try {
-                    objects.set(obj, id);
-                } catch (e) {
-                    if (e instanceof TypeError) {
-                        console.log("writeobj: type error in object memoization. name=" + name);
-                        console.log("type of object: " + typeof obj);
-                        throw e;
-                        // The whole affair here is to work around less-than-perfect WeakMap
-                        // support. Old browsers don't support it at all, and Firefox has
-                        // some weird exceptions where some objects cannot be used as keys.
-                    } else {
-                        console.log("unexpected exception " + e);
-                        throw e;
-                    }
-                }
+                objects.set(obj, id);
                 queue.push([obj, id, name]);
                 return { type: typeof obj, id: id };
             }

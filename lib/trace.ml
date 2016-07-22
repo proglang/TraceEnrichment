@@ -82,12 +82,10 @@ let parse_single_iidmap json =
       | exception e ->
           Format.eprintf "Exception %s for %s@." (Printexc.to_string e) (Yojson.Basic.to_string json); raise e
   in 
-    Format.eprintf "Trying to parse IID map entry %s@." (Yojson.Basic.to_string json);
     parse_intmap parse_location json
 
 let parse_iidmap json =
   try
-    Format.eprintf "Trying to parse IID map %s@." (Yojson.Basic.to_string json);
     parse_intmap parse_single_iidmap json
   with ParseError -> report "Context" "iidmap" json
     | e -> Format.eprintf "Exception %s for %s@." (Printexc.to_string e) (Yojson.Basic.to_string json); raise e

@@ -103,7 +103,6 @@ module Server(S: STRATEGY) = struct
   let handler_facts id uri body =
     if Uri.path uri = "" then begin
       let%lwt body = body in
-      Log.info (fun m -> m "Feeding facts for %s: %s" id body);
       Hashtbl.find sessions id body;
       reply_plain_text ~status:`Accepted "Accepted for processing"
     end else begin

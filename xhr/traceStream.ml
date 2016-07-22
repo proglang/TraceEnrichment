@@ -98,7 +98,6 @@ let rec handle_start initials = function
   | [] -> []
 
 let parse_packet initials event_push json_string =
-  Log.debug (fun m -> m "Handling data packet %s" json_string);
   let items =
     Yojson.Basic.from_string json_string
     |> Yojson.Basic.Util.convert_each parse_item
