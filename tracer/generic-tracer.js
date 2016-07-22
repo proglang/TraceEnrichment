@@ -115,6 +115,20 @@
                     }
             }
         }
+        function getDescription(queue, name, obj, prop) {
+            var propdesc = Object.getOwnPropertyDescriptor(obj, prop) || {};
+            var skip_value = false;
+            if (propdesc.get) {
+                propdesc.get = writeval(propdesc.get, queue, name + "/get:" + prop);
+                skip_value = true;
+            }
+            if (propdesc.set) propdesc.set = writeval(propdesc.set, queue, name + "/set:" + prop);
+            if (!skip_value)
+                propdesc.value = writeval(obj[prop], queue, name + "/" + prop);
+            else
+                propdesc.value = undefined;
+            return propdesc;
+        }
         function valid(val) {
             var queue = [];
             var valdesc = writeval(val, queue, "./");
@@ -133,18 +147,11 @@
                     var prop = props[i];
                     if (filter_special(obj === this, prop))
                         continue;
-                    var propdesc = Object.getOwnPropertyDescriptor(obj, prop) || {};
-                    var skip_value = false;
-                    if (propdesc.get) {
-                        propdesc.get = writeval(propdesc.get, queue, name + "/get:" + prop);
-                        skip_value = true;
-                    }
-                    if (propdesc.set) propdesc.set = writeval(propdesc.set, queue, name + "/set:" + prop);
-                    if (!skip_value)
-                        propdesc.value = writeval(obj[prop], queue, name + "/" + prop);
-                    else
-                        propdesc.value = undefined;
-                    desc[prop] = propdesc;
+                    desc[prop] = getDescription(queue, name, obj, prop);
+                }
+                if (!desc.prototype) {
+                    console.log("No prototype for " + name);
+                    desc.prototype = { value: valid(Object.getPrototypeOf(obj)) };
                 }
                 strategy.addObject(id, desc);
             }
