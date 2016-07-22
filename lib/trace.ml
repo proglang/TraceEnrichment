@@ -18,10 +18,13 @@ let parse_jsval json =
     | "number" ->
       let numstr = member "val" json |> to_string "Value" in begin
         try ONumberInt (BatInt.of_string numstr)
-        with Invalid_argument _ ->
+        with Failure _ -> begin
           try ONumberFloat (BatFloat.of_string numstr)
-          with Invalid_argument _ ->
+          with Failure _ ->
             failwith ("Strange number here: " ^ Yojson.Basic.to_string json)
+            | e -> Format.eprintf "Unexpected exception %s for BatFloat.of_string@." (Printexc.to_string e); raise e
+        end
+          | e -> Format.eprintf "Unexpected exception %s for BatInt.of_string@." (Printexc.to_string e); raise e
       end
     | "string" -> OString (member "val" json |> to_string "Value")
     | "symbol" -> OSymbol (member "val" json |> to_string "Value")
