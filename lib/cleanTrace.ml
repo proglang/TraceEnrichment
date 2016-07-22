@@ -45,12 +45,14 @@ let clean_impl_cases initials sid =
     | ForIn (_, value) -> ([CForIn value], sid)
     | Declare (_, decl) -> ([encode_decl decl], sid)
     | GetFieldPre (_, { base; offset }) -> ([CGetFieldPre (base, offset)], sid)
-    | GetField (_, { base; offset; value }) ->
-      ([CGetField { base; offset; value }], sid)
+    | GetField (_, { base; offset; value; isComputed }) ->
+      ([CGetField { base; offset; value; isComputed }], sid)
     | Read (_, { name; value }) ->
       ([CRead { name; value }], sid)
-    | PutFieldPre (_, { base; offset; value }) -> ([CPutFieldPre { base; offset; value }], sid)
-    | PutField (_, { base; offset; value }) -> ([CPutField { base; offset; value }], sid)
+    | PutFieldPre (_, { base; offset; value; isComputed }) ->
+        ([CPutFieldPre { base; offset; value; isComputed }], sid)
+    | PutField (_, { base; offset; value; isComputed }) ->
+        ([CPutField { base; offset; value; isComputed }], sid)
     | Write (_, { name; lhs; value }) ->
         ([CWrite { name; lhs; value; isSuccessful = true }], sid)
     | Return (_, value) -> ([CReturn value], sid)

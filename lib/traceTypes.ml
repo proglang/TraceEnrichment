@@ -162,7 +162,8 @@ type declare = {
 type accessfield = {
   base : jsval;
   offset : string;
-  value : jsval
+  value : jsval;
+  isComputed : bool;
 } [@@deriving show]
 type read = {
   name : string;
@@ -232,12 +233,14 @@ type alias = {
 type rread = {
   ref : Reference.versioned_reference;
   value : jsval;
+  isComputed : bool;
 } [@@deriving show]
 type rwrite = {
   ref : Reference.versioned_reference;
   oldref: Reference.versioned_reference;
   value : jsval;
   success : bool;
+  isComputed : bool;
 } [@@deriving show]
 
 type 'a enriched_trace = (clean_operation * 'a) list [@@deriving show]

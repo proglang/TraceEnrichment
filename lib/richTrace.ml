@@ -21,41 +21,42 @@ let enrich_step globals_are_properties (op, facts) =
             let ref = StringMap.find name facts.names |> LocalFacts.make_versioned facts
             in
               [RAlias { name; ref; source = Argument idx };
-               RWrite { ref; oldref = ref; value; success = true } ]
+               RWrite { ref; oldref = ref; value; success = true; isComputed = false } ]
         | Reference.Variable _ ->
             let ref = Reference.reference_of_name globals_are_properties facts.names name
               |> LocalFacts.make_versioned facts in
               [RLocal { name; ref };
-               RWrite { ref; oldref = ref; value = OUndefined; success = true } ]
+               RWrite { ref; oldref = ref; value = OUndefined; success = true; isComputed = false } ]
       end
     | CDeclare { name; value; declaration_type = CatchParam } ->
       let ref = Reference.reference_of_name globals_are_properties facts.names name |> LocalFacts.make_versioned facts in
       [RCatch { name; ref };
-       RWrite { ref; oldref = ref; value; success = true } ]
+       RWrite { ref; oldref = ref; value; success = true; isComputed = false } ]
     | CDeclare { name; value } ->
       let ref = Reference.reference_of_name globals_are_properties facts.names name |> LocalFacts.make_versioned facts in
       [RLocal { name; ref };
-       RWrite { ref; oldref = ref; value; success = true } ]
+       RWrite { ref; oldref = ref; value; success = true; isComputed = false } ]
     | CGetFieldPre _ -> Log.debug (fun m -> m "Unexpected get_field_pre"); []
     | CPutFieldPre _ -> Log.debug (fun m -> m "Unexpected put_field_pre"); []
-    | CGetField { base; offset; value } ->
-      [RRead { ref = mkfieldref base offset; value }]
-    | CPutField { base; offset; value } ->
+    | CGetField { base; offset; value; isComputed } ->
+      [RRead { ref = mkfieldref base offset; value; isComputed }]
+    | CPutField { base; offset; value; isComputed } ->
       (* FIXME success handling *)
       [RWrite {
           ref = mkfieldref base offset;
           oldref = BatOption.get facts.last_update;
-          value; success = true
+          value; success = true; isComputed
         }]
     | CRead { name; value } ->
-      [RRead { ref = mkvarref name; value }]
+      [RRead { ref = mkvarref name; value; isComputed = false }]
     | CWrite { name; lhs; value } ->
       (* FIXME success handling *)
       [RWrite {
           ref = mkvarref name;
           oldref = BatOption.get facts.last_update;
           value;
-          success = true
+          success = true;
+          isComputed = false
         }]
     | CReturn value -> [RReturn value]
     | CThrow value -> [RThrow value]
