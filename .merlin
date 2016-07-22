@@ -5,8 +5,8 @@ B _build/tools
 S lib
 S xhr
 S tools
-PKG lwt lwt.unix kaputt yojson batteries fmt cohttp uri uuidm conduit fileutils
-PKG camltemplate ppx_deriving_yojson logs ppx_deriving ppx_deriving.show
+PKG lwt lwt.unix kaputt yojson batteries fmt cohttp uri uuidm conduit
+PKG camltemplate logs ppx_deriving ppx_deriving.show
 PKG ppx_deriving.ord ppx_deriving.eq ppx_deriving.make containers ocamlgraph
 FLG -ppx ppx_lwt
 

@@ -185,7 +185,7 @@ Executable "traceCollectorTest"
   Build$:     flag(tests)
   MainIs:     traceCollectorTest.ml
   BuildDepends: js-enrichment, js-enrichment.xhr,
-        ppx_deriving.std, ppx_deriving_yojson,
+        ppx_deriving.std,
         lwt, lwt.unix, cohttp, cohttp.lwt, camltemplate
   Path:       xhr
   BuildTools: ocamlbuild
@@ -196,7 +196,7 @@ Executable "traceStreamServerTest"
   Build$:     flag(tests)
   MainIs:     traceStreamServerTest.ml
   BuildDepends: js-enrichment, js-enrichment.xhr,
-        ppx_deriving.std, ppx_deriving_yojson,
+        ppx_deriving.std,
         lwt, lwt.unix, cohttp, cohttp.lwt, camltemplate
   Path:       xhr
   BuildTools: ocamlbuild
@@ -207,7 +207,7 @@ Executable "traceStreamCleanServer"
   Build$:     flag(tests)
   MainIs:     traceStreamCleanServer.ml
   BuildDepends: js-enrichment, js-enrichment.xhr,
-        ppx_deriving.std, ppx_deriving_yojson,
+        ppx_deriving.std,
         lwt, lwt.unix, cohttp, cohttp.lwt, camltemplate
   Path:       xhr
   BuildTools: ocamlbuild
