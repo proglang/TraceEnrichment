@@ -1,0 +1,8 @@
+#! /bin/bash
+
+node $(npm explore jalangi2 -- pwd 2>/dev/null)/src/js/commands/jalangi.js \
+    --inlineSource --inlineIID \
+    --analysis tracer/AlmostWeakMap.js \
+    --analysis tracer/generic-tracer.js \
+    --initParam strategy:console \
+    "$@" |tail -1
