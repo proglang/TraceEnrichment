@@ -34,3 +34,6 @@ compilationConfig.ml
 *.odocl
 *.enriched
 _tags
+
+# Jalangi output files.
+*_jalangi_*
