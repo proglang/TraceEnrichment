@@ -17,10 +17,10 @@ let parse_jsval json =
     | "boolean" -> OBoolean (member "val" json |> to_string "Value" |> bool_of_string)
     | "number" ->
       let numstr = member "val" json |> to_string "Value" in begin
-        try ONumberInt (int_of_string numstr)
-        with Failure "int_of_string" ->
-          try ONumberFloat (float_of_string numstr)
-          with Failure "float_of_string" ->
+        try ONumberInt (BatInt.of_string numstr)
+        with Invalid_argument _ ->
+          try ONumberFloat (BatFloat.of_string numstr)
+          with Invalid_argument _ ->
             failwith ("Strange number here: " ^ Yojson.Basic.to_string json)
       end
     | "string" -> OString (member "val" json |> to_string "Value")
