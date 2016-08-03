@@ -526,10 +526,15 @@
     }
 
     function debugStrategy(gap, globals) {
-        var Console = require('console').Console;
-        var fs = require('fs');
-        var output = fs.createWriteStream("/dev/stdout");
-        var console = new Console(output, output);
+        var console;
+        if (typeof window === 'undefined') {
+            var Console = require('console').Console;
+            var fs = require('fs');
+            var output = fs.createWriteStream("/dev/stdout");
+            console = new Console(output, output);
+        } else {
+            console = window.console;
+        }
         console.log("globals are properties: " + gap);
         console.log("globals: " + JSON.stringify(globals));
         var strategy = {};
