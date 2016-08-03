@@ -137,16 +137,16 @@
         }
         function getDescription(queue, name, obj, prop) {
             var propdesc = Object.getOwnPropertyDescriptor(obj, prop) || {};
-            var skip_value = false;
-            if (propdesc.get) {
-                propdesc.get = writeval(propdesc.get, queue, name + "/get:" + prop);
-                skip_value = true;
-            }
+            if (propdesc.get) propdesc.get = writeval(propdesc.get, queue, name + "/get:" + prop);
             if (propdesc.set) propdesc.set = writeval(propdesc.set, queue, name + "/set:" + prop);
-            if (!skip_value)
+            /* Note that the semantics depend on whether a getter exists or not.
+               If a getter exists, this will only be used for the initial object graph. */
+            try {
                 propdesc.value = writeval(obj[prop], queue, name + "/" + prop);
-            else
-                propdesc.value = undefined;
+            } catch (e) {
+                // FIXME: We actually need an additional type here: "getter failed".
+                propdesc.value = { type: "undefined" }
+            }
             return propdesc;
         }
         function valid(val) {
