@@ -58,7 +58,7 @@
         // global object. We assume that each interpreter uses only one way to
         // handle globals, but we need to know which.
         // CAVE: The global object has to come first. We use the fact that the
-        // global object has index 0 in the oracle.
+        // global object has index 0 all over the place.
         // The second argument is used to control the fields that get added.
         // In particular, we use it to exclude debris from the instrumentation.
         // Fill in descriptions for standard library objects if missing. XXX do we need to do something here?
