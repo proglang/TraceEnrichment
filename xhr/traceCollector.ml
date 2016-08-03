@@ -1,21 +1,34 @@
-(** HTTP reply functions. *)
+(** The core of the XHR server. *)
+
+(** {1 HTTP reply functions.} *)
+
+(** Reply with some kind of text. *)
 let reply_text ?(status=`OK) content body =
   let headers = Cohttp.Header.init_with "Content-Type" content in
     Cohttp_lwt_unix.Server.respond_string ~headers ~status ~body ()
+(** Reply with plain text. *)
 let reply_plain_text ?(status=`OK) body = reply_text ~status "text/plain" body
+(** Reply with JSON. *)
 let reply_json_text ?(status=`OK) body = reply_text ~status "application/json" body
+(** Reply with HTML. *)
 let reply_html ?(status=`OK) body = reply_text ~status "text/html" body
+(** Reply with JavaScript. *)
 let reply_javascript ?(status=`OK) body = reply_text ~status "application/javascript" body
+(** Reply with binary data. *)
 let reply_binary ?(status=`OK) body = reply_text ~status "application/octet-stream" body
+(** Reply with an error. *)
 let reply_error status body =
   let headers = Cohttp.Header.init_with "Content-Type" "text/plain" in
     Cohttp_lwt_unix.Server.respond_error ~status ~body ~headers ()
+(** Reply with a file. *)
 let reply_file content filename =
   let headers = Cohttp.Header.init_with "Content-Type" content in
     Cohttp_lwt_unix.Server.respond_file ~headers ~fname:filename ()
+(** Reply with a redirect. *)
 let reply_redirect uri =
   Cohttp_lwt_unix.Server.respond_redirect ~uri ()
 
+(**/**)
 let make_new_uuid () =
   Uuidm.v4_gen (Random.get_state ()) ()
     |> Uuidm.to_string
@@ -39,23 +52,54 @@ let instrument uri providejs =
   with
       e -> Log.warn (fun m -> m "Exception in instrumentation: %s" (Printexc.to_string e));
            reply_error `Internal_server_error (Printexc.to_string e)
+(**/**)
 
+(** {1 Server implementation} *)
+(** Type of URL handlers. *)
 type handler =
     Uri.t -> string Lwt.t -> (Cohttp.Response.t * Cohttp_lwt_body.t) Lwt.t
 
+(** A module type for strategies implementating XHR servers. *)
 module type STRATEGY = sig
+  (** Generate a trace sink, where event packets pertaining to a specific trace 
+      can be sent and handled.
+
+      Call as [make_trace_sink init_data id finish]. [init] containes the initial
+      data packet (as a string), [id] a unique ID for the trace being handled,
+      and [finish] a function that is called when the input trace has finished.
+      It returns a function that can be fed trace event packets (as strings).
+  *)
   val make_trace_sink:
     init_data:string ->
     id:string ->
     finish:(unit -> unit) ->
     (string -> unit) Lwt.t
+
+    (** Global handlers to provide by the server. Each entry is of the form
+        [((path, method), (desc, handler))], [path] and [method] are used to
+        construct the URL under which the handler can be reached,
+        [desc] is a human-readable description of the method, and
+        [handler] is a function to handle the request, taking the URI of the
+        request and the request body as arguments and returning a CohTTP response. *)
   val handlers_global: ((string * Cohttp.Code.meth) * (string * handler)) list
+    (** Local handlers to provide by the server. Each entry is of the form
+        [((path, method), (desc, handler))], [path] and [method] are used to
+        construct the URL under which the handler can be reached,
+        [desc] is a human-readable description of the method, and
+        [handler] is a function to handle the request, taking the session id,
+        the URI of the request and the request body as arguments and returning
+        a CohTTP response. *)
   val handlers_local: ((string * Cohttp.Code.meth) * (string * (string -> handler))) list
 end
 
-module Server(S: STRATEGY) = struct
+(** Functor for creating servers. *)
+module Server(S: STRATEGY): sig
+  (** Server implementation. *)
+  val server: unit -> unit Lwt.t
+end = struct
   open Cohttp.Code
 
+  (**/**)
   let sessions = Hashtbl.create 20
 
   let (stop, wakener) = Lwt.wait ()
@@ -246,7 +290,9 @@ module Server(S: STRATEGY) = struct
     with 
       | e -> Log.err (fun m -> m "Got exception: %s" (Printexc.to_string e));
              raise e
+  (**/**)
 
+  (** Server implementation. *)
   let server () =
     let open Lwt in
       Log.debug (fun m -> m "Starting JSCollector server");

@@ -44,6 +44,13 @@ Library "xhr"
   Modules:    Config, Common, CompilationConfig, TraceCollector, TraceStream, JalangiInterface, TraceStreamServer, Files
   DataFiles:  ../tracer/*.html, ../tracer/*.js
   
+Document "xhr-api"
+  Type:       ocamlbuild (0.4)
+  BuildTools: ocamldoc, ocamlbuild
+  Title:      API reference for js-enrichment-xhr
+  XOcamlbuildPath: xhr
+  XOcamlbuildModules: TraceCollector, TraceStream, JalangiInterface, TraceStreamServer
+
 #Library "js-enrichment.test"
 #  Path:       lib
 #  BuildTools: ocamlbuild

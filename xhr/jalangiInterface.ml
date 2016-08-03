@@ -30,6 +30,11 @@ let unlink_files files =
                           (fun () -> Lwt_unix.unlink file)
                           (fun _ -> Lwt.return_unit)) files)
 
+(** Instrument one or more files using Jalangi2 and tracing instrumentation.
+    Call as [jalangi2_instument strategy filenames outdir], where
+    [strategy] representes a tracing strategy (see the generic tracer for this),
+    [filenames] gives the filenames of files to instrument, and [outdir] the
+    output directory. *)
 let jalangi2_instrument strategy filenames outdir =
   let open Lwt in
   let args =
@@ -89,6 +94,17 @@ let clean_up () =
           ignore (Sys.command ("rm -rf " ^ base))
     | None -> ()
 
+(** Instrument a JS script for browser use.
+    Call as [instrument_for_browser ~basename ~providejs],
+    where [providejs] is a function taking a path name.
+
+    First, [providejs] is called with the name of a temporary
+    file (whose name is based on basename, if given).
+    It is supposed to write a JavaScript file to this path name.
+    Then, this file is instrumented by Jalangi, and a driver
+    HTML file is generated. The function returns the path
+    to both files, excluding the extension.
+    *)
 let instrument_for_browser ?basename ~providejs =
   let%lwt (tmpdir, insdir) = get_instrument_tmp_dir () in
     Log.debug (fun m -> m "tmpdir = %s, insdir = %s" tmpdir insdir);
