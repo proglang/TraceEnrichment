@@ -565,6 +565,130 @@
         return strategy;
     }
 
+    function htmlStrategy(gap, globals) {
+        console.log("Setting up");
+        var trace = null;
+        var strategy = {};
+        function setTrace() {
+            //document.getElementById("GAP").appendChild(document.createTextNode(gap));
+            trace = document.getElementById("trace");
+        }
+        function format_value(val) {
+            var desc = val.value;
+            if (desc == undefined) {
+                return document.createTextNode("[value with getter]");
+            } else {
+                switch (desc.type) {
+                    case "null":
+                        return document.createTextNode("null");
+                    case "undefined":
+                        return document.createTextNode("undefined");
+                    case "boolean":
+                    case "number":
+                        return document.createTextNode(desc.val);
+                    case "string":
+                        var inner = document.createElement("pre");
+                        inner.appendChild(document.createTextNode(desc.val));
+                        return inner;
+                    case "symbol":
+                        return document.createTextNode("symbol " + desc.val);
+                    case "function":
+                        return document.createTextNode("function " + desc.id + "/" + desc.funid);
+                    case "object":
+                        return document.createTextNode("object " + desc.id);
+                    default:
+                        return document.createTextNode(desc.type + " " + desc.id);
+                }
+            }
+        }
+        strategy.addFunction = function (id, desc) {
+            setTrace();
+            var data = document.createElement("li");
+            data.appendChild(document.createTextNode("Adding function " + id + ": object " + desc.obj + ", instrumented code: "));
+            var pre = document.createElement("pre");
+            pre.appendChild(document.createTextNode(desc.instrumented));
+            data.appendChild(pre);
+            trace.appendChild(data);
+        }
+        strategy.addObject = function (id, desc) {
+            setTrace();
+            var data = document.createElement("dl");
+            var keys = Object.keys(desc);
+            var i;
+            for (i = 0; i < keys.length; i++) {
+                var key = keys[i];
+                var inner = document.createTextNode(key);
+                var outer = document.createElement("dt");
+                outer.appendChild(inner);
+                data.appendChild(outer);
+                inner = format_value(desc[key]);
+                outer = document.createElement("dd");
+                outer.appendChild(inner);
+                data.appendChild(outer);
+            }
+            var entry = document.createElement("li");
+            entry.appendChild(document.createTextNode("Adding object " + id));
+            entry.appendChild(data);
+            trace.appendChild(entry);
+        }
+        strategy.functionCode = function (id, code) {
+            setTrace();
+            var data = document.createElement("li");
+            data.appendChild("Adding uninstrumented code to " + id.funid + ": ");
+            var pre = document.createElement("pre");
+            pre.appendChild(document.createTextNode(code));
+            data.appendChild(pre);
+            trace.appendChild(data);
+        }
+        strategy.addStep = function(step) {
+            setTrace();
+            var data = document.createElement("dl");
+            var keys = Object.keys(step);
+            var i;
+            for (i = 0; i < keys.length; i++) {
+                var key = keys[i];
+                var value = step[key];
+                var inner = document.createTextNode(key);
+                var outer = document.createElement("dt");
+                outer.appendChild(inner);
+                data.appendChild(outer);
+                inner = document.createTextNode(value);
+                outer = document.createElement("dd");
+                outer.appendChild(inner);
+                data.appendChild(outer);
+            }
+            var entry = document.createElement("li");
+            entry.appendChild(document.createTextNode("Adding step"));
+            entry.appendChild(data);
+            trace.appendChild(entry);
+        }
+        strategy.end = function () {
+            setTrace();
+            var entry = document.createElement("li");
+            entry.appendChild(document.createTextNode("Tracing finished"));
+            trace.appendChild(entry);
+        }
+        strategy.start = function () {
+            setTrace();
+            var entry = document.createElement("li");
+            entry.appendChild(document.createTextNode("Tracing started"));
+            trace.appendChild(entry);
+        };
+        strategy.sendSID = function (sid) {
+            setTrace();
+            var entry = document.createElement("li");
+            entry.appendChild(document.createTextNode("Switching to SID " + sid));
+            trace.appendChild(entry);
+        };
+        strategy.addIIDMap = function(sid, iidmap) {
+            setTrace();
+            var entry = document.createElement("li");
+            entry.appendChild(document.createTextNode("IID map"));
+            trace.appendChild(entry);
+        }
+        return strategy;
+    }
+
     function xhrStrategy(gap, globals) {
         console.log("Instantiating XHR strategy");
         if (!window.XMLHttpRequest) {
@@ -673,7 +797,8 @@
     var strategies = {
         debug: debugStrategy,
         console: consoleJSONStrategy,
-        xhr: xhrStrategy
+        xhr: xhrStrategy,
+        html: htmlStrategy
     }
     var whichStrategy = J$.initParams.strategy || "debug";
     sandbox.analysis = new GenericAnalysis(this, strategies[whichStrategy]);
