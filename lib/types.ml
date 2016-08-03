@@ -169,7 +169,8 @@ type initials = {
   mutable function_eval: jsval;
 } [@@deriving show, eq]
 
-exception ObjectNotFound
+exception ObjectNotFound of objectid * string
+
 let lookup_object ?(required=false) (objects: objects) objval fieldname =
   try
     BatDynArray.get objects (get_object objval)
@@ -179,7 +180,7 @@ let lookup_object ?(required=false) (objects: objects) objval fieldname =
     Log.debug (fun m -> m "Could not find object %a, field %s"
       pp_jsval objval fieldname);
     if required then
-      raise ObjectNotFound
+      raise (ObjectNotFound (objectid_of_jsval objval, fieldname))
     else
       OUndefined
 

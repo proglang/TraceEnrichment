@@ -168,7 +168,7 @@ type initials = {
 }
 
 (** Look up objects and functions *)
-exception ObjectNotFound
+exception ObjectNotFound of objectid * string
 val lookup_object: ?required:bool -> objects -> jsval -> string -> jsval
 val lookup_functions: initials -> unit
 

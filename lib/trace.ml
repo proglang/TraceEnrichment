@@ -5,7 +5,9 @@ open Yojson.Basic;;
 open Yojson.Basic.Util;;
 
 exception ParseError
-let report err msg json = Format.eprintf "%s - %s: %s@." err msg (Yojson.Basic.to_string json); raise ParseError
+let report err msg json = 
+  Log.err (fun m -> m "%s - %s: %s" err msg (Yojson.Basic.to_string json));
+  raise ParseError
 
 let to_string err json =
   try to_string json with Type_error (msg, json) -> report err msg json
@@ -13,36 +15,41 @@ let to_string err json =
 let parse_jsval json =
   try
     match member "type" json |> to_string "Value type" with
-    | "undefined" -> OUndefined
-    | "boolean" -> OBoolean (member "val" json |> to_string "Value" |> bool_of_string)
-    | "number" ->
-      let numstr = member "val" json |> to_string "Value" in begin
-        try ONumberInt (BatInt.of_string numstr)
-        with Failure _ -> begin
-          try ONumberFloat (BatFloat.of_string numstr)
-          with Failure _ ->
-            failwith ("Strange number here: " ^ Yojson.Basic.to_string json)
-            | e -> Format.eprintf "Unexpected exception %s for BatFloat.of_string@." (Printexc.to_string e); raise e
-        end
-          | e -> Format.eprintf "Unexpected exception %s for BatInt.of_string@." (Printexc.to_string e); raise e
-      end
-    | "string" -> OString (member "val" json |> to_string "Value")
-    | "symbol" -> OSymbol (member "val" json |> to_string "Value")
-    | "function" -> OFunction (member "id" json |> to_int, member "funid" json |> to_int)
-    | "null" -> ONull
-    | "object" -> OObject (member "id" json |> to_int)
-    | _ as ty -> OOther (ty, member "id" json |> to_int)
+      | "undefined" -> OUndefined
+      | "boolean" -> OBoolean (member "val" json |> to_string "Value" |> bool_of_string)
+      | "number" ->
+          let numstr = member "val" json |> to_string "Value" in begin
+            try ONumberInt (BatInt.of_string numstr)
+            with Failure _ -> begin
+              try ONumberFloat (BatFloat.of_string numstr)
+              with Failure _ ->
+                failwith ("Strange number here: " ^ Yojson.Basic.to_string json)
+                | e -> Format.eprintf "Unexpected exception %s for BatFloat.of_string@." (Printexc.to_string e); raise e
+            end
+              | e -> Format.eprintf "Unexpected exception %s for BatInt.of_string@." (Printexc.to_string e); raise e
+          end
+      | "string" -> OString (member "val" json |> to_string "Value")
+      | "symbol" -> OSymbol (member "val" json |> to_string "Value")
+      | "function" -> OFunction (member "id" json |> to_int, member "funid" json |> to_int)
+      | "null" -> ONull
+      | "object" -> OObject (member "id" json |> to_int)
+      | _ as ty -> OOther (ty, member "id" json |> to_int)
   with
-  | ParseError -> report "Context" "jsval" json
+    | ParseError -> report "Context" "jsval" json
+    | Type_error (msg, json) -> report "parse_jsval" msg json
 
 let native_pattern = "[native code]"
 let parse_funcspec json =
-  let instr = member "instrumented" json |> to_string "Function specification" in
-  if (BatString.Exceptionless.find instr native_pattern <> None)
-  then External (json |> member "obj" |> member "funid" |> to_int)
-  else match json |> member "uninstrumented" |> to_string_option with
-    | Some uninstr -> OrigCode (instr, uninstr)
-    | None -> ReflectedCode instr
+  try
+    let instr = member "instrumented" json |> to_string "Function specification" in
+      if (BatString.Exceptionless.find instr native_pattern <> None)
+      then External (json |> member "obj" (*|> member "funid"*) |> to_int)
+      else match json |> member "uninstrumented" |> to_string_option with
+        | Some uninstr -> OrigCode (instr, uninstr)
+        | None -> ReflectedCode instr
+  with
+    | ParseError -> report "Context" "funcspec" json
+    | Type_error (msg, json) -> report "parse_funcspec" msg json
 
 let parse_fieldspec json =
   let default_to d = function Some x -> x | None -> d in try

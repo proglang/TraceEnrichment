@@ -94,10 +94,13 @@ let debug_get_array objects base =
       else
         List.rev objs
     in get 0 []
-  with ObjectNotFound ->
-    Log.debug (fun m -> m "Not a proper array: %a, containing @[<hov 2>%a@]" pp_jsval base
-      pp_objectspec (BatDynArray.get objects (get_object base)));
-    raise ObjectNotFound
+  with ((ObjectNotFound (objid, fld)) as e) ->
+    Log.debug (fun m -> m "Not a proper array: %a, containing @[<hov 2>%a@]@ (Can't find %s in %a)"
+                          pp_jsval base
+                          pp_objectspec (BatDynArray.get objects (get_object base))
+                          fld pp_objectid objid
+    );
+    raise e
       
 let resolve_call objects function_apply function_call f base args call_type =
   Log.debug (fun m -> m "Resolving call to %s with arguments %a"
@@ -121,7 +124,7 @@ let resolve_call objects function_apply function_call f base args call_type =
   in try
     resolve f base args 0  
   with
-      ObjectNotFound ->
+      ObjectNotFound _ ->
         Log.debug (fun m -> m "Cannot resolve call due to objects not being found");
         { f=f; base=base; args=args; call_type = call_type }
 
