@@ -64,14 +64,23 @@
         // Fill in descriptions for standard library objects if missing. XXX do we need to do something here?
         console.log("About to build strategy");
         var strategy = strategyBuilder(global.J$ === J$, { global: { type: typeof global, id: 0 } });
-        console.log("Collecting globals");
-        valid(global);
-        console.log("Collected global-reachable objects");
-        strategy.start();
-        var currentSID = undefined;
-        var sendIIDs = [];
+        var initialized = false;
+        var currentSID;
+        var sendIIDs;
 
-        // recurse along prototype chain
+        function initialize() {
+            console.log("Called initialize");
+            if (!initialized) {
+                console.log("Collecting globals");
+                valid(global);
+                console.log("Collected global-reachable objects");
+                strategy.start();
+                currentSID = undefined;
+                sendIIDs = [];
+                initialized = true;
+            }
+        }
+
         function filter_special(at_top, name) {
             if (special_names.indexOf(name) !== -1) return true;
             if (at_top && top_special_names.indexOf(name) !== -1) return true;
@@ -174,6 +183,7 @@
         }
 
         function addStep(message) {
+            initialize();
             if (J$.sid != currentSID) {
                 currentSID = J$.sid;
                 strategy.sendSID(currentSID);
@@ -214,6 +224,7 @@
 
         this.literal = function(iid, val, hasGetterSetter) {
             // Special handling for function literals.
+            initialize();
             var id = valid(val);
             addStep({
                 step : "literal",
