@@ -149,11 +149,12 @@
             }
             return propdesc;
         }
+
         function valid(val) {
+            var handled = new Set();
             var queue = [];
             var valdesc = writeval(val, queue, "./");
             var objid;
-            var handled = new Set();
             while (objid = queue.shift()) {
                 var obj = objid[0];
                 var id = objid[1];
@@ -170,8 +171,7 @@
                     desc[prop] = getDescription(queue, name, obj, prop);
                 }
                 if (!desc.prototype) {
-                    console.log("No prototype for " + name);
-                    desc.prototype = { value: valid(Object.getPrototypeOf(obj)) };
+                    desc.prototype = { value: writeval(Object.getPrototypeOf(obj), queue, name + "/prototype") };
                 }
                 strategy.addObject(id, desc);
             }
