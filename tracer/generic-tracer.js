@@ -112,7 +112,18 @@
                     }
                 case "function":
                     var desc = writeobj(val, queue, name);
-                    desc.funid = funcid(val);
+                    if (functions.has(val)) {
+                        desc.funid = functions.get(val);
+                    } else {
+                        var id = funids++;
+                        functions.set(val, id);
+                        var fdesc = {
+                            instrumented: val.toString(),
+                            obj: desc.id
+                        };
+                        strategy.addFunction(id, fdesc);
+                        desc.funid = id;
+                    }
                     return desc;
                 default:
                     if (val === null) {
@@ -169,17 +180,6 @@
 
         function funcid(obj) {
             // We know that obj is of type function
-            if (functions.has(obj)) {
-                return functions.get(obj);
-            } else {
-                var id = funids++;
-                functions.set(obj, id);
-                strategy.addFunction(id, {
-                    instrumented : obj.toString(),
-                    obj : valid(obj)
-                });
-                return id;
-            }
         }
 
         function addStep(message) {
