@@ -4,7 +4,7 @@ Version:     0.1
 Synopsis:    Trace enrichment for JavaScript execution traces.
 Authors:     Johannes Kloos
 License:     MIT
-Plugins:     META (0.4), StdFiles (0.4)
+Plugins:     META (0.4), StdFiles (0.4), DevFiles (0.4)
 FilesAB:     xhr/compilationConfig.ml.ab
 OCamlVersion: >= 4.02.1
 AlphaFeatures: no_automatic_syntax
