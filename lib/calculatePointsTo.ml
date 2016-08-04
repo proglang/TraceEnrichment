@@ -1,4 +1,4 @@
-open Types
+open TypesJS
 open TraceTypes
 open LocalFacts
 

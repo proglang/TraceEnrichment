@@ -1,4 +1,4 @@
-open Types
+open TypesJS
 open TraceTypes
 open Trace
 open TestBaseData

@@ -1,5 +1,5 @@
 (** Parsing and formatting of traces. *)
-open Types
+open TypesJS
 open TraceTypes
 (** [parse_tracefile c] parses a JSON trace file from input channel [c] and returns it.
 

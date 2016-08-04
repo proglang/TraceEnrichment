@@ -203,7 +203,7 @@ let calculate_names state ({ num_globals; num_locals } as data) =
 let concretize trace name_map =
   let open TraceTypes in
   let open LocalFacts in
-  let open Types in
+  let open TypesJS in
   BatList.flatten
     (BatList.map
        (fun (op, ctx) ->
@@ -242,7 +242,7 @@ module IntSet = BatSet.Make(BatInt)
 
 let check_concrete_trace trace =
   let open TraceTypes in
-  let open Types in
+  let open TypesJS in
   let rec check seen = function
     | CLiteral { value = OFunction (id, _) } :: trace ->
         if IntSet.mem id seen then
@@ -256,7 +256,7 @@ let check_concrete_trace trace =
 let check_closure_trace 
       (trace: LocalFacts.arguments_and_closures TraceTypes.enriched_trace) =
   let open TraceTypes in
-  let open Types in
+  let open TypesJS in
   let open LocalFacts in
   let count = ref 0 in try
     List.iter (function
@@ -386,7 +386,7 @@ let check_name_maps_injective
   List.for_all (check_name_map_injective names1) trace
 
 let initials =
-  let open Types in
+  let open TypesJS in
   let objects = BatDynArray.create() in
     BatDynArray.add objects StringMap.empty;
     { objects; globals = StringMap.empty; globals_are_properties = true;

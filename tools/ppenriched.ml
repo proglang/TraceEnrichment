@@ -23,7 +23,7 @@ let time name fn x =
   result
 
 let calculate_filter_bound objects =
-  let open Types in
+  let open TypesJS in
   let seen = Hashtbl.create (BatDynArray.length objects) in
   let rec find_max max i =
     let max = Pervasives.max max i in
@@ -72,13 +72,13 @@ type versions_resolved_delta = {
 }
 let filter_versions m =
   Reference.ReferenceMap.filter (fun key _ -> match key with
-                                   | Reference.Field (Types.Object 0, _) -> true
-                                   | Reference.Field (obj, _) -> Types.get_object_id obj >= !LocalFacts.filter_bound
+                                   | Reference.Field (TypesJS.Object 0, _) -> true
+                                   | Reference.Field (obj, _) -> TypesJS.get_object_id obj >= !LocalFacts.filter_bound
                                    | _ -> true) m
 let filter_points_to m =
   Reference.VersionedReferenceMap.filter (fun key _ -> match key with
-                                   | (Reference.Field (Types.Object 0, _), _) -> true
-                                   | (Reference.Field (obj, _), _) -> Types.get_object_id obj >= !LocalFacts.filter_bound
+                                   | (Reference.Field (TypesJS.Object 0, _), _) -> true
+                                   | (Reference.Field (obj, _), _) -> TypesJS.get_object_id obj >= !LocalFacts.filter_bound
                                    | _ -> true) m
 
 module FmtDiff(M: ExtMap.S) = struct
@@ -100,7 +100,7 @@ let fmt_closures =
     F.fmt (Fmt.braces (StringMap.pp Reference.pp_reference)) "closures"
 let fmt_points_to pp pointsto =
   Reference.pp_versioned_reference_map
-    (ExtMap.pp_diff Types.pp_jsval)
+    (ExtMap.pp_diff TypesJS.pp_jsval)
     pp (filter_points_to pointsto)
 let fmt_option fmt key pp = function
   | Some x -> Format.fprintf pp "%s: %a@ " key fmt x
@@ -141,7 +141,7 @@ type local_facts_delta = {
   last_update : Reference.versioned_reference option;
   versions : int ExtMap.diff Reference.ReferenceMap.t;
   names : Reference.reference ExtMap.diff StringMap.t;
-  points_to: Types.jsval ExtMap.diff Reference.VersionedReferenceMap.t
+  points_to: TypesJS.jsval ExtMap.diff Reference.VersionedReferenceMap.t
 }
 let pp_local_facts_delta pp 
       { last_arguments; closures; last_update; versions; names; points_to } =
@@ -191,7 +191,7 @@ let pp_enriched_trace_points_to =
 
 let enrich_and_print mode
       (functions, objects, trace, globals, globals_are_properties, _) =
-  let open Types in
+  let open TypesJS in
   let open TraceTypes in
   let open LocalFacts in
   let initials = { functions; objects; globals; globals_are_properties;

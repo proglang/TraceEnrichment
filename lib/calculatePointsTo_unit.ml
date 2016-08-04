@@ -1,5 +1,5 @@
 open Kaputt.Abbreviations
-open Types
+open TypesJS
 open TestBaseData
 
 let (|>) = Pervasives.(|>)

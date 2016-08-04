@@ -1,4 +1,4 @@
-open Types
+open TypesJS
 
 type raw_funpre = {
   f : jsval;

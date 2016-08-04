@@ -1,6 +1,6 @@
 open LocalFacts
 open TraceTypes
-open Types
+open TypesJS
 open Reference
 
 module type S = sig

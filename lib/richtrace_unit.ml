@@ -1,4 +1,4 @@
-open Types
+open TypesJS
 open Kaputt.Abbreviations
 open TestBaseData
 open TraceTypes

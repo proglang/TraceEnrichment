@@ -1,5 +1,5 @@
 (** Basic data for tests. *)
-open Types
+open TypesJS
 open TraceTypes
 open LocalFacts
 

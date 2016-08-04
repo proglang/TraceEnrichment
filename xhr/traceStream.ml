@@ -1,6 +1,6 @@
 open Trace
 open TraceTypes
-open Types
+open TypesJS
 
 type items =
   | ItemFunction of int * funcspec

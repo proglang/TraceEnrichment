@@ -1,5 +1,5 @@
 open Reference
-open Types
+open TypesJS
 open Streaming
 open TraceTypes
 open LocalFacts

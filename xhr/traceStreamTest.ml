@@ -1,6 +1,6 @@
 open Kaputt
 open Kaputt.Abbreviations
-open Types
+open TypesJS
 open TraceTypes
 open Yojson.Basic
 

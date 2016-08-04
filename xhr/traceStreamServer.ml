@@ -3,7 +3,7 @@ module type STREAMSTRATEGY = sig
 
   type t
 
-  val stream_setup: string -> Types.initials -> TraceTypes.raw_stream -> t
+  val stream_setup: string -> TypesJS.initials -> TraceTypes.raw_stream -> t
   val handlers_global: ((string * Cohttp.Code.meth) * (string * handler)) list
   val handlers_local: ((string * Cohttp.Code.meth) * (string * (t -> handler))) list
 end

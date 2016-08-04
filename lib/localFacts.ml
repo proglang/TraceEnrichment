@@ -1,4 +1,4 @@
-open Types
+open TypesJS
 open Streaming
 open TraceTypes
 
@@ -14,7 +14,7 @@ let pp_versions_filtered pp map =
 
 let pp_points_to_filtered pp map =
   Reference.VersionedReferenceMap.print (*~pair_sep:(Fmt.always " ->@ ")*)
-    Reference.pp_versioned_reference Types.pp_jsval pp
+    Reference.pp_versioned_reference TypesJS.pp_jsval pp
     (Reference.VersionedReferenceMap.filter
        (fun ref _ -> match ref with
           | (Reference.Field (id, _), _) -> get_object_id id >= !filter_bound

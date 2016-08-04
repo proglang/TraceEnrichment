@@ -1,4 +1,4 @@
-open Types
+open TypesJS
 (** The different kinds of traces. *)
 (** {1 Structures that contain event data} *)
 (** Thanks to these structures, we do not carry around huge tuples. The fields are exactly

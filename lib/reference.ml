@@ -8,18 +8,18 @@ let pp_scope pp = function
 
 module Reference = struct
   type t =
-    | Field of Types.fieldref
+    | Field of TypesJS.fieldref
     | Variable of scope * string
     [@@deriving ord, eq]
   let pp pp = function
     | Field (obj, field) ->
-        Format.fprintf pp "%a:%s" Types.pp_objectid obj field
+        Format.fprintf pp "%a:%s" TypesJS.pp_objectid obj field
     | Variable (scope, name) ->
         Format.fprintf pp "%a:%s" pp_scope scope name
 end
 open Reference
 type reference = Reference.t =
-  | Field of Types.fieldref
+  | Field of TypesJS.fieldref
   | Variable of scope * string
 
 let pp_reference = Reference.pp
@@ -39,13 +39,13 @@ let get_name = function
 module ReferenceMap = ExtMap.Make(Reference)
 let pp_reference_map = ReferenceMap.pp
 
-let global_object = Types.Object 0
+let global_object = TypesJS.Object 0
 
 let reference_of_field base offset =
   try
-    Field (Types.objectid_of_jsval base, offset)
-  with Types.NotAnObject ->
-    failwith ("Trying to build field access to " ^ Fmt.to_to_string Types.pp_jsval base)
+    Field (TypesJS.objectid_of_jsval base, offset)
+  with TypesJS.NotAnObject ->
+    failwith ("Trying to build field access to " ^ Fmt.to_to_string TypesJS.pp_jsval base)
 
 let reference_of_fieldref (base, offset) = Field (base, offset)
 let reference_of_local_name scope name = Variable (Local scope, name)
@@ -61,7 +61,7 @@ module VersionedReference = struct
   type t = reference * int [@@deriving show]
   let equal: t -> t -> bool = (=)
   let compare: t -> t -> int = Pervasives.compare
-  let hash = let open Types in function
+  let hash = let open TypesJS in function
     | (Field (Object id, name), ver)
     | (Field (Function (id, _), name), ver)
     | (Field (Other (_, id), name), ver) ->
@@ -82,8 +82,8 @@ let pp_versioned_reference_set =
   let open Fmt in
     using VersionedReferenceSet.elements (list pp_versioned_reference)
 
-type points_to_map = Types.jsval VersionedReferenceMap.t
+type points_to_map = TypesJS.jsval VersionedReferenceMap.t
 
-let pp_points_to_map = pp_versioned_reference_map Types.pp_jsval
+let pp_points_to_map = pp_versioned_reference_map TypesJS.pp_jsval
 
 

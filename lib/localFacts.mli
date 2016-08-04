@@ -1,4 +1,4 @@
-open Types
+open TypesJS
 open TraceTypes
 
 (** Facts that are local to a position in the trace. *)

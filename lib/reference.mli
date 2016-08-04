@@ -11,7 +11,7 @@ val equal_scope : scope -> scope -> Ppx_deriving_runtime.bool
 
  Because of aliasing issues, the transformation from variables to
  references is somewhat tricky. It is recommended to use the helpers below. *)
-type reference = Field of Types.fieldref | Variable of scope * string
+type reference = Field of TypesJS.fieldref | Variable of scope * string
 (** Boilerplate code. *)
 val pp_reference : reference Fmt.t
 val equal_reference : reference -> reference -> bool
@@ -21,9 +21,9 @@ val equal_reference : reference -> reference -> bool
 
  Call as [reference_of_field base offset], where [base] must be a
  value having an object identifier. *)
-val reference_of_field : Types.jsval -> string -> reference
+val reference_of_field : TypesJS.jsval -> string -> reference
 (** Transform a field reference to a reference. *)
-val reference_of_fieldref : Types.fieldref -> reference
+val reference_of_fieldref : TypesJS.fieldref -> reference
 (** Transform a variable name that is known to be local and non-aliased to
  a reference.
 
@@ -58,5 +58,5 @@ module VersionedReferenceMap : CCPersistentHashtbl.S with type key = versioned_r
 module VersionedReferenceSet : Set.S with type elt = versioned_reference
 val pp_versioned_reference_map : 'a Fmt.t -> 'a VersionedReferenceMap.t Fmt.t
 val pp_versioned_reference_set : VersionedReferenceSet.t Fmt.t
-type points_to_map = Types.jsval VersionedReferenceMap.t
+type points_to_map = TypesJS.jsval VersionedReferenceMap.t
 val pp_points_to_map : points_to_map Fmt.t

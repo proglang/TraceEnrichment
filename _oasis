@@ -20,7 +20,7 @@ Library "js-enrichment"
     ppx_deriving.make, containers, containers.data
   Modules:    CalculatePointsTo, CalculateVersions, CleanTrace, 
     LocalFacts, PointsTo, Reference, RichTrace, Streaming, Trace,
-    TraceTypes, Types, Debug, StringMap, IntMap, IntIntMap,
+    TraceTypes, TypesJS, Debug, StringMap, IntMap, IntIntMap,
     IntIntSet, Log, ExtMap, Pairs, CalculateNameBindings, EnrichTrace
 
 Document "js-enrichment-api"
@@ -30,7 +30,7 @@ Document "js-enrichment-api"
   XOcamlbuildPath: lib
   XOcamlbuildModules:    CalculatePointsTo, CalculateVersions, CleanTrace, 
     LocalFacts, PointsTo, Reference, RichTrace, Streaming, Trace,
-    TraceTypes, Types, Debug, StringMap, IntMap, IntIntMap,
+    TraceTypes, TypesJS, Debug, StringMap, IntMap, IntIntMap,
     IntIntSet
 
 Library "xhr"

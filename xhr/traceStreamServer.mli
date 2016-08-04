@@ -8,7 +8,7 @@ module type STREAMSTRATEGY =
 
     (** [stream_setup id initials stream] sets up handling of an event stream,
       given a unique id, an initial state and an event stream. *)
-    val stream_setup : string -> Types.initials -> TraceTypes.raw_stream -> t
+    val stream_setup : string -> TypesJS.initials -> TraceTypes.raw_stream -> t
 
     (** Global handlers to provide by the server. Each entry is of the form
         [((path, method), (desc, handler))], [path] and [method] are used to
