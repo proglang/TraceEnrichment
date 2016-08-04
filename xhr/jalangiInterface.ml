@@ -6,23 +6,9 @@ let instrument_script_path =
 exception InstrumentationError
 
 let instrument_make_html basename =
-  Log.debug (fun m -> m "starting to make html");
-  try
-    let model = Hashtbl.create 1
-    and buffer = Buffer.create 512
-    and tmpl = CamlTemplate.Cache.get_template
-                 Common.template_cache
-                 "analysisDriver.html"
-    in
-      Log.debug (fun m -> m "Preparations complete");
-      Hashtbl.add model "basename" (CamlTemplate.Model.Tstr (Filename.basename basename));
-      Log.debug (fun m -> m "Preparing merge");
-      CamlTemplate.merge tmpl model buffer;
-      Log.debug (fun m -> m "Merged");
-      Buffer.contents buffer
-  with e ->
-    Log.err (fun m -> m "Got exception %s" (Printexc.to_string e));
-    raise e
+  Jg_template.from_string
+    ~models:[ ("basename", Jg_types.Tstr (Filename.basename basename)) ]
+    PageText.analysis_driver
 
 let unlink_files files =
   Lwt.join (List.map (fun file ->

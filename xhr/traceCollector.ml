@@ -107,18 +107,17 @@ end = struct
 
   let operations_view ops =
     let open Cohttp.Code in
+    let open Jg_types in
     let ops =
       List.filter (function ((_, (`GET | `POST)), _) -> true | _ -> false) ops
     in let ops_view =
       List.map
         (fun ((op, meth), (name, _)) ->
-           let ht = Hashtbl.create 3 in
-             Hashtbl.add ht "path" (CamlTemplate.Model.Tstr op);
-             Hashtbl.add ht "post" (CamlTemplate.Model.Tbool (meth = `POST));
-             Hashtbl.add ht "name" (CamlTemplate.Model.Tstr name);
-             CamlTemplate.Model.Thash ht)
+           Tobj [("path", Tstr op);
+                 ("post", Tbool (meth = `POST));
+                 ("name", Tstr name)])
         ops
-    in CamlTemplate.Model.Tlist ops_view
+    in Tlist ops_view
 
   let global_operations_view = operations_view S.handlers_global
   let local_operations_view = operations_view S.handlers_local
@@ -155,7 +154,7 @@ end = struct
     end
 
   let handler_index query =
-    let open CamlTemplate.Model in
+    let open Jg_types in
     (** Create a nice list of available operations and files. *)
     let num_files = 256 in
     let%lwt dir = JalangiInterface.get_instrumented_dir () in
@@ -171,17 +170,14 @@ end = struct
     in let%lwt files = collect_files [] in
     let files = Tlist (List.map (fun n -> Tstr n) files)
     and sessions_view = ref [] in
-    let model = Hashtbl.create 4
-    and tmpl = CamlTemplate.Cache.get_template
-                 Common.template_cache "traceCollectorIndex.html"
-    and buf = Buffer.create 4096 in
       Hashtbl.iter (fun key _ -> sessions_view := Tstr key :: !sessions_view) sessions;
-      Hashtbl.add model "globals_operations" global_operations_view;
-      Hashtbl.add model "local_operations" local_operations_view;
-      Hashtbl.add model "instrumented_files" files;
-      Hashtbl.add model "session" (Tlist !sessions_view);
-      CamlTemplate.merge tmpl model buf;
-      reply_html (Buffer.contents buf)
+      let page = Jg_template.from_string
+           ~models:[ ("global_operations", global_operations_view);
+                     ("local_operations", local_operations_view);
+                     ("instrumented_failes", files);
+                     ("session", Tlist !sessions_view)]
+           PageText.trace_collector_index
+      in reply_html page
 
   let handle_session_management uri id meth =
     match meth with
@@ -201,14 +197,11 @@ end = struct
             | [ ((op, `GET), _) ] ->
                 reply_redirect (Uri.with_path uri (id ^ "/" ^ op))
             | _ ->
-                let model = Hashtbl.create 2
-                and tmpl = CamlTemplate.Cache.get_template
-                             Common.template_cache "operationMenu.html"
-                and buf = Buffer.create 4096 in
-                  Hashtbl.add model "local_operations" local_operations_view;
-                  Hashtbl.add model "session" (CamlTemplate.Model.Tstr id);
-                  CamlTemplate.merge tmpl model buf;
-                  reply_html (Buffer.contents buf)
+                let page = Jg_template.from_string
+                  ~models:[ ("local_operations", local_operations_view);
+                            ("session", Jg_types.Tstr id) ]
+                  PageText.operation_menu
+                in reply_html page
           end
       | _ ->
           Log.info (fun m -> m "Session management with bad method");
