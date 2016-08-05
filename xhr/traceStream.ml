@@ -95,14 +95,15 @@ let function_uninstrumented_handler initials = function
       end; true
   | _ -> false
 
-let rec handle_start initials = function
+let rec handle_start initials start_wakeup = function
   | ItemStart :: items ->
       lookup_functions initials;
+      Lwt.wakeup_later start_wakeup ();
       items
-  | item :: items -> item :: handle_start initials items
+  | item :: items -> item :: handle_start initials start_wakeup items
   | [] -> []
 
-let parse_packet initials event_push json_string =
+let parse_packet initials event_push start_wakeup json_string =
   let items =
     Yojson.Basic.from_string json_string
     |> Yojson.Basic.Util.convert_each parse_item
@@ -112,7 +113,7 @@ let parse_packet initials event_push json_string =
     |> extract (function_uninstrumented_handler initials)
     |> extract (object_handler initials)
     |> extract (iid_handler initials)
-    |> handle_start initials
+    |> handle_start initials start_wakeup
     |> handle_end 
   in
     Log.debug (fun m -> m "Extracted trace operations. At end: %b, %d operations"
@@ -136,7 +137,9 @@ let parse_setup_packet json_string =
                         StringMap.empty globals_json
         in let open Reference in
         let initials =
-          { globals_are_properties; globals; iids = CCIntMap.empty;
+          { globals_are_properties;
+            globals;
+            iids = CCIntMap.empty;
             objects = BatDynArray.create ();
             functions = BatDynArray.create ();
             function_call = OUndefined;
@@ -145,6 +148,7 @@ let parse_setup_packet json_string =
             function_constructor = OUndefined;
           }
         in let (stream, push) = Lwt_stream.create ()
-        in (initials, stream, parse_packet initials push)
+        and (start_wait, start_wakeup) = Lwt.wait ()
+        in (initials, stream, start_wait, parse_packet initials push start_wakeup)
     | _ -> raise (InvalidItem ("Bad setup packet: " ^ json_string))
 

@@ -1,11 +1,11 @@
+type 'a handler_spec = ((string * Cohttp.Code.meth) * (string * 'a)) list
 module type STREAMSTRATEGY = sig
   open TraceCollector
 
   type t
-
   val stream_setup: string -> TypesJS.initials -> TraceTypes.raw_stream -> t
-  val handlers_global: ((string * Cohttp.Code.meth) * (string * handler)) list
-  val handlers_local: ((string * Cohttp.Code.meth) * (string * (t -> handler))) list
+  val handlers_global: handler handler_spec
+  val handlers_local: (t -> handler) handler_spec
 end
 
 module type TSS = sig
@@ -19,18 +19,24 @@ module TraceStreamServer(S: STREAMSTRATEGY): TSS = struct
     let sinks = Hashtbl.create 20
 
     let make_trace_sink ~init_data ~id ~finish =
-      let (initials, stream, sink) =
+      let (initials, stream, wakeup, sink) =
         TraceStream.parse_setup_packet init_data in
-      let sink_data = S.stream_setup id initials stream in
+      let sink_data =
+        Lwt.map (fun () -> S.stream_setup id initials stream) wakeup
+      in
         Hashtbl.add sinks id sink_data;
         Log.debug (fun m -> m "Created new trace sink with ID %s for %s"
                               id init_data);
         Lwt.return sink
 
+    let handler_map (fn: string -> S.t -> TraceCollector.handler) id uri body =
+      let sink = Hashtbl.find sinks id
+      in Lwt.bind sink (fun data -> fn data uri body)
+
     let handlers_global = S.handlers_global
     let handlers_local =
       List.map (fun (key, (name, fn)) ->
-                  (key, (name, fun id -> fn (Hashtbl.find sinks id))))
+                  (key, (name, handler_map fn)))
         S.handlers_local
   end
   include TraceCollector.Server(Strategy)

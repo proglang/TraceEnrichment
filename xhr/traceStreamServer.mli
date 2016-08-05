@@ -1,5 +1,7 @@
 (** A server that handles tracing streams. *)
 
+(** Short-hand for specifying handlers. *)
+type 'a handler_spec = ((string * Cohttp.Code.meth) * (string * 'a)) list
 (** A module typing describing strategies for handling event streams. *)
 module type STREAMSTRATEGY =
   sig
@@ -16,18 +18,15 @@ module type STREAMSTRATEGY =
         [desc] is a human-readable description of the method, and
         [handler] is a function to handle the request, taking the URI of the
         request and the request body as arguments and returning a CohTTP response. *)
-    val handlers_global :
-      ((string * Cohttp.Code.meth) * (string * TraceCollector.handler)) list
+    val handlers_global : (TraceCollector.handler) handler_spec
     (** Local handlers to provide by the server. Each entry is of the form
         [((path, method), (desc, handler))], [path] and [method] are used to
         construct the URL under which the handler can be reached,
         [desc] is a human-readable description of the method, and
-        [handler] is a function to handle the request, taking the stream data,
-        the URI of the request and the request body as arguments and returning
-        a CohTTP response. *)
-    val handlers_local :
-      ((string * Cohttp.Code.meth) * (string * (t -> TraceCollector.handler)))
-      list
+        [handler] is a function to handle the request, taking
+        the stream data, the URI of the request and the request body as
+        arguments and returning a CoHTTP response. *)
+    val handlers_local : (t -> TraceCollector.handler) handler_spec
   end
 
 (** Interface of the server. *)
