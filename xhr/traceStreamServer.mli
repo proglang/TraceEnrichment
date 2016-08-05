@@ -23,10 +23,10 @@ module type STREAMSTRATEGY =
         [((path, method), (desc, handler))], [path] and [method] are used to
         construct the URL under which the handler can be reached,
         [desc] is a human-readable description of the method, and
-        [handler] is a function to handle the request, taking
+        [handler] is a function to handle the request, taking the stream id,
         the stream data, the URI of the request and the request body as
         arguments and returning a CoHTTP response. *)
-    val handlers_local : (t -> TraceCollector.handler) handler_spec
+    val handlers_local : (string -> t -> TraceCollector.handler) handler_spec
   end
 
 (** Interface of the server. *)

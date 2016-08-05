@@ -5,7 +5,7 @@ module type STREAMSTRATEGY = sig
   type t
   val stream_setup: string -> TypesJS.initials -> TraceTypes.raw_stream -> t
   val handlers_global: handler handler_spec
-  val handlers_local: (t -> handler) handler_spec
+  val handlers_local: (string -> t -> handler) handler_spec
 end
 
 module type TSS = sig
@@ -31,7 +31,7 @@ module TraceStreamServer(S: STREAMSTRATEGY): TSS = struct
 
     let handler_map (fn: string -> S.t -> TraceCollector.handler) id uri body =
       let sink = Hashtbl.find sinks id
-      in Lwt.bind sink (fun data -> fn data uri body)
+      in Lwt.bind sink (fun data -> fn id data uri body)
 
     let handlers_global = S.handlers_global
     let handlers_local =
