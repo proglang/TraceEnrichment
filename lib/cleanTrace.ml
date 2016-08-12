@@ -46,13 +46,13 @@ let clean_impl_cases initials sid =
     | Declare (_, decl) -> ([encode_decl decl], sid)
     | GetFieldPre (_, { base; offset }) -> ([CGetFieldPre (base, offset)], sid)
     | GetField (_, { base; offset; value; isComputed }) ->
-      ([CGetField { base; offset; value; isComputed }], sid)
+      ([CGetField { base; offset; value; isComputed; actual_base = base }], sid)
     | Read (_, { name; value }) ->
       ([CRead { name; value }], sid)
     | PutFieldPre (_, { base; offset; value; isComputed }) ->
-        ([CPutFieldPre { base; offset; value; isComputed }], sid)
+        ([CPutFieldPre { base; offset; value; isComputed; actual_base = base }], sid)
     | PutField (_, { base; offset; value; isComputed }) ->
-        ([CPutField { base; offset; value; isComputed }], sid)
+        ([CPutField { base; offset; value; isComputed; actual_base = base }], sid)
     | Write (_, { name; lhs; value }) ->
         ([CWrite { name; lhs; value; isSuccessful = true }], sid)
     | Return (_, value) -> ([CReturn value], sid)

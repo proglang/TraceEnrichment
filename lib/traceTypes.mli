@@ -161,6 +161,7 @@ type declare = {
 }
 type accessfield = {
   base : jsval;
+  actual_base : jsval;
   offset : string;
   value : jsval;
   isComputed : bool;
