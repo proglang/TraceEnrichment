@@ -5,11 +5,11 @@ open TraceTypes
 module type S = sig
   type 'a trace
   val collect: initials ->
-    (clean_operation * LocalFacts.prototypes_resolved) trace ->
-    (clean_operation * LocalFacts.versions_resolved) trace
+    (clean_operation * LocalFacts.names_resolved) trace ->
+    (clean_operation * LocalFacts.prototypes_resolved) trace
 end
 module Make(T: Streaming.Transformers): S with type 'a trace = 'a T.sequence
 
 (** [initial_versions objs globals globals_are_properties] calculates
  an initial version map for the given globals. *)
-val initial_versions: objects -> globals -> bool -> int Reference.ReferenceMap.t
+val initial_prototypes: objects -> int IntMap.t

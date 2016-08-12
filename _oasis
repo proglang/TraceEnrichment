@@ -18,7 +18,7 @@ Library "js-enrichment"
   BuildDepends: yojson, str, lwt.ppx, lwt, fmt, batteries, logs, logs.fmt,
     ppx_deriving, ppx_deriving.show, ppx_deriving.ord, ppx_deriving.eq,
     ppx_deriving.make, containers, containers.data
-  Modules:    CalculatePointsTo, CalculateVersions, CleanTrace, 
+  Modules:    CalculatePointsTo, CalculateVersions, CleanTrace, CalculatePrototypes,
     LocalFacts, PointsTo, Reference, RichTrace, Streaming, Trace,
     TraceTypes, TypesJS, Debug, StringMap, IntMap, IntIntMap,
     IntIntSet, Log, ExtMap, Pairs, CalculateNameBindings, EnrichTrace
@@ -29,7 +29,7 @@ Document "js-enrichment-api"
   Title:      API reference for js-enrichment
   XOcamlbuildPath: lib
   XOcamlbuildModules:    CalculatePointsTo, CalculateVersions, CleanTrace, 
-    LocalFacts, PointsTo, Reference, RichTrace, Streaming, Trace,
+    LocalFacts, PointsTo, Reference, RichTrace, Streaming, Trace, CalculatePrototypes,
     TraceTypes, TypesJS, Debug, StringMap, IntMap, IntIntMap,
     IntIntSet
 

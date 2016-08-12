@@ -125,7 +125,8 @@ let pp_enriched_trace_versions =
       last_update = None;
       versions = Reference.ReferenceMap.empty;
       names = StringMap.empty;
-      fresh_versioned_references = []
+      fresh_versioned_references = [];
+      prototypes = IntMap.empty
     }
     (fun { versions = old_versions; names = old_names; closures = old_closures }
            ({ versions; names; closures; last_update; last_arguments; fresh_versioned_references }) ->
@@ -141,7 +142,8 @@ type local_facts_delta = {
   last_update : Reference.versioned_reference option;
   versions : int ExtMap.diff Reference.ReferenceMap.t;
   names : Reference.reference ExtMap.diff StringMap.t;
-  points_to: TypesJS.jsval ExtMap.diff Reference.VersionedReferenceMap.t
+  points_to: TypesJS.jsval ExtMap.diff Reference.VersionedReferenceMap.t;
+  prototypes: int ExtMap.diff IntMap.t
 }
 let pp_local_facts_delta pp 
       { last_arguments; closures; last_update; versions; names; points_to } =
@@ -174,18 +176,20 @@ let pp_enriched_trace_points_to =
       last_update = None;
       versions = Reference.ReferenceMap.empty;
       names = StringMap.empty;
-      points_to = Reference.VersionedReferenceMap.empty ()
+      points_to = Reference.VersionedReferenceMap.empty ();
+      prototypes = IntMap.empty
     }
     (fun { versions = old_versions; names = old_names; closures = old_closures;
-           points_to = old_points_to }
+           points_to = old_points_to; prototypes = old_prototypes }
            ({ versions; names; closures; last_update; last_arguments;
-              points_to }) ->
+              points_to; prototypes }) ->
        ({ last_update; last_arguments;
           closures = IntMap.delta (StringMap.equal (Reference.equal_reference))
                        old_closures closures;
           versions = Reference.ReferenceMap.delta (=) old_versions versions;
           names = StringMap.delta Reference.equal_reference old_names names;
-          points_to = pt_delta old_points_to points_to
+          points_to = pt_delta old_points_to points_to;
+          prototypes = IntMap.delta (=) old_prototypes prototypes
        }: local_facts_delta))
     pp_local_facts pp_local_facts_delta
 
@@ -199,19 +203,25 @@ let enrich_and_print mode
                    function_apply = OUndefined;
                    function_eval = OUndefined;
                    function_constructor = OUndefined;
+                   object_getPrototypeOf = OUndefined;
+                   object_setPrototypeOf = OUndefined;
+                   reflect_getPrototypeOf = OUndefined;
+                   reflect_setPrototypeOf = OUndefined;
                    iids = CCIntMap.empty
   } in
     lookup_functions initials;
   let module Step1 = LocalFacts.CollectArguments(Streaming.ListTransformers) in
   let module Step2 = LocalFacts.CollectClosures(Streaming.ListTransformers) in
   let module Step3 = CalculateNameBindings.Make(Streaming.ListTransformers) in
-  let module Step4 = CalculateVersions.Make(Streaming.ListTransformers) in
-  let module Step5 = CalculatePointsTo.Make(Streaming.ListTransformers) in
+  let module Step4 = CalculatePrototypes.Make(Streaming.ListTransformers) in
+  let module Step5 = CalculateVersions.Make(Streaming.ListTransformers) in
+  let module Step6 = CalculatePointsTo.Make(Streaming.ListTransformers) in
   let step1 = time "collecting arguments" Step1.collect
   and step2 = time "collecting closures" Step2.collect
   and step3 = time "calculating name bindings" (Step3.collect initials)
-  and step4 = time "calculating versions" (Step4.collect initials)
-  and step5 = time "calculating points-to" (Step5.collect initials) in
+  and step4 = time "calculating prototypes" (Step4.collect initials)
+  and step5 = time "calculating versions" (Step5.collect initials)
+  and step6 = time "calculating points-to" (Step6.collect initials) in
     if !filter then begin
       LocalFacts.filter_bound := calculate_filter_bound objects
     end;
@@ -240,6 +250,7 @@ let enrich_and_print mode
             step2 |>
             step3 |>
             step4 |>
+            step5 |>
             maybe pp_enriched_trace_versions
       | PointsToResolved ->
           trace |>
@@ -248,6 +259,7 @@ let enrich_and_print mode
             step3 |>
             step4 |>
             step5 |>
+            step6 |>
             maybe pp_enriched_trace_points_to
 
 let () =

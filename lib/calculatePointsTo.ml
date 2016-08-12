@@ -171,9 +171,9 @@ let initial_pointsto init =
 
 open Reference
 let insert_points_to
-      ({ last_arguments; closures; last_update; versions; names }: versions_resolved)
+      ({ last_arguments; closures; last_update; versions; names; prototypes }: versions_resolved)
       points_to: local_facts =
-  { last_arguments; closures; last_update; versions; names; points_to }
+  { last_arguments; closures; last_update; versions; names; points_to; prototypes }
 
 let update_points_to (init: initials) points_to (op, lf) =
   let points_to' =

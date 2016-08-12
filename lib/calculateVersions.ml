@@ -110,7 +110,7 @@ let provide_literal (objs: objects) state = function
   | _ -> state
 
 let collect_versions_step (objects: objects) globals_are_properties state
-      (facts: LocalFacts.names_resolved) op =
+      (facts: LocalFacts.prototypes_resolved) op =
   let open LocalFacts in
   let state = { state with fresh = [] } in
   let nameref =
@@ -145,7 +145,7 @@ let collect_versions_step (objects: objects) globals_are_properties state
     (fun fmt ->
        fmt "@[<v 2>Collecting versions for %a where %a.@ Old state: %a@ New state: %a@]"
          pp_clean_operation op
-         pp_names_resolved facts
+         pp_prototypes_resolved facts
          pp_version_state state
          pp_version_state res);
   ( (op, { last_arguments = facts.last_arguments;
@@ -153,6 +153,7 @@ let collect_versions_step (objects: objects) globals_are_properties state
            last_update = res.last_update;
            versions = res.current_version;
            names = facts.names;
+           prototypes = facts.prototypes;
            fresh_versioned_references = res.fresh }),
     res )
 
@@ -180,7 +181,7 @@ let initial_versions objs globals gap  =
 module type S = sig
   type 'a trace
   val collect: initials ->
-    (clean_operation * LocalFacts.names_resolved) trace ->
+    (clean_operation * LocalFacts.prototypes_resolved) trace ->
     (clean_operation * LocalFacts.versions_resolved) trace
 end
 module Make (T: Transformers) = struct

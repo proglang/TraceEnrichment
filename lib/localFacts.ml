@@ -35,6 +35,16 @@ type names_resolved = {
   (** All visible variable names. *)
   names: Reference.reference StringMap.t
 } [@@deriving show]
+type prototypes_resolved = {
+  (** The last argument object that was created by a function call. *)
+  last_arguments: int option;
+  (** Closure enviroments for functions. *)
+  closures: Reference.reference StringMap.t IntMap.t;
+  (** All visible variable names. *)
+  names: Reference.reference StringMap.t;
+  (** The prototypes of all known objects. *)
+  prototypes: int IntMap.t
+} [@@deriving show]
 type versions_resolved = {
   (** The last argument object that was created by a function call. *)
   last_arguments: int option;
@@ -47,7 +57,9 @@ type versions_resolved = {
   (** All visible variable names. *)
   names: Reference.reference StringMap.t;
   (** Fresh versioned references from the last step. *)
-  fresh_versioned_references: Reference.versioned_reference list
+  fresh_versioned_references: Reference.versioned_reference list;
+  (** The prototypes of all known objects. *)
+  prototypes: int IntMap.t
 } [@@deriving show]
 type local_facts = {
   (** The last argument object that was created by a function call. *)
@@ -61,7 +73,9 @@ type local_facts = {
   (** All visible variable names. *)
   names: Reference.reference StringMap.t;
   (** The current state of the points-to map. *)
-  points_to: Reference.points_to_map [@printer pp_points_to_filtered]
+  points_to: Reference.points_to_map [@printer pp_points_to_filtered];
+  (** The prototypes of all known objects. *)
+  prototypes: int IntMap.t
 }
 
 module CollectArguments = functor(S: Transformers) -> struct
