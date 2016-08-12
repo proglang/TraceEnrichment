@@ -165,6 +165,10 @@ type initials = {
   mutable function_call: jsval;
   mutable function_constructor: jsval;
   mutable function_eval: jsval;
+  mutable object_getPrototypeOf: jsval;
+  mutable object_setPrototypeOf: jsval;
+  mutable reflect_getPrototypeOf: jsval;
+  mutable reflect_setPrototypeOf: jsval;
 }
 
 (** Look up objects and functions *)

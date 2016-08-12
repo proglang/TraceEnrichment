@@ -97,6 +97,10 @@ let get_points_to functions objects globals globals_are_properties (trace: rich_
           { functions; objects; globals; globals_are_properties;
             function_call = OUndefined; function_apply = OUndefined;
             function_constructor = OUndefined; function_eval = OUndefined;
+            object_getPrototypeOf = OUndefined;
+            object_setPrototypeOf = OUndefined;
+            reflect_getPrototypeOf = OUndefined;
+            reflect_setPrototypeOf = OUndefined;
             iids = CCIntMap.empty
           }
     | (_, { points_to }) :: _ -> points_to
@@ -116,6 +120,10 @@ let tracefile_to_rich_tracefile
   let initials = { objects; functions; globals; globals_are_properties;
                    function_call = OUndefined; function_apply = OUndefined;
                    function_constructor = OUndefined; function_eval = OUndefined;
+                   object_getPrototypeOf = OUndefined;
+                   object_setPrototypeOf = OUndefined;
+                   reflect_getPrototypeOf = OUndefined;
+                   reflect_setPrototypeOf = OUndefined;
                    iids
   } in
   let trace = ListToRich.trace_to_rich_trace initials trace in

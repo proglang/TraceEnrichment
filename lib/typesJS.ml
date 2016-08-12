@@ -167,6 +167,10 @@ type initials = {
   mutable function_call: jsval;
   mutable function_constructor: jsval;
   mutable function_eval: jsval;
+  mutable object_getPrototypeOf: jsval;
+  mutable object_setPrototypeOf: jsval;
+  mutable reflect_getPrototypeOf: jsval;
+  mutable reflect_setPrototypeOf: jsval;
 } [@@deriving show, eq]
 
 exception ObjectNotFound of objectid * string
@@ -200,6 +204,15 @@ let lookup_functions initials =
   initials.function_apply <- lookup initials ["Function"; "prototype"; "apply"];
   initials.function_call  <- lookup initials ["Function"; "prototype"; "call"];
   initials.function_constructor <- lookup initials ["Function"];
-  initials.function_eval <- lookup initials ["eval"]
+  initials.function_eval <- lookup initials ["eval"];
+  initials.object_getPrototypeOf <- lookup initials ["Object"; "getPrototypeOf"];
+  initials.object_setPrototypeOf <- lookup initials ["Object"; "setPrototypeOf"];
+  try
+    initials.reflect_getPrototypeOf <- lookup initials ["Reflect"; "getPrototypeOf"];
+  with Not_found -> initials.reflect_getPrototypeOf <- initials.object_getPrototypeOf;
+  try
+    initials.reflect_setPrototypeOf <- lookup initials ["Reflect"; "setPrototypeOf"];
+  with Not_found -> initials.reflect_setPrototypeOf <- initials.object_setPrototypeOf;
+
 
 

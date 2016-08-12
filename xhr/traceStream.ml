@@ -146,6 +146,10 @@ let parse_setup_packet json_string =
             function_apply = OUndefined;
             function_eval = OUndefined;
             function_constructor = OUndefined;
+            object_getPrototypeOf = OUndefined;
+            object_setPrototypeOf = OUndefined;
+            reflect_getPrototypeOf = OUndefined;
+            reflect_setPrototypeOf = OUndefined;
           }
         in let (stream, push) = Lwt_stream.create ()
         and (start_wait, start_wakeup) = Lwt.wait ()

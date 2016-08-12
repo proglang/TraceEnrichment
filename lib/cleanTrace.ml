@@ -703,6 +703,8 @@ let clean_tracefile ?up_to (funs, objs, rawtr, globals, gap, iids) =
   let initials = { objects = objs; functions = funs; globals; globals_are_properties = gap;
                    function_apply = OUndefined; function_call = OUndefined;
                    function_constructor = OUndefined; function_eval = OUndefined;
+                   object_getPrototypeOf = OUndefined; object_setPrototypeOf = OUndefined;
+                   reflect_getPrototypeOf = OUndefined; reflect_setPrototypeOf = OUndefined;
                    iids
   } in
   lookup_functions initials;
