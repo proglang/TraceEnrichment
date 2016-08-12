@@ -330,6 +330,78 @@ module CleanGeneric = functor(S: Transformers) -> struct
                ([op; CFunEnter { f; this=base; args }], true)
            | false, _ -> ([op], false))
 
+  (* This bit involves quite some rewriting. What we do:
+   * - Writes to/reads from __proto__ become writes to/reads from prototype.
+   * - Object.(get|set)PrototypeOf are translated to prototype reads and writes.
+   * The same is done with Reflect operations. *)
+  type prototype_mode =
+      ObjectGetProto of jsval
+    | ObjectSetProto of jsval * jsval
+    | ReflectGetProto of jsval
+    | ReflectSetProto of jsval * jsval
+    | NonePrototype
+  let normalize_prototype_manipulation initials =
+    Log.debug (fun m -> m "Normalizing prototype manipulation");
+    let cases = [
+      (initials.object_getPrototypeOf,
+       fun args -> let obj = get_object_array initials.objects args 0
+       in (ObjectGetProto obj));
+      (initials.reflect_getPrototypeOf,
+       fun args -> let obj = get_object_array initials.objects args 0
+       in (ReflectGetProto obj));
+      (initials.object_setPrototypeOf,
+       fun args ->
+         let obj = get_object_array initials.objects args 0
+         and pro = get_object_array initials.objects args 1
+         in (ObjectSetProto (obj, pro)));
+      (initials.reflect_setPrototypeOf,
+       fun args ->
+         let obj = get_object_array initials.objects args 0
+         and pro = get_object_array initials.objects args 1
+         in (ReflectSetProto (obj, pro)))
+    ]
+    in S.map_list_state NonePrototype
+      (fun mode op -> match op, mode with
+         | CFunEnter { f; args }, NonePrototype ->
+             begin try ([op], List.assoc f cases args)
+             with Not_found -> ([op], NonePrototype)
+             end
+         | CGetField ({ offset = "_proto__" } as acc), NonePrototype ->
+             ([CGetField {acc with offset = "prototype"}], NonePrototype)
+         | CPutField ({ offset = "_proto__" } as acc), NonePrototype ->
+             ([CPutField {acc with offset = "prototype"}], NonePrototype)
+         | _, NonePrototype -> ([op], NonePrototype)
+         | CFunExit { ret; exc = OUndefined }, ObjectGetProto obj ->
+             ([CGetField { base = obj; actual_base = obj;
+                           offset = "prototype"; value = ret;
+                           isComputed = false };
+               op],
+              NonePrototype)
+         | CFunExit { ret; exc = OUndefined }, ReflectGetProto obj ->
+             ([CGetField { base = obj; actual_base = obj;
+                           offset = "prototype"; value = ret;
+                           isComputed = false };
+               op],
+              NonePrototype)
+         | CFunExit { exc = OUndefined }, ObjectSetProto (obj, pro) ->
+             ([CPutField { base = obj; actual_base = obj;
+                           offset = "prototype"; value = pro;
+                           isComputed = false };
+               op],
+              NonePrototype)
+         | CFunExit { exc = OUndefined }, ReflectSetProto (obj, pro) ->
+             ([CPutField { base = obj; actual_base = obj;
+                           offset = "prototype"; value = pro;
+                           isComputed = false };
+               op],
+              NonePrototype)
+         | CFunExit { exc }, _ -> ([CThrow exc; op], NonePrototype)
+         | CThrow _, _ -> ([op], NonePrototype)
+         | _, _ ->
+             Log.err (fun m ->
+                        m "Operation %a encountered when expecting prototype updates"
+                          pp_clean_operation op);
+             ([op], NonePrototype))
   (* Note that, for once, this is not a function call stack, but a eval context stack. *)
   let normalize_eval_step eval (frame_stack, special, last_call) op = match frame_stack, op with
     | true :: frames, CScriptExit -> ([op], (frames, true, None))
@@ -658,6 +730,7 @@ module CleanGeneric = functor(S: Transformers) -> struct
             |> normalize_function_constructor initials
             |> normalize_eval initials
             |> normalize_string_subscripts
+            |> normalize_prototype_manipulation initials
             |> validate NormalizedCalls initials
             |> synthesize_getters_and_setters
             |> synthesize_events initials.functions
@@ -672,6 +745,7 @@ module CleanGeneric = functor(S: Transformers) -> struct
             |> normalize_function_constructor initials
             |> normalize_eval initials
             |> normalize_string_subscripts
+            |> normalize_prototype_manipulation initials
             |> validate NormalizedCalls initials
             |> synthesize_getters_and_setters
       | Normalizations ->
@@ -684,6 +758,7 @@ module CleanGeneric = functor(S: Transformers) -> struct
             |> normalize_function_constructor initials
             |> normalize_eval initials
             |> normalize_string_subscripts
+            |> normalize_prototype_manipulation initials
       | JustClean ->
           trace
             |> clean initials
