@@ -3,6 +3,7 @@ type mode =
   | Arguments
   | ArgumentsAndClosures
   | NamesResolved
+  | PrototypesResolved
   | VersionedResolved
   | PointsToResolved
 
@@ -105,6 +106,9 @@ let fmt_points_to pp pointsto =
 let fmt_option fmt key pp = function
   | Some x -> Format.fprintf pp "%s: %a@ " key fmt x
   | None -> ()
+let fmt_prototype pp versions =
+  let module F = FmtDiff(IntMap) in
+    F.fmt Fmt.int "prototypes" pp versions
   
 
 let pp_versions_resolved_delta pp 
@@ -136,6 +140,21 @@ let pp_enriched_trace_versions =
           names = StringMap.delta (Reference.equal_reference) old_names names }: versions_resolved_delta))
     pp_versions_resolved pp_versions_resolved_delta
     
+type prototypes_delta = {
+  last_arguments : int option;
+  closures : Reference.reference StringMap.t ExtMap.diff IntMap.t;
+  names : Reference.reference ExtMap.diff StringMap.t;
+  prototypes: int ExtMap.diff IntMap.t
+}
+let pp_prototypes_delta pp 
+      { last_arguments; closures; names; prototypes } =
+  Format.pp_open_vbox pp 0;
+  fmt_option Fmt.int "last_argument" pp last_arguments;
+  fmt_names pp names;
+  fmt_closures pp closures;
+  fmt_prototype pp prototypes;
+  Format.pp_close_box pp ()
+
 type local_facts_delta = {
   last_arguments : int option;
   closures : Reference.reference StringMap.t ExtMap.diff IntMap.t;
@@ -167,6 +186,26 @@ let pt_delta pt_old pt_new =
                | `Left xold -> Some (ExtMap.Remove xold)
                | `Right xnew -> Some (ExtMap.Add xnew))
       pt_old pt_new
+
+let pp_enriched_prototypes =
+  let open LocalFacts in
+  pp_enriched_trace 
+    { last_arguments = None;
+      closures = IntMap.empty;
+      names = StringMap.empty;
+      prototypes = IntMap.empty
+    }
+    (fun { names = old_names; closures = old_closures;
+           prototypes = old_prototypes }
+           ({ names; closures; last_arguments;
+              prototypes }) ->
+       ({ last_arguments;
+          closures = IntMap.delta (StringMap.equal (Reference.equal_reference))
+                       old_closures closures;
+          names = StringMap.delta Reference.equal_reference old_names names;
+          prototypes = IntMap.delta (=) old_prototypes prototypes
+       }: prototypes_delta))
+    pp_prototypes_resolved pp_prototypes_delta
 
 let pp_enriched_trace_points_to =
   let open LocalFacts in
@@ -244,6 +283,13 @@ let enrich_and_print mode
             step2 |>
             step3 |>
             maybe (pp_enriched_trace pp_names_resolved)
+      | PrototypesResolved ->
+          trace |>
+            step1 |>
+            step2 |>
+            step3 |>
+            step4 |>
+            maybe pp_enriched_prototypes
       | VersionedResolved ->
           trace |>
             step1 |>
@@ -271,8 +317,9 @@ let () =
        ("-1", Arg.Unit (fun () -> mode := Arguments), "Perform one step of enrichment");
        ("-2", Arg.Unit (fun () -> mode := ArgumentsAndClosures), "Perform two steps of enrichment");
        ("-3", Arg.Unit (fun () -> mode := NamesResolved), "Perform three steps of enrichment");
-       ("-4", Arg.Unit (fun () -> mode := VersionedResolved), "Perform four steps of enrichment");
-       ("-5", Arg.Unit (fun () -> mode := PointsToResolved), "Perform five steps of enrichment");
+       ("-4", Arg.Unit (fun () -> mode := PrototypesResolved), "Perform four steps of enrichment");
+       ("-5", Arg.Unit (fun () -> mode := VersionedResolved), "Perform five steps of enrichment");
+       ("-6", Arg.Unit (fun () -> mode := PointsToResolved), "Perform six steps of enrichment");
        ("-V", Arg.Unit Debug.enable_validate, "Enable validation");
        ("-d", Arg.Set delta, "Display deltas");
        ("-f", Arg.Set filter, "Calculate filter bound");
