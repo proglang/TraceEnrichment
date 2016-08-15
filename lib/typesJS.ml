@@ -209,10 +209,10 @@ let lookup_functions initials =
   initials.object_setPrototypeOf <- lookup initials ["Object"; "setPrototypeOf"];
   try
     initials.reflect_getPrototypeOf <- lookup initials ["Reflect"; "getPrototypeOf"];
-  with Not_found -> initials.reflect_getPrototypeOf <- initials.object_getPrototypeOf;
+  with ObjectNotFound _ -> initials.reflect_getPrototypeOf <- initials.object_getPrototypeOf;
   try
     initials.reflect_setPrototypeOf <- lookup initials ["Reflect"; "setPrototypeOf"];
-  with Not_found -> initials.reflect_setPrototypeOf <- initials.object_setPrototypeOf;
+  with ObjectNotFound _ -> initials.reflect_setPrototypeOf <- initials.object_setPrototypeOf;
 
 
 
