@@ -26,7 +26,7 @@ type prototypes_resolved = {
   (** All visible variable names. *)
   names: Reference.reference StringMap.t;
   (** The prototypes of all known objects. *)
-  prototypes: int IntMap.t
+  prototypes: objectid ObjectIDMap.t
 }
 val pp_prototypes_resolved: Format.formatter -> prototypes_resolved -> unit
 type versions_resolved = {
@@ -43,7 +43,7 @@ type versions_resolved = {
   (** Fresh versioned references from the last step. *)
   fresh_versioned_references: Reference.versioned_reference list;
   (** The prototypes of all known objects. *)
-  prototypes: int IntMap.t
+  prototypes: objectid ObjectIDMap.t
 }
 val pp_versions_resolved: Format.formatter -> versions_resolved -> unit
 type local_facts = {
@@ -60,7 +60,7 @@ type local_facts = {
   (** The current state of the points-to map. *)
   points_to: Reference.points_to_map;
   (** The prototypes of all known objects. *)
-  prototypes: int IntMap.t
+  prototypes: objectid ObjectIDMap.t
 }
 val pp_local_facts: Format.formatter -> local_facts -> unit
 

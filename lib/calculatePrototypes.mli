@@ -12,4 +12,4 @@ module Make(T: Streaming.Transformers): S with type 'a trace = 'a T.sequence
 
 (** [initial_versions objs globals globals_are_properties] calculates
  an initial version map for the given globals. *)
-val initial_prototypes: objects -> int IntMap.t
+val initial_prototypes: objects -> objectid ObjectIDMap.t

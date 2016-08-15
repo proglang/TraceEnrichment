@@ -103,6 +103,12 @@ type objectid =
   | Function of int * int
   | Other of string * int
   [@@deriving show, ord, eq]
+module ObjectIDMap =
+  ExtMap.Make(struct
+                type t = objectid
+                let compare = compare_objectid
+                let pp = pp_objectid
+              end)
 
 type fieldref = objectid * string [@@deriving show, ord, eq];;
 

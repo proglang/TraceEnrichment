@@ -107,8 +107,8 @@ let fmt_option fmt key pp = function
   | Some x -> Format.fprintf pp "%s: %a@ " key fmt x
   | None -> ()
 let fmt_prototype pp versions =
-  let module F = FmtDiff(IntMap) in
-    F.fmt Fmt.int "prototypes" pp versions
+  let module F = FmtDiff(TypesJS.ObjectIDMap) in
+    F.fmt TypesJS.pp_objectid "prototypes" pp versions
   
 
 let pp_versions_resolved_delta pp 
@@ -130,7 +130,7 @@ let pp_enriched_trace_versions =
       versions = Reference.ReferenceMap.empty;
       names = StringMap.empty;
       fresh_versioned_references = [];
-      prototypes = IntMap.empty
+      prototypes = TypesJS.ObjectIDMap.empty
     }
     (fun { versions = old_versions; names = old_names; closures = old_closures }
            ({ versions; names; closures; last_update; last_arguments; fresh_versioned_references }) ->
@@ -144,7 +144,7 @@ type prototypes_delta = {
   last_arguments : int option;
   closures : Reference.reference StringMap.t ExtMap.diff IntMap.t;
   names : Reference.reference ExtMap.diff StringMap.t;
-  prototypes: int ExtMap.diff IntMap.t
+  prototypes: TypesJS.objectid ExtMap.diff TypesJS.ObjectIDMap.t
 }
 let pp_prototypes_delta pp 
       { last_arguments; closures; names; prototypes } =
@@ -162,7 +162,7 @@ type local_facts_delta = {
   versions : int ExtMap.diff Reference.ReferenceMap.t;
   names : Reference.reference ExtMap.diff StringMap.t;
   points_to: TypesJS.jsval ExtMap.diff Reference.VersionedReferenceMap.t;
-  prototypes: int ExtMap.diff IntMap.t
+  prototypes: TypesJS.objectid ExtMap.diff TypesJS.ObjectIDMap.t
 }
 let pp_local_facts_delta pp 
       { last_arguments; closures; last_update; versions; names; points_to } =
@@ -193,7 +193,7 @@ let pp_enriched_prototypes =
     { last_arguments = None;
       closures = IntMap.empty;
       names = StringMap.empty;
-      prototypes = IntMap.empty
+      prototypes = TypesJS.ObjectIDMap.empty
     }
     (fun { names = old_names; closures = old_closures;
            prototypes = old_prototypes }
@@ -203,7 +203,7 @@ let pp_enriched_prototypes =
           closures = IntMap.delta (StringMap.equal (Reference.equal_reference))
                        old_closures closures;
           names = StringMap.delta Reference.equal_reference old_names names;
-          prototypes = IntMap.delta (=) old_prototypes prototypes
+          prototypes = TypesJS.ObjectIDMap.delta (=) old_prototypes prototypes
        }: prototypes_delta))
     pp_prototypes_resolved pp_prototypes_delta
 
@@ -216,7 +216,7 @@ let pp_enriched_trace_points_to =
       versions = Reference.ReferenceMap.empty;
       names = StringMap.empty;
       points_to = Reference.VersionedReferenceMap.empty ();
-      prototypes = IntMap.empty
+      prototypes = TypesJS.ObjectIDMap.empty
     }
     (fun { versions = old_versions; names = old_names; closures = old_closures;
            points_to = old_points_to; prototypes = old_prototypes }
@@ -228,7 +228,7 @@ let pp_enriched_trace_points_to =
           versions = Reference.ReferenceMap.delta (=) old_versions versions;
           names = StringMap.delta Reference.equal_reference old_names names;
           points_to = pt_delta old_points_to points_to;
-          prototypes = IntMap.delta (=) old_prototypes prototypes
+          prototypes = TypesJS.ObjectIDMap.delta (=) old_prototypes prototypes
        }: local_facts_delta))
     pp_local_facts pp_local_facts_delta
 

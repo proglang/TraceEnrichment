@@ -3,30 +3,30 @@ open TypesJS
 open Streaming
 open TraceTypes
 
-let rec collect_prototypes_for (objects: objects) prototypes (obj: int) =
-  if IntMap.mem obj prototypes then
+let rec collect_prototypes_for (objects: objects) prototypes (obj: objectid) =
+  if ObjectIDMap.mem obj prototypes then
     prototypes
   else
     (* Look up the prototype field *)
     match (StringMap.Exceptionless.find "prototype"
-             (BatDynArray.get objects obj): fieldspec option)
+             (BatDynArray.get objects (get_object_id obj)): fieldspec option)
     with
       | Some { value = ONull }
       | Some { value = OUndefined } ->
           (* No prototype, return *)
           prototypes
       | Some { value = proto } ->
-          let obj' = get_object proto
-          in collect_prototypes_for objects (IntMap.add obj obj' prototypes) obj'
+          let obj' = objectid_of_jsval proto
+          in collect_prototypes_for objects (ObjectIDMap.add obj obj' prototypes) obj'
       | None ->
-          Log.debug (fun m -> m "No prototype for object %d" obj);
+          Log.debug (fun m -> m "No prototype for object %a" pp_objectid obj);
           prototypes
 
 let collect_prototypes_if_needed objects value prototypes =
   if is_base value then
     prototypes
   else
-    collect_prototypes_for objects prototypes (get_object value)
+    collect_prototypes_for objects prototypes (objectid_of_jsval value)
 
 let update_prototypes objects prototypes =
   let collect = collect_prototypes_if_needed objects in function
@@ -44,7 +44,7 @@ let update_prototypes objects prototypes =
         in if offset = "prototype" then begin
           (* TODO the true semantics are a bit more involved. *)
           try
-            IntMap.add (get_object base) (get_object value) prototypes
+            ObjectIDMap.add (objectid_of_jsval base) (objectid_of_jsval value) prototypes
           with NotAnObject ->
             Log.debug (fun m ->
                          m "Trying to assign prototype of %a to be %a, at least one is not an object"
@@ -68,10 +68,18 @@ let collect_prototypes_step
              prototypes }),
       prototypes)
 
+(* The following is a bit of a hack. Explanation:
+ * Since we haven't saved the object type in the object array,
+ * for the top-level objects, we have to guess the type. Then again,
+ * just using Object does no harm here: At worst, the prototype
+ * map is polluted with a few extra entries that do not get used.
+ * Note that the types of non-toplevel objects will be correct, so this
+ * will affect very few objects; indeed, it should at most affect the
+ * global object by the way how the initial object array is constructed. *)
 let initial_prototypes objs =
-  let prototypes = ref IntMap.empty
+  let prototypes = ref ObjectIDMap.empty
   in for i = 0 to BatDynArray.length objs - 1 do
-    prototypes := collect_prototypes_for objs !prototypes i
+    prototypes := collect_prototypes_for objs !prototypes (Object i)
   done; !prototypes
 
 module type S = sig

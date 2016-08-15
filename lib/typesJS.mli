@@ -44,6 +44,9 @@ val show_objectid : objectid -> string
 val compare_objectid : objectid -> objectid -> int
 val equal_objectid : objectid -> objectid -> bool
 
+(** Maps on objectids. *)
+module ObjectIDMap: ExtMap.S with type key = objectid
+
 (** Get the object identifier of the value. *)
 val get_object_id : objectid -> int
 (** Transform an [objectid] to the corresponding [jsval].
