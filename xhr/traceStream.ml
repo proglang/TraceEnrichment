@@ -137,20 +137,8 @@ let parse_setup_packet json_string =
                         StringMap.empty globals_json
         in let open Reference in
         let initials =
-          { globals_are_properties;
-            globals;
-            iids = CCIntMap.empty;
-            objects = BatDynArray.create ();
-            functions = BatDynArray.create ();
-            function_call = OUndefined;
-            function_apply = OUndefined;
-            function_eval = OUndefined;
-            function_constructor = OUndefined;
-            object_getPrototypeOf = OUndefined;
-            object_setPrototypeOf = OUndefined;
-            reflect_getPrototypeOf = OUndefined;
-            reflect_setPrototypeOf = OUndefined;
-          }
+          build_initials (BatDynArray.create ()) (BatDynArray.create ())
+            globals globals_are_properties CCIntMap.empty
         in let (stream, push) = Lwt_stream.create ()
         and (start_wait, start_wakeup) = Lwt.wait ()
         in (initials, stream, start_wait, parse_packet initials push start_wakeup)

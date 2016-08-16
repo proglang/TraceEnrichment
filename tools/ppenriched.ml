@@ -238,18 +238,8 @@ let enrich_and_print mode
   let open TypesJS in
   let open TraceTypes in
   let open LocalFacts in
-  let initials = { functions; objects; globals; globals_are_properties;
-                   function_call = OUndefined;
-                   function_apply = OUndefined;
-                   function_eval = OUndefined;
-                   function_constructor = OUndefined;
-                   object_getPrototypeOf = OUndefined;
-                   object_setPrototypeOf = OUndefined;
-                   reflect_getPrototypeOf = OUndefined;
-                   reflect_setPrototypeOf = OUndefined;
-                   iids = CCIntMap.empty
-  } in
-    lookup_functions initials;
+  let initials = build_initials objects functions globals globals_are_properties CCIntMap.empty
+  in lookup_functions initials;
   let module Step1 = LocalFacts.CollectArguments(Streaming.ListTransformers) in
   let module Step2 = LocalFacts.CollectClosures(Streaming.ListTransformers) in
   let module Step3 = CalculateNameBindings.Make(Streaming.ListTransformers) in
