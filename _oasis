@@ -21,7 +21,8 @@ Library "js-enrichment"
   Modules:    CalculatePointsTo, CalculateVersions, CleanTrace, CalculatePrototypes,
     LocalFacts, PointsTo, Reference, RichTrace, Streaming, Trace,
     TraceTypes, TypesJS, Debug, StringMap, IntMap, IntIntMap,
-    IntIntSet, Log, ExtMap, Pairs, CalculateNameBindings, EnrichTrace
+    IntIntSet, Log, ExtMap, Pairs, CalculateNameBindings, EnrichTrace,
+    CalculateActualBase
 
 Document "js-enrichment-api"
   Type:       ocamlbuild (0.4)
