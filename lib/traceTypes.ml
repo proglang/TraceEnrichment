@@ -233,11 +233,13 @@ type alias = {
 } [@@deriving show]
 type rread = {
   ref : Reference.versioned_reference;
+  orig_ref : Reference.reference;
   value : jsval;
   isComputed : bool;
 } [@@deriving show]
 type rwrite = {
   ref : Reference.versioned_reference;
+  orig_ref : Reference.reference;
   oldref: Reference.versioned_reference;
   value : jsval;
   success : bool;
