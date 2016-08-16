@@ -127,10 +127,10 @@ let collect_versions_step (objects: objects) globals_are_properties state
       provide_argument_alias objects state name facts.last_arguments i
     | CDeclare { name } ->
         declare_var name state
-    | CGetField { base; offset } ->
-      provide_read (reference_of_field base offset) state
-    | CPutField { base; offset } ->
-      provide_write objects (reference_of_field base offset) state
+    | CGetField { actual_base; offset } ->
+      provide_read (reference_of_field actual_base offset) state
+    | CPutField { actual_base; offset } ->
+      provide_write objects (reference_of_field actual_base offset) state
     | CRead { name } ->
       provide_read (nameref name) state
     | CWrite { name } ->

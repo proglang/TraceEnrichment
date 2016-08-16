@@ -125,10 +125,10 @@ let collect_pointsto_step globals_are_properties objects state (facts: versions_
     (* Note that this also catches ArgumentBinding cases where the name is *)
     (* not an alias. *)
     add_write facts state (mkref name) value false
-  | CGetField { base; offset; value } ->
-    add_read facts state (Reference.reference_of_field base offset) value
-  | CPutField { base; offset; value } ->
-    add_write facts state (Reference.reference_of_field base offset) value false
+  | CGetField { actual_base; offset; value } ->
+    add_read facts state (Reference.reference_of_field actual_base offset) value
+  | CPutField { actual_base; offset; value } ->
+    add_write facts state (Reference.reference_of_field actual_base offset) value false
   | CRead { name; value } ->
     add_read facts state (mkref name) value
   | CWrite { name; value } ->
