@@ -4,6 +4,7 @@ type mode =
   | ArgumentsAndClosures
   | NamesResolved
   | PrototypesResolved
+  | ActualBaseResolved
   | VersionedResolved
   | PointsToResolved
 
@@ -253,14 +254,16 @@ let enrich_and_print mode
   let module Step2 = LocalFacts.CollectClosures(Streaming.ListTransformers) in
   let module Step3 = CalculateNameBindings.Make(Streaming.ListTransformers) in
   let module Step4 = CalculatePrototypes.Make(Streaming.ListTransformers) in
-  let module Step5 = CalculateVersions.Make(Streaming.ListTransformers) in
-  let module Step6 = CalculatePointsTo.Make(Streaming.ListTransformers) in
+  let module Step5 = CalculateActualBase.Make(Streaming.ListTransformers) in
+  let module Step6 = CalculateVersions.Make(Streaming.ListTransformers) in
+  let module Step7 = CalculatePointsTo.Make(Streaming.ListTransformers) in
   let step1 = time "collecting arguments" Step1.collect
   and step2 = time "collecting closures" Step2.collect
   and step3 = time "calculating name bindings" (Step3.collect initials)
   and step4 = time "calculating prototypes" (Step4.collect initials)
-  and step5 = time "calculating versions" (Step5.collect initials)
-  and step6 = time "calculating points-to" (Step6.collect initials) in
+  and step5 = time "calculating actual bases" (Step5.collect initials)
+  and step6 = time "calculating versions" (Step6.collect initials)
+  and step7 = time "calculating points-to" (Step7.collect initials) in
     if !filter then begin
       LocalFacts.filter_bound := calculate_filter_bound objects
     end;
@@ -290,6 +293,14 @@ let enrich_and_print mode
             step3 |>
             step4 |>
             maybe pp_enriched_prototypes
+      | ActualBaseResolved ->
+          trace |>
+            step1 |>
+            step2 |>
+            step3 |>
+            step4 |>
+            step5 |>
+            maybe pp_enriched_prototypes
       | VersionedResolved ->
           trace |>
             step1 |>
@@ -297,6 +308,7 @@ let enrich_and_print mode
             step3 |>
             step4 |>
             step5 |>
+            step6 |>
             maybe pp_enriched_trace_versions
       | PointsToResolved ->
           trace |>
@@ -306,6 +318,7 @@ let enrich_and_print mode
             step4 |>
             step5 |>
             step6 |>
+            step7 |>
             maybe pp_enriched_trace_points_to
 
 let () =
@@ -318,8 +331,9 @@ let () =
        ("-2", Arg.Unit (fun () -> mode := ArgumentsAndClosures), "Perform two steps of enrichment");
        ("-3", Arg.Unit (fun () -> mode := NamesResolved), "Perform three steps of enrichment");
        ("-4", Arg.Unit (fun () -> mode := PrototypesResolved), "Perform four steps of enrichment");
-       ("-5", Arg.Unit (fun () -> mode := VersionedResolved), "Perform five steps of enrichment");
-       ("-6", Arg.Unit (fun () -> mode := PointsToResolved), "Perform six steps of enrichment");
+       ("-5", Arg.Unit (fun () -> mode := ActualBaseResolved), "Perform five steps of enrichment");
+       ("-6", Arg.Unit (fun () -> mode := VersionedResolved), "Perform six steps of enrichment");
+       ("-7", Arg.Unit (fun () -> mode := PointsToResolved), "Perform seven steps of enrichment");
        ("-V", Arg.Unit Debug.enable_validate, "Enable validation");
        ("-d", Arg.Set delta, "Display deltas");
        ("-f", Arg.Set filter, "Calculate filter bound");
