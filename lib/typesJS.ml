@@ -179,6 +179,18 @@ type initials = {
   mutable reflect_setPrototypeOf: jsval;
 } [@@deriving show, eq]
 
+let build_initials objects functions globals globals_are_properties iids =
+  { objects; functions; globals; globals_are_properties; iids;
+    function_apply = OUndefined;
+    function_call = OUndefined;
+    function_constructor = OUndefined;
+    function_eval = OUndefined;
+    object_getPrototypeOf = OUndefined;
+    object_setPrototypeOf = OUndefined;
+    reflect_getPrototypeOf = OUndefined;
+    reflect_setPrototypeOf = OUndefined
+  }
+
 exception ObjectNotFound of objectid * string
 
 let lookup_object ?(required=false) (objects: objects) objval fieldname =

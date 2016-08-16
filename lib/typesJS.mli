@@ -173,6 +173,7 @@ type initials = {
   mutable reflect_getPrototypeOf: jsval;
   mutable reflect_setPrototypeOf: jsval;
 }
+val build_initials: objects -> functions -> globals -> bool -> iidmap -> initials
 
 (** Look up objects and functions *)
 exception ObjectNotFound of objectid * string
