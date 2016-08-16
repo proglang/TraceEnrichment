@@ -5,12 +5,14 @@ module Make(T: Streaming.Transformers) = struct
   module Versions = CalculateVersions.Make(T)
   module PointsTo = CalculatePointsTo.Make(T)
   module Prototypes = CalculatePrototypes.Make(T)
+  module ActualBase = CalculateActualBase.Make(T)
   let collect initials trace =
     trace
       |> Arguments.collect
       |> Closures.collect
       |> NameBindings.collect initials
       |> Prototypes.collect initials
+      |> ActualBase.collect initials
       |> Versions.collect initials
       |> PointsTo.collect initials
 end
