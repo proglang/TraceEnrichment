@@ -121,9 +121,11 @@ let pp_facts_tracefile = pp_enriched_tracefile pp_local_facts
 
 let make_versioned_impl versions ref =
   try (ref, Reference.ReferenceMap.find ref versions)
-  with Not_found -> (Format.eprintf "Did not find %a in %a"
-                       Reference.pp_reference ref
-                       (Reference.pp_reference_map Fmt.int) versions; raise Not_found)
+  with Not_found ->
+    Logs.err (fun m -> m "Did not find %a in %a"
+                         Reference.pp_reference ref
+                         (Reference.pp_reference_map Fmt.int) versions);
+    raise Not_found
 
 let make_versioned (state: rich_facts) ref = make_versioned_impl state.versions ref
 

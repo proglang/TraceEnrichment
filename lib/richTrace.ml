@@ -5,11 +5,26 @@ type versioned_reference = Reference.versioned_reference
 
 let enrich_step globals_are_properties (op, facts) =
   let mkfieldref base offset =
-    Reference.reference_of_field base offset |> LocalFacts.make_versioned facts
+    try
+      Reference.reference_of_field base offset |> LocalFacts.make_versioned facts
+    with Not_found ->
+      Logs.err (fun m -> m "mkfieldref failed for %a:%s" pp_jsval base offset);
+      raise Not_found
   and mkvarref name =
-    Reference.reference_of_name globals_are_properties facts.names name
-    |> LocalFacts.make_versioned facts in
-  let res = match op with
+    try 
+      Reference.reference_of_name globals_are_properties facts.names name
+        |> LocalFacts.make_versioned facts
+    with Not_found ->
+      Logs.err (fun m -> m "mkvarref failed for %s" name);
+      raise Not_found
+  and mknamebindref name =
+    try
+      Reference.reference_of_name globals_are_properties facts.names name
+        |> LocalFacts.make_versioned facts
+    with Not_found ->
+      Logs.err (fun m -> m "mknamebindref failed for %s" name);
+      raise Not_found
+  in let res = match op with
     | CFunPre { f; base; args; call_type } ->
       [RFunPre { f; base; args; call_type } ]
     | CFunPost { f; base; args; result; call_type } -> [RFunPost { f; base; args; result; call_type }]
@@ -17,23 +32,30 @@ let enrich_step globals_are_properties (op, facts) =
     | CForIn value -> [RForIn value]
     | CDeclare { name; value; declaration_type = ArgumentBinding idx } ->
       begin match StringMap.find name facts.names with
-        | Reference.Field ref ->
-            let ref = StringMap.find name facts.names |> LocalFacts.make_versioned facts
-            in
+        | Reference.Field _ as ref ->
+            let ref = begin
+              try LocalFacts.make_versioned facts ref
+              with Not_found ->
+                Logs.err
+                  (fun m ->
+                     m "Finding versions for argument binding %d called %s failed; it maps to %a"
+                       idx name Reference.pp_reference ref);
+                raise Not_found
+            end in
               [RAlias { name; ref; source = Argument idx };
                RWrite { ref; oldref = ref; value; success = true; isComputed = false } ]
         | Reference.Variable _ ->
-            let ref = Reference.reference_of_name globals_are_properties facts.names name
-              |> LocalFacts.make_versioned facts in
+            let ref = mknamebindref name
+            in
               [RLocal { name; ref };
                RWrite { ref; oldref = ref; value = OUndefined; success = true; isComputed = false } ]
       end
     | CDeclare { name; value; declaration_type = CatchParam } ->
-      let ref = Reference.reference_of_name globals_are_properties facts.names name |> LocalFacts.make_versioned facts in
+      let ref = mknamebindref name in
       [RCatch { name; ref };
        RWrite { ref; oldref = ref; value; success = true; isComputed = false } ]
     | CDeclare { name; value } ->
-      let ref = Reference.reference_of_name globals_are_properties facts.names name |> LocalFacts.make_versioned facts in
+      let ref = mknamebindref name in
       [RLocal { name; ref };
        RWrite { ref; oldref = ref; value; success = true; isComputed = false } ]
     | CGetFieldPre _ -> Log.debug (fun m -> m "Unexpected get_field_pre"); []
