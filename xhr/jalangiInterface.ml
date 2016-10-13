@@ -38,6 +38,7 @@ let jalangi2_instrument strategy filenames outdir =
       "--outputDir"; outdir;
     ] @ filenames
   in let argarray = Array.of_list args in
+    Log.info (fun m -> m "Executing 'node %a'" (Fmt.list Fmt.string) args);
   match Lwt_unix.fork () with
   | 0 ->
       Unix.close Unix.stdout;
