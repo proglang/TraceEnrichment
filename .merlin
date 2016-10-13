@@ -6,7 +6,7 @@ S lib
 S xhr
 S tools
 PKG lwt lwt.unix kaputt yojson batteries fmt cohttp uri uuidm conduit
-PKG logs ppx_deriving ppx_deriving.show jingoo
+PKG logs ppx_deriving ppx_deriving.show jingoo markup.lwt
 PKG ppx_deriving.ord ppx_deriving.eq ppx_deriving.make containers ocamlgraph
 FLG -ppx ppx_lwt
 

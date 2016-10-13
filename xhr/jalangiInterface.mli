@@ -16,9 +16,7 @@ val jalangi2_instrument : string -> string list -> string -> unit Lwt.t
   the HTML page that drives the analysis.
 
   [providejs] gets called as [providejs jsfile], where [jsfile] is the proposed
-  filename for the uninstrumented JavaScript file. If it returns [None], the
-  uninstrumented JavaScript file must be provided in [jsfile], and if it is
-  [Some path], it must be provided in [path].
+  filename for the uninstrumented JavaScript file. 
 
   The function performs the instrumentation and returns the base name of
   instrumented JavaScript file and driver page, i.e., if it returns
@@ -37,3 +35,13 @@ val get_instrumented_dir: unit -> string Lwt.t
   This code is meant for program shut-down cleanup, and performs
   operations synchronously. *)
 val clean_up: unit -> unit
+
+(**
+  A complete solution for instrumenting a whole web page for browser-based
+  analysis.
+
+  The function gets calls as [instrument_page uri i], and instruments
+  the page at the given URI such that the i-th script will get analyzed.
+  It returs the path to the instrumented HTML file.
+  *)
+val instrument_page : string -> int -> string Lwt.t

@@ -207,11 +207,25 @@ end = struct
           Log.info (fun m -> m "Session management with bad method");
           reply_error `Method_not_allowed "Cannot access using this method"
 
+  let handle_proxy uri body =
+    Log.info (fun m -> m "Instrumenting HTML file");
+    begin match Uri.get_query_param uri "url",
+                Uri.get_query_param uri "index" with
+      | Some url, Some index ->
+          Log.info (fun m -> m "url=%s, index=%s" url index);
+          let%lwt path =
+            JalangiInterface.instrument_page url (int_of_string index)
+          in reply_plain_text path
+      | _, _ ->
+          reply_error Cohttp.Code.(`Bad_request) "URL or index is missing"
+    end
+
   let handlers_global =
     let open Cohttp.Code in
     (("new", `POST), ("new trace session", handler_new)) ::
     (("instrument", `POST), ("instrument JavaScript source code", handler_instrument)) ::
     (("shutdown", `POST), ("shut down server", handler_shutdown)) ::
+    (("proxy", `GET), ("proxy instrumentation", handle_proxy)) ::
     S.handlers_global
 
   let handlers_local =

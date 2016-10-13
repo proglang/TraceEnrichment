@@ -117,4 +117,80 @@ let instrument_for_browser ?basename ~providejs =
   in
     Log.debug (fun m -> m "dealt with temporaries");
     Lwt.return (insdir /: Filename.basename basename)
-  
+
+let mutated_path base path =
+  let uri = Uri.to_string (Uri.resolve "" base (Uri.of_string path))
+  in Uuidm.to_string (Uuidm.v5 Uuidm.ns_url uri)
+
+let url_reader ~base url: char Lwt_stream.t Lwt.t =
+  let url = Uri.resolve "" base url
+  in let%lwt (response, body) = Cohttp_lwt_unix.Client.get url
+  in Lwt.return (match Cohttp.Response.(response.status), body with
+    | `OK, `Empty -> Lwt_stream.of_list []
+    | `OK, `Stream s -> Lwt_stream.map_list BatString.to_list s
+    | `OK, `String s -> Lwt_stream.of_string s
+    | `OK, `Strings s -> Lwt_stream.of_string (BatString.concat "" s)
+    | s, _ -> Log.err(fun m -> m "Got non-ok response %s"
+                                 (Cohttp.Code.string_of_status s));
+              raise Exit)
+
+let map_script_path base = function
+  | `Start_element (("", "script"), args) ->
+      `Start_element (("", "script"),
+       BatList.map (function
+                      | (("", "src"), path) ->
+                          (("", "src"), mutated_path base path ^ ".js")
+                      | a -> a)
+         args)
+  | s -> s
+
+let fold_script_collection tmpdir base s (tasks, paths, i) =
+  match s with
+    | `Start_element (("", "script"), args) ->
+        begin try
+          let path = List.assoc ("", "src") args
+          in let mutated = tmpdir /: mutated_path base path ^ ".js"
+          in let reader = url_reader ~base (Uri.of_string path)
+          in Lwt.return
+               (Lwt.bind reader
+                  (fun reader ->
+                     let augmented =
+                       if i = 0 then
+                         reader
+                       else Lwt_stream.append
+                              (Lwt_stream.of_string "// JALANGI DO NOT INSTRUMENT\n")
+                              reader
+                     in Lwt_io.chars_to_file mutated augmented) :: tasks,
+                mutated :: paths,
+                i-1)
+        with Not_found -> Lwt.return (tasks, paths, i)
+        end
+    | _ -> Lwt.return (tasks, paths, i)
+
+(* The function gets calls as [instrument_page uri i], and instruments
+ * the page at the given URI such that the i-th script will get analyzed.
+ * It returs the path to the instrumented HTML file. *)
+let instrument_page base_str index =
+  let base = Uri.of_string base_str
+  in let%lwt (tmpdir, insdir) = get_instrument_tmp_dir ()
+  in let html_path = tmpdir /: (mutated_path base base_str) ^ ".html"
+  in let%lwt html_raw_stream = url_reader ~base base
+  in let html_stream =
+    html_raw_stream
+      |> Markup_lwt.lwt_stream
+      |> Markup_lwt.parse_html ~context:`Document
+      |> Markup.signals
+      |> Markup_lwt.to_lwt_stream
+  in let html_stream_dup = Lwt_stream.clone html_stream
+  in let html_writer =
+    Log.info (fun m -> m "Writing HTML to %s" html_path);
+    Markup_lwt.lwt_stream html_stream
+      |> Markup_lwt.map (fun s -> Lwt.return (map_script_path base s))
+      |> Markup_lwt.write_html
+      |> Markup_lwt_unix.to_file html_path
+  in let%lwt (tasks, paths, _) =
+    Lwt_stream.fold_s (fold_script_collection tmpdir base)
+      html_stream_dup ([], [], index)
+  in let%lwt _ = Lwt.join (html_writer :: tasks)
+  in let%lwt _ = jalangi2_instrument "xhr" (html_path :: paths) insdir
+  in Lwt.return (Filename.basename html_path)

@@ -41,7 +41,7 @@ Library "xhr"
   XMETAEnable: true
   FindLibParent: js-enrichment
   XMETADescription: Trace enrichment server for JavaScript traces
-  BuildDepends: yojson, str, lwt.ppx, lwt, fmt, batteries, cohttp, jingoo, uuidm, conduit, logs
+  BuildDepends: yojson, str, lwt.ppx, lwt, fmt, batteries, cohttp, jingoo, uuidm, conduit, logs, markup.lwt.unix
   Modules:    Config, CompilationConfig, TraceCollector, TraceStream, JalangiInterface, TraceStreamServer, Files, PageText
   DataFiles:  ../tracer/*.js
   
@@ -204,7 +204,7 @@ Executable "traceStreamServerTest"
   Build$:     flag(tests)
   MainIs:     traceStreamServerTest.ml
   BuildDepends: js-enrichment, js-enrichment.xhr,
-        ppx_deriving.std,
+        ppx_deriving.std, markup.lwt.unix,
         lwt, lwt.unix, cohttp, cohttp.lwt, camltemplate
   Path:       xhr
   BuildTools: ocamlbuild
