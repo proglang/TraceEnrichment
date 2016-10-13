@@ -107,10 +107,10 @@ let enrich_step globals_are_properties (op, facts) =
   List.map (fun op -> (op, facts)) res
 
 module ToRich(S: Streaming.Transformers) = struct
-  let enriched_trace_to_rich_trace globals_are_properties (trace: (clean_operation * local_facts) S.sequence) =
+  let enriched_trace_to_rich_trace globals_are_properties (trace: (clean_event * local_facts) S.sequence) =
     trace
-      |> S.map (fun (op, ({ last_update; versions; points_to; names }: local_facts)) ->
-                   (op, {last_update; versions; points_to; names }))
+      |> S.map (fun ((op, sid), ({ last_update; versions; points_to; names }: local_facts)) ->
+                   (op, {last_update; versions; points_to; names; sid }))
       |> S.map_list (enrich_step globals_are_properties)
   module C = CleanTrace.CleanGeneric(S)
   module E = EnrichTrace.Make(S)

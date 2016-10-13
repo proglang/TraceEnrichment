@@ -5,8 +5,8 @@ open TraceTypes
 module type S = sig
   type 'a trace
   val collect: initials ->
-    (clean_operation * LocalFacts.names_resolved) trace ->
-    (clean_operation * LocalFacts.prototypes_resolved) trace
+    (clean_event * LocalFacts.names_resolved) trace ->
+    (clean_event * LocalFacts.prototypes_resolved) trace
 end
 module Make(T: Streaming.Transformers): S with type 'a trace = 'a T.sequence
 

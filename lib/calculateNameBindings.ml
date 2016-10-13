@@ -113,7 +113,7 @@ let make_call { local_names; global_names; closures; old_arguments } =
     | _ -> { local_names; global_names; closures; old_arguments }
 
 let collect_names_step (objects: objects) globals_are_properties state
-      (facts: LocalFacts.arguments_and_closures) op =
+      (facts: LocalFacts.arguments_and_closures) (op, sid) =
   let open LocalFacts in
   let res = match op with
     | CDeclare { name; declaration_type } ->
@@ -131,9 +131,10 @@ let collect_names_step (objects: objects) globals_are_properties state
         make_call state
     | _ ->
       state in
-  ( (op, { last_arguments = facts.last_arguments;
-           closures = res.closures;
-           names = (List.hd res.local_names) }),
+  ( ((op, sid),
+     { last_arguments = facts.last_arguments;
+       closures = res.closures;
+       names = (List.hd res.local_names) }),
     res )
 
 let initial_vars objects globals_are_properties =
@@ -149,8 +150,8 @@ let initial_vars objects globals_are_properties =
 module type S = sig
   type 'a trace
   val collect: initials ->
-    (clean_operation * LocalFacts.arguments_and_closures) trace ->
-    (clean_operation * LocalFacts.names_resolved) trace
+    (clean_event * LocalFacts.arguments_and_closures) trace ->
+    (clean_event * LocalFacts.names_resolved) trace
 end
 module Make (T: Transformers) = struct
   type 'a trace = 'a T.sequence

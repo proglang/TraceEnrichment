@@ -17,15 +17,15 @@ let set_actual_base objects prototypes ({ base; offset } as acc) =
   in { acc with actual_base }
 
 let update_ops objects ({ LocalFacts.prototypes }: LocalFacts.prototypes_resolved) = function
-  | CGetField acc -> CGetField (set_actual_base objects prototypes acc)
-  | CPutField acc -> CPutField (set_actual_base objects prototypes acc)
+  | (CGetField acc, sid) -> (CGetField (set_actual_base objects prototypes acc), sid)
+  | (CPutField acc, sid) -> (CPutField (set_actual_base objects prototypes acc), sid)
   | op -> op
 
 module type S = sig
   type 'a trace
   val collect: initials ->
-    (clean_operation * LocalFacts.prototypes_resolved) trace ->
-    (clean_operation * LocalFacts.prototypes_resolved) trace
+    (clean_event * LocalFacts.prototypes_resolved) trace ->
+    (clean_event * LocalFacts.prototypes_resolved) trace
 end
 module Make (T: Transformers) = struct
   type 'a trace = 'a T.sequence

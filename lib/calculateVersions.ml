@@ -117,7 +117,7 @@ let collect_versions_step (objects: objects) globals_are_properties state
     reference_of_name globals_are_properties facts.names in
   let declare_var name =
       provide_write objects (reference_of_name globals_are_properties facts.names name) in
-  let res = match op with
+  let res = match fst op with
     | CFunPre { base; args } ->
         let state = provide_literal objects state args
         in provide_literal objects state base
@@ -144,7 +144,7 @@ let collect_versions_step (objects: objects) globals_are_properties state
   Logs.debug
     (fun fmt ->
        fmt "@[<v 2>Collecting versions for %a where %a.@ Old state: %a@ New state: %a@]"
-         pp_clean_operation op
+         pp_clean_event op
          pp_prototypes_resolved facts
          pp_version_state state
          pp_version_state res);
@@ -181,8 +181,8 @@ let initial_versions objs globals gap  =
 module type S = sig
   type 'a trace
   val collect: initials ->
-    (clean_operation * LocalFacts.prototypes_resolved) trace ->
-    (clean_operation * LocalFacts.versions_resolved) trace
+    (clean_event * LocalFacts.prototypes_resolved) trace ->
+    (clean_event * LocalFacts.versions_resolved) trace
 end
 module Make (T: Transformers) = struct
   type 'a trace = 'a T.sequence

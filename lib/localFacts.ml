@@ -82,7 +82,7 @@ module CollectArguments = functor(S: Transformers) -> struct
   let collect =
     S.map_state []
       (fun stack op ->
-         let stack' = match op with
+         let stack' = match fst op with
            | CFunEnter { args } -> get_object args :: stack
            | CFunExit _ -> List.tl stack
            | _ -> stack
@@ -92,7 +92,7 @@ end
 module CollectClosures = functor(S: Transformers) -> struct
   let collect =
     S.map_state IntMap.empty (fun closures (op, arg) ->
-             match op, arg with
+             match fst op, arg with
                | CLiteral { value = OFunction(id, _) }, Some arg ->
                    let closures' = IntMap.add id arg closures in
                    ((op, { last_arguments = Some arg; closures =  closures' }), closures')

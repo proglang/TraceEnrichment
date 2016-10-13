@@ -57,7 +57,7 @@ let pp_enriched_trace init diff fmt fmtdiff pp list =
   let list_fmt fmt =
     Fmt.vbox (Fmt.list ~sep:double_sep
                  (Fmt.vbox ~indent:2 (Fmt.pair ~sep:with_sep
-                    TraceTypes.pp_clean_operation
+                    TraceTypes.pp_clean_event
                     fmt))) in
   if !delta then
     Fmt.using (delta_encode init diff) (list_fmt fmtdiff) pp list

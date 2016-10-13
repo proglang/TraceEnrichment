@@ -59,13 +59,14 @@ let update_prototypes objects prototypes =
     | _ -> prototypes
 
 let collect_prototypes_step
-      (objects: objects) prototypes (facts: LocalFacts.names_resolved) op =
+      (objects: objects) prototypes (facts: LocalFacts.names_resolved) (op, sid) =
   let open LocalFacts in
   let prototypes = update_prototypes objects prototypes op
-  in ((op, { last_arguments = facts.last_arguments;
-             closures = facts.closures;
-             names = facts.names;
-             prototypes }),
+  in (((op, sid),
+       { last_arguments = facts.last_arguments;
+         closures = facts.closures;
+         names = facts.names;
+         prototypes }),
       prototypes)
 
 (* The following is a bit of a hack. Explanation:
@@ -85,8 +86,8 @@ let initial_prototypes objs =
 module type S = sig
   type 'a trace
   val collect: initials ->
-    (clean_operation * LocalFacts.names_resolved) trace ->
-    (clean_operation * LocalFacts.prototypes_resolved) trace
+    (clean_event * LocalFacts.names_resolved) trace ->
+    (clean_event * LocalFacts.prototypes_resolved) trace
 end
 module Make (T: Transformers) = struct
   type 'a trace = 'a T.sequence

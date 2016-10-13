@@ -5,8 +5,8 @@ open LocalFacts
 module type S = sig
   type 'a trace
   val collect: initials ->
-    (clean_operation * LocalFacts.versions_resolved) trace ->
-    (clean_operation * LocalFacts.local_facts) trace
+    (clean_event * LocalFacts.versions_resolved) trace ->
+    (clean_event * LocalFacts.local_facts) trace
 end
 module VersionedReferenceMap = Reference.VersionedReferenceMap
 module ReferenceMap = Reference.ReferenceMap
@@ -108,11 +108,7 @@ let pp_versions =
 
 let collect_pointsto_step globals_are_properties objects state (facts: versions_resolved) =
   let mkref = Reference.reference_of_name globals_are_properties facts.names in
-  fun step -> Log.debug (fun m -> m "points-to collection step: %a, %a"
-                pp_clean_operation step
-                pp_versions facts.versions);
-              step |>
-  function
+  fun (op, _) -> match op with
   | CFunPre { base; args } ->
       let state = add_literal objects facts state args
       in add_literal objects facts state base

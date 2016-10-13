@@ -38,44 +38,44 @@ type action =
 let clean_impl_cases initials sid =
   let open Trace in function
     | SwitchScript sid -> ([], sid)
-    | FunPre (_, fpre) -> ([encode_pre fpre], sid)
-    | FunPost (_, fpost) -> ([encode_post fpost], sid)
+    | FunPre (_, fpre) -> ([encode_pre fpre, sid], sid)
+    | FunPost (_, fpost) -> ([encode_post fpost, sid], sid)
     | Literal (_, { value; hasGetterSetter }) ->
-      ([CLiteral { value; hasGetterSetter }], sid)
-    | ForIn (_, value) -> ([CForIn value], sid)
-    | Declare (_, decl) -> ([encode_decl decl], sid)
-    | GetFieldPre (_, { base; offset }) -> ([CGetFieldPre (base, offset)], sid)
+      ([CLiteral { value; hasGetterSetter }, sid], sid)
+    | ForIn (_, value) -> ([CForIn value, sid], sid)
+    | Declare (_, decl) -> ([encode_decl decl, sid], sid)
+    | GetFieldPre (_, { base; offset }) -> ([CGetFieldPre (base, offset), sid], sid)
     | GetField (_, { base; offset; value; isComputed }) ->
-      ([CGetField { base; offset; value; isComputed; actual_base = base }], sid)
+      ([CGetField { base; offset; value; isComputed; actual_base = base }, sid], sid)
     | Read (_, { name; value }) ->
-      ([CRead { name; value }], sid)
+      ([CRead { name; value }, sid], sid)
     | PutFieldPre (_, { base; offset; value; isComputed }) ->
-        ([CPutFieldPre { base; offset; value; isComputed; actual_base = base }], sid)
+        ([CPutFieldPre { base; offset; value; isComputed; actual_base = base }, sid], sid)
     | PutField (_, { base; offset; value; isComputed }) ->
-        ([CPutField { base; offset; value; isComputed; actual_base = base }], sid)
+        ([CPutField { base; offset; value; isComputed; actual_base = base }, sid], sid)
     | Write (_, { name; lhs; value }) ->
-        ([CWrite { name; lhs; value; isSuccessful = true }], sid)
-    | Return (_, value) -> ([CReturn value], sid)
-    | Throw (_, value) -> ([CThrow value], sid)
-    | With (_, value) -> ([CWith value], sid)
-    | FunEnter (_, { f; this; args }) -> ([CFunEnter { f; this; args }], sid)
-    | FunExit (_, { ret; exc }) -> ([CFunExit { ret; exc }], sid)
-    | ScriptEnter -> ([CScriptEnter], sid)
-    | ScriptExit -> ([CScriptExit], sid)
-    | ScriptExc obj -> ([CScriptExc obj], sid)
+        ([CWrite { name; lhs; value; isSuccessful = true }, sid], sid)
+    | Return (_, value) -> ([CReturn value, sid], sid)
+    | Throw (_, value) -> ([CThrow value, sid], sid)
+    | With (_, value) -> ([CWith value, sid], sid)
+    | FunEnter (_, { f; this; args }) -> ([CFunEnter { f; this; args }, sid], sid)
+    | FunExit (_, { ret; exc }) -> ([CFunExit { ret; exc }, sid], sid)
+    | ScriptEnter -> ([CScriptEnter, sid], sid)
+    | ScriptExit -> ([CScriptExit, sid], sid)
+    | ScriptExc obj -> ([CScriptExc obj, sid], sid)
     | BinPre _ -> ([], sid)
     | BinPost (_, { op; left; right; result }) ->
-      ([CBinary { op; left; right; result }], sid)
+      ([CBinary { op; left; right; result }, sid], sid)
     | UnaryPre _ -> ([], sid)
     | UnaryPost (_, { op; arg; result }) ->
-      ([CUnary { op; arg; result }], sid)
-    | EndExpression _ -> ([CEndExpression], sid)
+      ([CUnary { op; arg; result }, sid], sid)
+    | EndExpression _ -> ([CEndExpression, sid], sid)
     | Conditional (iid, value) ->
         let loc =
           match CCIntMap.find sid initials.iids with
             | Some iidmap -> CCIntMap.find iid iidmap
             | None -> None
-        in ([CConditional (loc, value)], sid)
+        in ([CConditional (loc, value), sid], sid)
 
 let global_object = OObject 0
 
@@ -162,11 +162,11 @@ let make_silent_catch exc =
 let make_funpre ({ f; this; args }: funenter) =
   { f; base=this; args; call_type = Method }
 
-let synthesize_events_step funcs op stack =
+let synthesize_events_step funcs (op, sid) stack =
   Log.debug (fun m -> m "Matching %a with %a"
                         pp_clean_operation op
                         (Fmt.list pp_func_type) stack);
-  match op, stack with
+  let (cmd, ops) = match op, stack with
   | _, (ExtFunc _ | ExtFuncExc _) :: (ExtFunc _ | ExtFuncExc _) ::_
   | _, EventFunc _ :: _ :: _ ->
       failwith "Bad stack"
@@ -284,6 +284,7 @@ let synthesize_events_step funcs op stack =
         (Pop, [ make_silent_catch exc'; CThrow exc; CFunExit { exc; ret = OUndefined }; op ])
   | _, (ExtFunc _ | ExtFuncExc _) :: _ ->
       failwith "Bad event in external frame"
+  in (cmd, List.map (fun op -> (op, sid)) ops)
 
 type clean_level = SynthesizeEvents | Normalizations | SynthesizeGettersAndSetters | JustClean
 
@@ -292,7 +293,7 @@ module CleanGeneric = functor(S: Transformers) -> struct
 
   let normalize_calls initials =
     Log.debug (fun m -> m "Normalizing calls");
-    S.map (function
+    S.map (fun (op, sid) -> ((match op with
         | CFunPre { f; base; args; call_type }
           when f = initials.function_apply || f = initials.function_call ->
           CFunPre
@@ -304,31 +305,31 @@ module CleanGeneric = functor(S: Transformers) -> struct
               resolve_call initials.objects initials.function_apply initials.function_call
                 f base args call_type
             in CFunPost { f; base; args; call_type; result }
-        | ev -> ev)
+        | ev -> ev), sid))
 
   let normalize_function_constructor initials =
     Log.debug (fun m -> m "Normalizing function constructor");
     S.map_list_state false
-      (fun in_constructor op ->
+      (fun in_constructor (op, sid) ->
          match in_constructor, op with
-           | true, CScriptEnter -> ([op], true)
-           | true, CScriptExit -> ([op], true)
-           | true, CEndExpression -> ([op], true)
-           | true, CLiteral _ -> ([op], true)
+           | true, CScriptEnter -> ([op, sid], true)
+           | true, CScriptExit -> ([op, sid], true)
+           | true, CEndExpression -> ([op, sid], true)
+           | true, CLiteral _ -> ([op, sid], true)
            | true, CDeclare { declaration_type = CatchParam; value } ->
-               ([CThrow value; CFunExit { exc=value; ret=OUndefined }; op], false)
+               ([CThrow value, sid; CFunExit { exc=value; ret=OUndefined }, sid; op, sid], false)
            | true, CScriptExc exc ->
-               ([CThrow exc; CFunExit { exc; ret=OUndefined }; op], false)
+               ([CThrow exc, sid; CFunExit { exc; ret=OUndefined }, sid; op, sid], false)
            | true, CFunExit { exc; ret=OUndefined } when exc <> OUndefined ->
-               ([CThrow exc; op; op], false)
+               ([CThrow exc, sid; op, sid; op, sid], false)
            | true, CFunPost { result = value } ->
-               ([CReturn value; CFunExit { ret=value; exc=OUndefined }; op], false)
+               ([CReturn value, sid; CFunExit { ret=value; exc=OUndefined }, sid; op, sid], false)
            | true, _ ->
                prerr_endline "Bad event in a Function constructor body";
-               ([op], true)
+               ([op, sid], true)
            | false, CFunPre { f; base; args } when f = initials.function_constructor ->
-               ([op; CFunEnter { f; this=base; args }], true)
-           | false, _ -> ([op], false))
+               ([op, sid; CFunEnter { f; this=base; args }, sid], true)
+           | false, _ -> ([op, sid], false))
 
   (* This bit involves quite some rewriting. What we do:
    * - Writes to/reads from __proto__ become writes to/reads from prototype.
@@ -361,7 +362,7 @@ module CleanGeneric = functor(S: Transformers) -> struct
          in (ReflectSetProto (obj, pro)))
     ]
     in S.map_list_state NonePrototype
-      (fun mode op -> match op, mode with
+      (fun mode (op, sid) -> let (op, mode) = match op, mode with
          | CFunEnter { f; args }, NonePrototype ->
              begin try ([op], List.assoc f cases args)
              with Not_found -> ([op], NonePrototype)
@@ -401,9 +402,11 @@ module CleanGeneric = functor(S: Transformers) -> struct
              Log.err (fun m ->
                         m "Operation %a encountered when expecting prototype updates"
                           pp_clean_operation op);
-             ([op], NonePrototype))
+             ([op], NonePrototype)
+       in ((List.map (fun op -> (op, sid)) op, mode)))
   (* Note that, for once, this is not a function call stack, but a eval context stack. *)
-  let normalize_eval_step eval (frame_stack, special, last_call) op = match frame_stack, op with
+  let normalize_eval_step eval (frame_stack, special, last_call) (op, sid) =
+    let (ops, state) = match frame_stack, op with
     | true :: frames, CScriptExit -> ([op], (frames, true, None))
     | true :: frames, CScriptExc exc -> ([op; CFunExit { ret=OUndefined; exc }], (frames, false, None))
     | frames, CScriptEnter ->
@@ -436,6 +439,7 @@ module CleanGeneric = functor(S: Transformers) -> struct
         if special then
           prerr_endline "Unexpected special handling request when handling regular event";
         ([op], (frames, false, None))
+    in (List.map (fun op -> (op, sid)) ops, state)
 
   let normalize_eval initials =
     Log.debug (fun m -> m "Normalizing eval constructor");
@@ -446,11 +450,11 @@ module CleanGeneric = functor(S: Transformers) -> struct
       (fun state op -> normalize_eval_step initials.function_eval state op)
 
   let normalize_string_subscripts_step = function
-    | CGetFieldPre (OString _, _) -> []
-    | CPutFieldPre { base = OString _ } -> []
-    | CGetField  { base = (OString _) as left; offset; value } ->
-        [ CBinary { op = "_string_subscript"; left; right = OString offset; result = value } ]
-    | CPutField { base =  OString _; offset; value } ->
+    | CGetFieldPre (OString _, _), _ -> []
+    | CPutFieldPre { base = OString _ }, _ -> []
+    | CGetField  { base = (OString _) as left; offset; value }, sid ->
+        [ CBinary { op = "_string_subscript"; left; right = OString offset; result = value }, sid ]
+    | CPutField { base =  OString _; offset; value }, _ ->
         [] (* Thanks, JavaScript - string assignment is a no-op *)
     | event -> [event]
 
@@ -468,32 +472,32 @@ module CleanGeneric = functor(S: Transformers) -> struct
     let is_use_strict { value; hasGetterSetter } =
       (not hasGetterSetter) && value = OString "use strict" in
     S.map_list_state None
-      (fun deferred_literal op ->
+      (fun deferred_literal (op, sid) ->
          match deferred_literal, op with
          | Some _, CEndExpression -> ([], None)
-         | Some l, CLiteral l' when is_use_strict l' -> ([CLiteral l], Some l')
-         | Some l, _ -> ([CLiteral l; op], None)
+         | Some l, CLiteral l' when is_use_strict l' -> ([CLiteral l, sid], Some l')
+         | Some l, _ -> ([CLiteral l, sid; op, sid], None)
          | None, CLiteral l when is_use_strict l -> ([], Some l)
-         | None, _ -> ([op], None))
+         | None, _ -> ([op, sid], None))
       trace
 
   type mode = Neither | Read | Write
-  let synthesize_getters_and_setters_step op mode stack =
+  let synthesize_getters_and_setters_step (op, sid) mode stack =
     match op, mode, stack with
       | CGetFieldPre _, _, _ -> (Keep, Read, [])
       | CPutFieldPre _, _, _ -> (Keep, Write, [])
       | CFunEnter { f; this; args }, Read, _ ->
           (Push (Some (f, this, args)), Neither,
-           [CFunPre { f; base=this; args; call_type = Method }; op])
+           [CFunPre { f; base=this; args; call_type = Method }, sid; op, sid])
       | CFunEnter { f; this; args }, Write, _ ->
           (Push (Some (f, this, args)), Neither,
-           [CFunPre { f; base=this; args; call_type = Method }; op])
-      | CFunEnter _, Neither, _ -> (Push None, Neither, [op])
+           [CFunPre { f; base=this; args; call_type = Method }, sid; op, sid])
+      | CFunEnter _, Neither, _ -> (Push None, Neither, [op, sid])
       | CFunExit { ret; exc=OUndefined }, _, Some (f, base, args) :: _ ->
           (Pop, Neither,
-           [op; CFunPost { f; base; args; call_type = Method; result=ret }])
-      | CFunExit _, _, _ -> (Pop, Neither, [op])
-      | _, _, _ -> (Keep, Neither, [op])
+           [op, sid; CFunPost { f; base; args; call_type = Method; result=ret }, sid])
+      | CFunExit _, _, _ -> (Pop, Neither, [op, sid])
+      | _, _, _ -> (Keep, Neither, [op, sid])
 
   let pp_gs pp = function
     | Some (f, this, args) ->
@@ -516,7 +520,7 @@ module CleanGeneric = functor(S: Transformers) -> struct
   }
 
   type validate_level = Basic | NoUseStrict | NormalizedCalls | SynthesizedEvents
-  let validate_step level function_call function_apply op state =
+  let validate_step level function_call function_apply (op, _) state =
     let eqval v1 v2 =
       match v1, v2 with
         | ONumberFloat f1, ONumberFloat f2 ->

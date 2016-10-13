@@ -210,11 +210,12 @@ type clean_operation =
   | CEndExpression
   | CConditional of location option * jsval
   [@@deriving show]
+type clean_event = clean_operation * int [@@deriving show]
 (** A clean trace is a list of cleaned-up events. *)
-type clean_trace = clean_operation list [@@deriving show]
+type clean_trace = clean_event list [@@deriving show]
 (** A clean trace file is like a trace file, only it contains a clean trace. *)
 type clean_tracefile = functions * objects * clean_trace * globals * bool * iidmap [@@deriving show]
-type clean_stream = clean_operation Streaming.Stream.t
+type clean_stream = clean_event Streaming.Stream.t
 
 open Format
 
@@ -246,9 +247,9 @@ type rwrite = {
   isComputed : bool;
 } [@@deriving show]
 
-type 'a enriched_trace = (clean_operation * 'a) list [@@deriving show]
+type 'a enriched_trace = (clean_event * 'a) list [@@deriving show]
 type 'a enriched_tracefile = functions * objects * 'a enriched_trace * globals * bool * iidmap [@@deriving show]
-type 'a enriched_stream = (clean_operation * 'a) Streaming.Stream.t
+type 'a enriched_stream = (clean_event * 'a) Streaming.Stream.t
 
 (** Events that make use of the facts calculated by the [LocalFacts] module
   * and consorts to provide a better representation for trace comparison.
@@ -283,7 +284,8 @@ type rich_facts = {
   last_update: Reference.versioned_reference option;
   versions: int Reference.ReferenceMap.t;
   points_to: Reference.points_to_map;
-  names: Reference.reference StringMap.t
+  names: Reference.reference StringMap.t;
+  sid: int;
 } [@@deriving show]
 
 (** A rich event is a pair of a rich operation and the associated local facts *)

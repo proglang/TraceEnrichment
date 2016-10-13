@@ -6,8 +6,8 @@ open Reference
 module type S = sig
   type 'a trace
   val collect: initials ->
-    (clean_operation * LocalFacts.versions_resolved) trace ->
-    (clean_operation * LocalFacts.local_facts) trace
+    (clean_event * LocalFacts.versions_resolved) trace ->
+    (clean_event * LocalFacts.local_facts) trace
 end
 module Make(T: Streaming.Transformers):
               S with type 'a trace = 'a T.sequence

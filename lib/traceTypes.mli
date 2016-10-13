@@ -210,9 +210,11 @@ type clean_operation =
   | CEndExpression
   | CConditional of location option * jsval
 
+(** A clean event is a clean operation annotated with a script ID. *)
+type clean_event = clean_operation * int
 (** A clean trace is a list of cleaned-up events. *)
-type clean_trace = clean_operation list
-type clean_stream = clean_operation Streaming.Stream.t
+type clean_trace = clean_event list
+type clean_stream = clean_event Streaming.Stream.t
 (** A clean trace file is like a trace file, only it contains a clean trace. *)
 type clean_tracefile = functions * objects * clean_trace * globals * bool * iidmap
 
@@ -274,9 +276,9 @@ type rich_operation =
   | RConditional of location option * jsval
 
 (** Traces and tracefiles enrichted with local facts. *)
-type 'a enriched_trace = (clean_operation * 'a) list
+type 'a enriched_trace = (clean_event * 'a) list
 type 'a enriched_tracefile = functions * objects * 'a enriched_trace * globals * bool * iidmap
-type 'a enriched_stream = (clean_operation * 'a) Streaming.Stream.t
+type 'a enriched_stream = (clean_event * 'a) Streaming.Stream.t
 
 val pp_enriched_trace: (Format.formatter -> 'a -> unit) ->
   Format.formatter -> 'a enriched_trace -> unit
@@ -288,7 +290,8 @@ type rich_facts = {
   last_update: Reference.versioned_reference option;
   versions: int Reference.ReferenceMap.t;
   points_to: Reference.points_to_map;
-  names: Reference.reference StringMap.t
+  names: Reference.reference StringMap.t;
+  sid: int
 }
 
 (** A rich event is a pair of a rich operation and the associated local facts *)
@@ -316,6 +319,7 @@ val pp_trace : Format.formatter -> event list -> unit
 val pp_tracefile : Format.formatter -> tracefile -> unit
 val pp_call_type : Format.formatter -> call_type -> unit
 val pp_clean_operation : Format.formatter -> clean_operation -> unit
+val pp_clean_event : Format.formatter -> clean_event -> unit
 val pp_clean_trace : Format.formatter -> clean_trace -> unit
 val pp_clean_tracefile : Format.formatter -> clean_tracefile -> unit
 val pp_alias_source : Format.formatter -> alias_source -> unit
