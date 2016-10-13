@@ -69,11 +69,8 @@
         var sendIIDs;
 
         function initialize() {
-            console.log("Called initialize");
             if (!initialized) {
-                console.log("Collecting globals");
                 valid(global);
-                console.log("Collected global-reachable objects");
                 strategy.start();
                 currentSID = undefined;
                 sendIIDs = [];
