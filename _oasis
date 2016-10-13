@@ -89,6 +89,14 @@ Executable "pprichtrace"
   BuildDepends: js-enrichment
   CompiledObject: best
 
+Executable "ppgood"
+  Path:         tools
+  BuildTools:   ocamlbuild
+  MainIs:       ppgood.ml
+  Install$:     flag(prettyprint)
+  BuildDepends: js-enrichment
+  CompiledObject: best
+
 Executable "ppcleantrace"
   Path:         tools
   BuildTools:   ocamlbuild
