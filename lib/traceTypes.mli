@@ -291,7 +291,8 @@ type rich_facts = {
   versions: int Reference.ReferenceMap.t;
   points_to: Reference.points_to_map;
   names: Reference.reference StringMap.t;
-  sid: int
+  sid: int;
+  tsid: int
 }
 
 (** A rich event is a pair of a rich operation and the associated local facts *)

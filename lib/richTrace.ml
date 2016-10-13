@@ -106,12 +106,57 @@ let enrich_step globals_are_properties (op, facts) =
     | CConditional (iid, value) -> [RConditional (iid, value)] in
   List.map (fun op -> (op, facts)) res
 
+type tsid_mode =
+  | NoSID
+  | TopEventHandler of { call_depth: int; tsid: int }
+  | EventHandlerCoda of { tsid: int }
+  | Script of { script_depth: int; possible_call_depth: int option; tsid: int }
+
+let calculate_tsid tsid_state (op, ({ sid } as facts)) =
+  let (tsid, tsid_state) = match tsid_state, op with
+    | NoSID, RFunPre _ ->
+        (sid, TopEventHandler { call_depth = 0; tsid = sid })
+    | TopEventHandler { call_depth; tsid }, RFunPre _ -> 
+        (tsid, TopEventHandler { call_depth = call_depth + 1; tsid })
+    | TopEventHandler { call_depth; tsid }, RScriptEnter ->
+        (tsid, Script { script_depth = 0; tsid; 
+                        possible_call_depth = Some call_depth })
+    | TopEventHandler { call_depth = 0; tsid }, RFunExit _ ->
+        (tsid, EventHandlerCoda { tsid })
+    | TopEventHandler { call_depth; tsid }, RFunExit _ ->
+        (tsid, TopEventHandler { call_depth = call_depth - 1; tsid })
+    | TopEventHandler { tsid }, _ ->
+        (tsid, tsid_state)
+    | EventHandlerCoda { tsid }, _ ->
+        (tsid, NoSID)
+    | NoSID, RScriptEnter ->
+        (sid, Script { script_depth = 0; tsid = sid;
+                       possible_call_depth = None })
+    | Script { script_depth = 0; possible_call_depth = None; tsid },
+      (RScriptExit | RScriptExc _) ->
+        (tsid, NoSID)
+    | Script { script_depth = 0; possible_call_depth = Some call_depth; tsid },
+      (RScriptExit | RScriptExc _) ->
+        (tsid, TopEventHandler { call_depth; tsid })
+    | Script { script_depth; possible_call_depth; tsid },
+      (RScriptExit | RScriptExc _) ->
+        (tsid, Script { script_depth = script_depth - 1;
+                        possible_call_depth; tsid })
+    | Script { script_depth; possible_call_depth; tsid }, RScriptEnter ->
+        (tsid, Script { script_depth = script_depth + 1;
+                        possible_call_depth; tsid })
+    | Script { tsid }, _ ->
+        (tsid, tsid_state)
+    | NoSID, _ -> failwith "No top-level SID for non-entry operatino"
+  in ((op, { facts with tsid }), tsid_state)
+
 module ToRich(S: Streaming.Transformers) = struct
   let enriched_trace_to_rich_trace globals_are_properties (trace: (clean_event * local_facts) S.sequence) =
     trace
       |> S.map (fun ((op, sid), ({ last_update; versions; points_to; names }: local_facts)) ->
-                   (op, {last_update; versions; points_to; names; sid }))
+                   (op, {last_update; versions; points_to; names; sid; tsid = sid }))
       |> S.map_list (enrich_step globals_are_properties)
+      |> S.map_state NoSID calculate_tsid
   module C = CleanTrace.CleanGeneric(S)
   module E = EnrichTrace.Make(S)
   let trace_to_rich_trace initials trace =
