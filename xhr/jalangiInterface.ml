@@ -155,7 +155,7 @@ let map_script_path base = function
          args)
   | s -> s
 
-let fold_script_collection tmpdir base s (tasks, paths, i) =
+let fold_script_collection tmpdir base s (tasks, paths) =
   match s with
     | `Start_element (("", "script"), args) ->
         begin try
@@ -164,24 +164,47 @@ let fold_script_collection tmpdir base s (tasks, paths, i) =
           in let reader = url_reader ~base (Uri.of_string path)
           in Lwt.return
                (Lwt.bind reader
-                  (fun reader ->
-                     let augmented =
-                       if i = 0 then
-                         reader
-                       else Lwt_stream.append
-                              (Lwt_stream.of_string "// JALANGI DO NOT INSTRUMENT\n")
-                              reader
-                     in Lwt_io.chars_to_file mutated augmented) :: tasks,
-                mutated :: paths,
-                i-1)
-        with Not_found -> Lwt.return (tasks, paths, i)
+                  (Lwt_io.chars_to_file mutated) :: tasks,
+                mutated :: paths)
+        with Not_found -> Lwt.return (tasks, paths)
         end
-    | _ -> Lwt.return (tasks, paths, i)
+    | _ -> Lwt.return (tasks, paths)
 
-(* The function gets calls as [instrument_page uri i], and instruments
- * the page at the given URI such that the i-th script will get analyzed.
+(* WTF, markup library - why don't you tell me what the end tag
+ * is for *)
+let onload_script = {javascript|
+// JALANGI DO NOT INSTRUMENT
+var onload_chain = onload;
+onload = function () { 
+  if (typeof onload_chain === 'function') {
+    onload_chain();
+  }
+  document.location = J$.initParams.session_url;
+}
+|javascript}
+
+let insert_onload_handler level signal =
+  match signal, level with
+  | `Start_element ((_, "body"), _), None ->
+      Lwt.return ([signal], Some (Some 0))
+  | `Start_element _, Some i ->
+      Lwt.return ([signal], Some (Some (i+1)))
+  | `End_element, Some 0 ->
+      (* This is </body> *)
+      Lwt.return ([`Start_element (("", "script"), []);
+                   `Text [onload_script];
+                   `End_element;
+                   signal],
+                  Some None)
+  | `End_element, Some i ->
+      Lwt.return ([signal], Some (Some (i-1)))
+  | _, _ ->
+      Lwt.return ([signal], Some level)
+
+(* The function gets calls as [instrument_page uri], and instruments
+ * the page at the given URI.
  * It returs the path to the instrumented HTML file. *)
-let instrument_page base_str index =
+let instrument_page base_str =
   let base = Uri.of_string base_str
   in let%lwt (tmpdir, insdir) = get_instrument_tmp_dir ()
   in let html_path = tmpdir /: (mutated_path base base_str) ^ ".html"
@@ -197,11 +220,12 @@ let instrument_page base_str index =
     Log.info (fun m -> m "Writing HTML to %s" html_path);
     Markup_lwt.lwt_stream html_stream
       |> Markup_lwt.map (fun s -> Lwt.return (map_script_path base s))
+      |> Markup_lwt.transform insert_onload_handler None
       |> Markup_lwt.write_html
       |> Markup_lwt_unix.to_file html_path
-  in let%lwt (tasks, paths, _) =
+  in let%lwt (tasks, paths) =
     Lwt_stream.fold_s (fold_script_collection tmpdir base)
-      html_stream_dup ([], [], index)
+      html_stream_dup ([], [])
   in let%lwt _ = Lwt.join (html_writer :: tasks)
   in let%lwt _ = jalangi2_instrument "xhr" (html_path :: paths) insdir
   in Lwt.return (Filename.basename html_path)

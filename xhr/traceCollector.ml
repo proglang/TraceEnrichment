@@ -209,15 +209,13 @@ end = struct
 
   let handle_proxy uri body =
     Log.info (fun m -> m "Instrumenting HTML file");
-    begin match Uri.get_query_param uri "url",
-                Uri.get_query_param uri "index" with
-      | Some url, Some index ->
-          Log.info (fun m -> m "url=%s, index=%s" url index);
-          let%lwt path =
-            JalangiInterface.instrument_page url (int_of_string index)
-          in reply_plain_text path
-      | _, _ ->
-          reply_error Cohttp.Code.(`Bad_request) "URL or index is missing"
+    begin match Uri.get_query_param uri "url" with
+      | Some url ->
+          Log.info (fun m -> m "proxy, url=%s" url);
+          let%lwt path = JalangiInterface.instrument_page url
+          in reply_redirect (Uri.with_path uri path)
+      | None ->
+          reply_error Cohttp.Code.(`Bad_request) "URL is missing"
     end
 
   let handlers_global =
