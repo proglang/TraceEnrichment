@@ -3,9 +3,9 @@ module TestStreamStrategy: TraceStreamServer.STREAMSTRATEGY = struct
   type t = string list Lwt.t
   let stream_setup id initials raw_stream =
     Log.info (fun m -> m "Setting up stream");
-    (RichTrace.trace_stream_to_rich_stream initials raw_stream |>
+    (CleanTrace.clean_stream initials raw_stream |>
       Lwt_stream.to_list) >|=
-      List.map (fun (ev, _) -> Fmt.to_to_string TraceTypes.pp_rich_operation ev)
+      List.map (fun ev -> Fmt.to_to_string TraceTypes.pp_clean_event ev)
 
   let stream_dump _ (strings: t) _ _ =
     Log.info (fun m -> m "Preparing for dump");
