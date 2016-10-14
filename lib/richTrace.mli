@@ -21,3 +21,6 @@ val trace_stream_to_rich_stream : TypesJS.initials -> raw_stream -> rich_stream
 
 (** A dummy rich_fact instance; this can be helpful in further analyses. *)
 val dummy_facts: rich_facts
+
+(** Debugging: disable TSID calculation *)
+val calculate_tsid_flag: bool ref

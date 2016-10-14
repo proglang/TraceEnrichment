@@ -17,3 +17,5 @@ val get_xhr_server_port : unit -> int
 val get_keep_temporaries : unit -> bool
 (** Set up configuration variables. *)
 val setup: unit -> unit
+(** Check whether TSIDs should be calculated *)
+val get_calculate_tsid: unit -> bool

@@ -160,6 +160,9 @@ let calculate_tsid tsid_state (op, ({ sid } as facts)) =
     | Script { possible_call_depth = None } -> false
   in ((op, { facts with tsid; in_event_handler }), tsid_state)
 
+let id x = x
+let calculate_tsid_flag = ref true
+
 module ToRich(S: Streaming.Transformers) = struct
   let enriched_trace_to_rich_trace globals_are_properties (trace: (clean_event * local_facts) S.sequence) =
     trace
@@ -167,7 +170,7 @@ module ToRich(S: Streaming.Transformers) = struct
                    (op, {last_update; versions; points_to; names; sid; tsid = sid;
                          in_event_handler = false }))
       |> S.map_list (enrich_step globals_are_properties)
-      |> S.map_state NoSID calculate_tsid
+      |> if !calculate_tsid_flag then S.map_state NoSID calculate_tsid else id
   module C = CleanTrace.CleanGeneric(S)
   module E = EnrichTrace.Make(S)
   let trace_to_rich_trace initials trace =

@@ -17,6 +17,7 @@ let args =
       ("--xhr-port", Set_int xhr_server_port, "Bind the XHR server to this port");
       ("--node", Set_string node_path, "Path to the node.js binary");
       ("--keep", Set keep_temporaries, "Keep temporary files and directories");
+      ("--no-tsid", Clear RichTrace.calculate_tsid_flag, "Do not calculate TSIDs");
     ]
 
 let find_node () =
@@ -90,3 +91,4 @@ let get_analysis_script_path () =
 let get_xhr_server_address () = !xhr_server_address
 let get_xhr_server_port () = !xhr_server_port
 let get_keep_temporaries () = !keep_temporaries
+let get_calculate_tsid () = !RichTrace.calculate_tsid_flag
