@@ -18,3 +18,6 @@ val calculate_rich_stream : TypesJS.initials -> LocalFacts.local_facts enriched_
 val tracefile_to_rich_tracefile : tracefile -> rich_tracefile
 (** Transform a raw trace stream to a rich trace stream. *)
 val trace_stream_to_rich_stream : TypesJS.initials -> raw_stream -> rich_stream
+
+(** A dummy rich_fact instance; this can be helpful in further analyses. *)
+val dummy_facts: rich_facts

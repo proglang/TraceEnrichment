@@ -204,3 +204,13 @@ let tracefile_to_rich_tracefile
 let trace_stream_to_rich_stream init stream =
   StreamToRich.trace_to_rich_trace init stream
 
+let dummy_facts = {
+  last_update = None;
+  versions = Reference.ReferenceMap.empty;
+  points_to = Reference.VersionedReferenceMap.empty ();
+  names = StringMap.empty;
+  sid = -1;
+  tsid = -1;
+  in_event_handler = false
+}
+
