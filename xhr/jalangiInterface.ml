@@ -123,17 +123,27 @@ let mutated_path base path =
   let uri = Uri.to_string (Uri.resolve "" base (Uri.of_string path))
   in Uuidm.to_string (Uuidm.v5 Uuidm.ns_url uri)
 
-let url_reader ~base url: char Lwt_stream.t Lwt.t =
+let rec url_reader ~base url: char Lwt_stream.t Lwt.t =
   let url = Uri.resolve "" base url
   in let%lwt (response, body) = Cohttp_lwt_unix.Client.get url
-  in Lwt.return (match Cohttp.Response.(response.status), body with
-    | `OK, `Empty -> Lwt_stream.of_list []
-    | `OK, `Stream s -> Lwt_stream.map_list BatString.to_list s
-    | `OK, `String s -> Lwt_stream.of_string s
-    | `OK, `Strings s -> Lwt_stream.of_string (BatString.concat "" s)
+  in match Cohttp.Response.(response.status), body with
+    | `OK, `Empty -> Lwt.return (Lwt_stream.of_list [])
+    | `OK, `Stream s -> Lwt.return (Lwt_stream.map_list BatString.to_list s)
+    | `OK, `String s -> Lwt.return (Lwt_stream.of_string s)
+    | `OK, `Strings s -> Lwt.return (Lwt_stream.of_string (BatString.concat "" s))
+    | `Moved_permanently, _
+    | `Found, _
+    | `See_other, _
+    | `Temporary_redirect, _ ->
+        begin match
+          Cohttp.Header.get Cohttp.Response.(response.headers) "Location"
+        with Some url -> url_reader ~base (Uri.of_string url)
+          | None -> Log.err (fun m -> m "Bad redirect");
+                    raise Exit
+        end
     | s, _ -> Log.err(fun m -> m "Got non-ok response %s"
                                  (Cohttp.Code.string_of_status s));
-              raise Exit)
+              raise Exit
 
 let map_script_path base = function
   | `Start_element (("", "script"), args) ->
