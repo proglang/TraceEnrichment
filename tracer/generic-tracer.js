@@ -703,6 +703,7 @@
         if (xhr.readyState != 4) { throw new Exception("XHR session initialisation failed"); }
         var session = xhr.response;
         var url = urlbase + session + "/facts";
+        J$.initParams.session_url = urlbase + session;
         var facts = [];
 
         var canSend = true;
