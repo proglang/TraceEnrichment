@@ -11,7 +11,6 @@ module TestStreamStrategy: TraceStreamServer.STREAMSTRATEGY = struct
     Log.info (fun m -> m "Preparing for dump");
     Lwt.bind strings
     (fun strings ->
-       Log.info (fun m -> m "Ready to answer, %a" (Fmt.list Fmt.string) strings);
        TraceCollector.reply_plain_text (BatString.concat "\n" strings))
 
   let handlers_global = []

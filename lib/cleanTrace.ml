@@ -95,9 +95,8 @@ let debug_get_array objects base =
         List.rev objs
     in get 0 []
   with ((ObjectNotFound (objid, fld)) as e) ->
-    Log.debug (fun m -> m "Not a proper array: %a, containing @[<hov 2>%a@]@ (Can't find %s in %a)"
+    Log.debug (fun m -> m "Not a proper array: %a (Can't find %s in %a)"
                           pp_jsval base
-                          pp_objectspec (BatDynArray.get objects (get_object base))
                           fld pp_objectid objid
     );
     raise e

@@ -45,7 +45,6 @@ let add_read (facts: LocalFacts.versions_resolved) state ref value: points_to_ma
     VersionedReferenceMap.add state vref value
 
 let add_known_new_object objects (facts: LocalFacts.versions_resolved) state obj =
-  Log.debug (fun m -> m "Adding known object %a" pp_jsval obj);
   let id = objectid_of_jsval obj in
   let may_be_known = (Some (get_object_id id) = facts.last_arguments) in
   StringMap.fold
