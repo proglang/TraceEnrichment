@@ -147,7 +147,8 @@ let calculate_tsid tsid_state (op, ({ sid } as facts)) =
                         possible_call_depth; tsid })
     | Script { tsid }, _ ->
         (tsid, tsid_state)
-    | NoSID, _ -> failwith "No top-level SID for non-entry operatino"
+    | NoSID, _ -> failwith (Fmt.strf "No top-level SID for non-entry operation %a"
+                              pp_rich_operation op)
   in let in_event_handler = match tsid_state with
     | TopEventHandler _
     | EventHandlerCoda _
@@ -160,7 +161,8 @@ module ToRich(S: Streaming.Transformers) = struct
   let enriched_trace_to_rich_trace globals_are_properties (trace: (clean_event * local_facts) S.sequence) =
     trace
       |> S.map (fun ((op, sid), ({ last_update; versions; points_to; names }: local_facts)) ->
-                   (op, {last_update; versions; points_to; names; sid; tsid = sid; in_event_handler = false }))
+                   (op, {last_update; versions; points_to; names; sid; tsid = sid;
+                         in_event_handler = false }))
       |> S.map_list (enrich_step globals_are_properties)
       |> S.map_state NoSID calculate_tsid
   module C = CleanTrace.CleanGeneric(S)
