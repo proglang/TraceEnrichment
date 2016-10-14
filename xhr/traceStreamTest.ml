@@ -13,12 +13,21 @@ let get_data () =
 
 exception InvalidItem
 
+module StringMap' = struct
+  include StringMap
+  let union f =
+    merge (fun k v1 v2 -> match v1, v2 with
+             | Some v1, Some v2 -> f k v1 v2
+             | _, None -> v1
+             | None, _ -> v2)
+end
+
 module StringMapEqual =
-  Assert.Map(StringMap)(struct type t = string let to_string s: string = s end)
+  Assert.Map(StringMap')(struct type t = string let to_string s: string = s end)
 let test_init =
   Test.make_assert_test ~title:"Init data" get_data
     (fun (init, _) ->
-       let ((initials: initials), _, _) = TraceStream.parse_setup_packet init in
+       let ((initials: initials), _, _, _) = TraceStream.parse_setup_packet init in
          Assert.is_true ~msg:"globals_are_properties" initials.globals_are_properties;
          Assert.equal_int ~msg:"objects" 0 (BatDynArray.length initials.objects);
          Assert.equal_int ~msg:"functions" 0 (BatDynArray.length initials.functions);
@@ -30,7 +39,7 @@ let fspec jsval = { value = jsval; writable = true; get = None; set = None; enum
 let test_full =
   Test.make_assert_test ~title:"Complete traceStream test" get_data
     (fun (init, facts) ->
-       let ((initials: initials), stream, push) = TraceStream.parse_setup_packet init in
+       let ((initials: initials), stream, _, push) = TraceStream.parse_setup_packet init in
        let trace = Lwt_stream.to_list stream in
          List.iter push facts;
          let trace' = Lwt_main.run trace in

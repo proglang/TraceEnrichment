@@ -207,7 +207,7 @@ let concretize trace name_map =
   BatList.flatten
     (BatList.map
        (fun (op, ctx) ->
-          match op with
+          let ops = match op with
           | Call (fid, ctx', vars) ->
               CFunPre { f = OFunction(fid, fid); base = OObject 0; args = OObject ctx;
                         call_type = Function } ::
@@ -232,7 +232,8 @@ let concretize trace name_map =
               [ CWrite { name = VarMap.find var name_map; value = OUndefined;
                          lhs = OUndefined; isSuccessful = true } ]
               with Not_found -> failwith (Fmt.strf "Tried to map %a, no mapping found" pp_varid var)
-              end)
+              end
+          in BatList.map (fun op -> (op, 1)) ops)
        trace)
 
 module Args = LocalFacts.CollectArguments(Streaming.ListTransformers)
@@ -244,7 +245,7 @@ let check_concrete_trace trace =
   let open TraceTypes in
   let open TypesJS in
   let rec check seen = function
-    | CLiteral { value = OFunction (id, _) } :: trace ->
+    | (CLiteral { value = OFunction (id, _) }, _) :: trace ->
         if IntSet.mem id seen then
           failwith "Double function id"
         else
@@ -260,7 +261,7 @@ let check_closure_trace
   let open LocalFacts in
   let count = ref 0 in try
     List.iter (function
-                 | (CLiteral { value = OFunction (id, _) },
+                 | ((CLiteral { value = OFunction (id, _) }, _),
                     ({ closures; last_arguments = Some _ }:
                      LocalFacts.arguments_and_closures)) ->
                      if not (IntMap.mem id closures) then
@@ -395,7 +396,11 @@ let initials =
       function_call = OUndefined;
       function_constructor = OUndefined;
       function_eval = OUndefined;
-      iids = CCIntMap.empty
+      iids = CCIntMap.empty;
+      object_getPrototypeOf = OUndefined;
+      object_setPrototypeOf = OUndefined;
+      reflect_getPrototypeOf = OUndefined;
+      reflect_setPrototypeOf = OUndefined;
     }
 
 module XFRM = CalculateNameBindings.Make(Streaming.ListTransformers)

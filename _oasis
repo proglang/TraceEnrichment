@@ -191,7 +191,7 @@ Executable "jalangiInterfaceTest"
   Install:    false
   Build$:     flag(tests)
   MainIs:     jalangiInterfaceTest.ml
-  BuildDepends: js-enrichment, js-enrichment.xhr, kaputt, lwt, lwt.unix, camltemplate
+  BuildDepends: js-enrichment, js-enrichment.xhr, kaputt, lwt, lwt.unix, camltemplate, cohttp.lwt, cohttp
   Path:       xhr
   BuildTools: ocamlbuild
   CompiledObject: best
@@ -201,7 +201,7 @@ Executable "traceCollectorTest"
   Build$:     flag(tests)
   MainIs:     traceCollectorTest.ml
   BuildDepends: js-enrichment, js-enrichment.xhr,
-        ppx_deriving.std,
+        ppx_deriving.std, ppx_deriving_yojson,
         lwt, lwt.unix, cohttp, cohttp.lwt, camltemplate
   Path:       xhr
   BuildTools: ocamlbuild

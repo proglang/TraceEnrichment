@@ -7,7 +7,7 @@ module TestStreamStrategy: TraceStreamServer.STREAMSTRATEGY = struct
       Lwt_stream.to_list) >|=
       List.map (fun (ev, _) -> Fmt.to_to_string TraceTypes.pp_rich_operation ev)
 
-  let stream_dump (strings: t) _ _ =
+  let stream_dump _ (strings: t) _ _ =
     Log.info (fun m -> m "Preparing for dump");
     Lwt.bind strings
     (fun strings ->

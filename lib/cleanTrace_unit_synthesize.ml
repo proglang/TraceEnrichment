@@ -51,7 +51,10 @@ let gen_synthesize_inputs max_ht =
          | 1 -> Method
          | _ -> Constructor
      in let build_access r =
-       { base = build_jsval_defined r; offset = build_string 32; value = build_jsval r }
+       { base = build_jsval_defined r; offset = build_string 32; value = build_jsval r;
+         isComputed = fst (Kaputt.Generator.make_bool 1 1) r;
+         actual_base = build_jsval_defined r
+       }
      in let build_other r =
        match Random.State.int r 17 with
          | 0 -> CLiteral { value = build_jsval r; hasGetterSetter = Random.State.bool r }
@@ -130,6 +133,13 @@ let gen_synthesize_inputs max_ht =
      in Printexc.print (build_trace 0) (BatDynArray.of_list [])),
   (fun x -> Fmt.to_to_string (Fmt.pair pp_functions pp_clean_trace) x ^ "\n")
 
+let gen_synthesize_inputs x: (TypesJS.functions * TraceTypes.clean_trace) Kaputt.Generator.t =
+  let (gen, print) = gen_synthesize_inputs x
+  in ((fun r ->
+        let (funs, trace) = gen r
+        in (funs, List.map (fun op -> (op, 0)) trace)),
+      print)
+
 let is_internal funcs f =
   match BatDynArray.get funcs f with
     | OrigCode (_, _) -> true
@@ -138,7 +148,7 @@ let is_internal funcs f =
 let drop funcs trace =
   let rec drop stack trace = match trace with
     | [] -> []
-    | event :: trace ->
+    | (event, sid) :: trace ->
         let trace'= match event with
           | CFunPre { f = OFunction (_, f) } ->
               drop (is_internal funcs f :: stack) trace
@@ -147,7 +157,7 @@ let drop funcs trace =
           | _ ->
               drop stack trace
         in match stack with
-          | true :: _ | [] -> event :: trace'
+          | true :: _ | [] -> (event, sid) :: trace'
           | false :: _ -> trace'
   in drop [] trace
 
@@ -155,7 +165,7 @@ type stack_entry =
   | Func of funpre
   | Script
 
-let valid trace =
+let valid (trace: clean_trace) =
   let rec check_no_exc stack = function
     | [] -> stack = []
     | CFunPre funpre :: CFunEnter funenter :: trace ->
@@ -219,7 +229,7 @@ let valid trace =
      | CDeclare { declaration_type = CatchParam; value } :: trace ->
          exc = value && check_no_exc stack trace
      | _ -> false
-  in check_no_exc [] trace
+  in check_no_exc [] (List.map fst trace)
 
 
 let check ((funcs, trace), trace') =

@@ -55,6 +55,10 @@ let rec make_abstract_trace state bound arg closures =
         let (trace2, closures2) = make_abstract_trace state (bound - 1) arg closures1 in
           (trace1 @ trace2, closures2)
 
+let build_abstract_trace state =
+  let (trace, _) = make_abstract_trace state 0 None IntMap.empty
+  in List.map (fun (op, data) -> ((op, 1), data)) trace
+
 type abstract_trace = (int option * int option IntMap.t) enriched_trace
 let pp_abstract_trace =
   pp_enriched_trace
@@ -64,7 +68,7 @@ let pp_abstract_trace =
 
 let generate_abstract_trace: abstract_trace Kaputt.Generator.t =
   (fun state -> arg_src := 0; fun_src := 0;
-                fst (make_abstract_trace state 0 None IntMap.empty)),
+                build_abstract_trace state),
   (Fmt.to_to_string pp_abstract_trace)
 
 module Args = LocalFacts.CollectArguments(Streaming.ListTransformers)
