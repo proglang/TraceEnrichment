@@ -127,6 +127,9 @@ let calculate_tsid tsid_state (op, ({ sid } as facts)) =
         (tsid, TopEventHandler { call_depth = call_depth - 1; tsid })
     | TopEventHandler { tsid }, _ ->
         (tsid, tsid_state)
+    | EventHandlerCoda { tsid }, RCatch _ ->
+        (* HACK we should really have EventEnter/EventExit events. *)
+        (tsid, EventHandlerCoda { tsid })
     | EventHandlerCoda { tsid }, _ ->
         (tsid, NoSID)
     | NoSID, RScriptEnter ->
