@@ -39,3 +39,4 @@ configure
 
 # Jalangi output files.
 *_jalangi_*
+test/html
