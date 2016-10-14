@@ -789,6 +789,7 @@
         strategy.addIIDMap = function (sid, iidmap) {
             sendFact([ "iidmap", sid, iidmap ])
         }
+        J$.initParams.end = strategy.end;
         return strategy;
     }
 

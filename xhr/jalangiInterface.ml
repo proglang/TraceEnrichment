@@ -179,6 +179,7 @@ onload = function () {
   if (typeof onload_chain === 'function') {
     onload_chain();
   }
+  J$.initParams.end();
   document.location = J$.initParams.session_url;
 }
 |javascript}
