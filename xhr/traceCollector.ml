@@ -27,6 +27,12 @@ let reply_file content filename =
 (** Reply with a redirect. *)
 let reply_redirect uri =
   Cohttp_lwt_unix.Server.respond_redirect ~uri ()
+(** Reply with an output stream. May be large. *)
+let reply_stream content stream =
+  let headers = Cohttp.Header.init_with "Content-Type" content in
+    Cohttp_lwt_unix.Server.respond ~headers ~status:`OK
+      ~body:(`Stream stream) ()
+
 
 (**/**)
 let make_new_uuid () =
