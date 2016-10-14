@@ -244,3 +244,15 @@ Test "synthesize_test"
   Command:    $synthesize_test
   Run:        true
 
+Executable "prettyTraceServer"
+  Install:    false
+  Build$:     flag(tests)
+  MainIs:     prettyTraceServer.ml
+  BuildDepends: js-enrichment, js-enrichment.xhr,
+        ppx_deriving.std,
+        lwt, lwt.unix, cohttp, cohttp.lwt, camltemplate
+  Path:       xhr
+  BuildTools: ocamlbuild
+  CompiledObject: best
+
+
