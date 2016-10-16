@@ -146,18 +146,18 @@ let rec url_reader ~base url: char Lwt_stream.t Lwt.t =
               raise Exit
 
 let map_script_path base = function
-  | `Start_element (("", "script"), args) ->
-      `Start_element (("", "script"),
+  | `Start_element ((path, "script"), args) ->
+      `Start_element ((path, "script"),
        BatList.map (function
-                      | (("", "src"), path) ->
-                          (("", "src"), mutated_path base path ^ ".js")
+                      | ((namespace, "src"), path) ->
+                          ((namespace, "src"), mutated_path base path ^ ".js")
                       | a -> a)
          args)
   | s -> s
 
 let fold_script_collection tmpdir base s (tasks, paths) =
   match s with
-    | `Start_element (("", "script"), args) ->
+    | `Start_element ((_, "script"), args) ->
         begin try
           let path = List.assoc ("", "src") args
           in let mutated = tmpdir /: mutated_path base path ^ ".js"
