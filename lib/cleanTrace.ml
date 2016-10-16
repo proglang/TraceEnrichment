@@ -129,14 +129,14 @@ let resolve_call objects function_apply function_call f base args call_type =
 
 type 'a stackop = Push of 'a | Keep | Pop | Replace of 'a | Pop2 | PopReplace of 'a | PushReplace of 'a * 'a | Pop2Replace of 'a
 let apply_stackop pp_value stack = function
-  | Push tos -> Log.debug (fun m -> m "Stack: Pushing %a" pp_value tos); tos :: stack
+  | Push tos -> tos :: stack
   | Keep -> stack
-  | Pop -> Log.debug (fun m -> m "Stack: Popping"); List.tl stack
-  | Pop2 -> Log.debug (fun m -> m "Stack: Popping twice"); List.tl (List.tl stack)
-  | Replace tos -> Log.debug (fun m -> m "Stack: Replacing TOS with %a" pp_value tos); tos :: List.tl stack
-  | PopReplace tos -> Log.debug (fun m -> m "Stack: Popping and replacing TOS with %a" pp_value tos); tos :: List.tl (List.tl stack)
-  | PushReplace (tos1, tos2) -> Log.debug (fun m -> m "Stack: Pusing %a and %a" pp_value tos1 pp_value tos2); tos1 :: tos2 :: List.tl stack
-  | Pop2Replace tos -> Log.debug (fun m -> m "Stack: Popping twice and replacing TOS with %a" pp_value tos); tos :: List.tl (List.tl (List.tl stack))
+  | Pop -> List.tl stack
+  | Pop2 -> List.tl (List.tl stack)
+  | Replace tos -> tos :: List.tl stack
+  | PopReplace tos -> tos :: List.tl (List.tl stack)
+  | PushReplace (tos1, tos2) -> tos1 :: tos2 :: List.tl stack
+  | Pop2Replace tos -> tos :: List.tl (List.tl (List.tl stack))
 
 let is_internal funcs f =
   match f with
@@ -162,9 +162,6 @@ let make_funpre ({ f; this; args }: funenter) =
   { f; base=this; args; call_type = Method }
 
 let synthesize_events_step funcs (op, sid) stack =
-  Log.debug (fun m -> m "Matching %a with %a"
-                        pp_clean_operation op
-                        (Fmt.list pp_func_type) stack);
   let (cmd, ops) = match op, stack with
   | _, (ExtFunc _ | ExtFuncExc _) :: (ExtFunc _ | ExtFuncExc _) ::_
   | _, EventFunc _ :: _ :: _ ->

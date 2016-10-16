@@ -141,13 +141,6 @@ let collect_versions_step (objects: objects) globals_are_properties state
           declare_var "this" state
     | _ ->
       state in
-  Logs.debug
-    (fun fmt ->
-       fmt "@[<v 2>Collecting versions for %a where %a.@ Old state: %a@ New state: %a@]"
-         pp_clean_event op
-         pp_prototypes_resolved facts
-         pp_version_state state
-         pp_version_state res);
   ( (op, { last_arguments = facts.last_arguments;
            closures = facts.closures;
            last_update = res.last_update;
