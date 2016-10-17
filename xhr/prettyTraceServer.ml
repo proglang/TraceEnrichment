@@ -1,7 +1,14 @@
 let header = {html|
-<html><head><title>Trace</title></head>
+<html><head>
+   <title>Trace</title>
+   <style type="text/css">
+.kw { font-weight: bold }
+.string { font-family: monospace; max-width: 50% }
+   </style>
+</head>
 <body>
 <table>
+<col width="10%"/><col width="60%"/><col width="30%"/>
 <tr><th>Where</th><th>Event</th><th>Facts</th></tr>
 |html}
 
@@ -10,20 +17,27 @@ let footer = {html|
 </body></html>
 |html}
 
+let html_escape =
+  BatString.replace_chars (function
+                             | '<' -> "&lt;"
+                             | '>' -> "&gt;"
+                             | '&' -> "&aamp;"
+                             | c -> BatString.of_char c)
+
 let fmt_jsval pp =
   let open TypesJS in
   let open Fmt in function
-    OUndefined -> string pp "<emph>undefined</emph>"
-  | ONull -> string pp "<emph>null</emph>"
-  | OBoolean true -> string pp "<emph>true</emph>"
-  | OBoolean false -> string pp "<emph>false</emph>"
+    OUndefined -> string pp "<span class=\"kw\">undefined</span>"
+  | ONull -> string pp "<span class=\"kw\">null</span>"
+  | OBoolean true -> string pp "<span class=\"kw\">true</span>"
+  | OBoolean false -> string pp "<span class=\"kw\">false</span>"
   | ONumberInt n -> int pp n
   | ONumberFloat x -> float pp x
-  | OString s -> pf pp "\"%s\"" s
+  | OString s -> pf pp "<span class=\"string\">\"%s\"</span>" (html_escape s)
   | OSymbol s -> pf  pp"symbol:%s" s
-  | OFunction (id, fid) -> pf pp "function(%d, %d)" id fid
-  | OObject id -> pf  pp"object(%d)" id
-  | OOther (ty, id) -> pf  pp"%s(%d)" ty id
+  | OFunction (id, fid) -> pf pp "<a href=\"f%d.%d\">function(%d, %d)</a>" id fid id fid
+  | OObject id -> pf  pp "<a href=\"o%d\">object(%d)</a>" id id
+  | OOther (ty, id) -> pf  pp "<a href=\"x%s.%d\">%s(%d)" ty id ty id
 
 
 
@@ -53,10 +67,12 @@ let fmt_funpost pp =
         fmt_call_type call_type
         fmt_jsval result
 
-let fmt_reference pp =
+let inner_fmt_reference pp =
   let open Reference in
   let open TypesJS in
   let open Fmt in function
+    | Field (Object 0, name) ->
+        string pp name
     | Field (obj, prop) ->
         pair ~sep:(const string ".")
            (using objectid_to_jsval fmt_jsval)
@@ -66,11 +82,13 @@ let fmt_reference pp =
     | Variable (Global, name) ->
         string pp name
     | Variable (Local i, name) ->
-        pf pp "%s (local %d)" name i
+        pf pp "local %d:%s" i name
+
+let fmt_reference pp = inner_fmt_reference pp
 
 let fmt_versioned_reference =
   let open Fmt in
-    pair ~sep:(const string ":") fmt_reference int
+    pair ~sep:(const string ":") inner_fmt_reference int
 
 let fmt_literal pp: TraceTypes.literal -> _ =
   let open TraceTypes in
