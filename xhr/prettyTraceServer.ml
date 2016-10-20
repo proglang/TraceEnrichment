@@ -245,7 +245,7 @@ module TestStreamStrategy: TraceStreamServer.STREAMSTRATEGY = struct
 
   let stream_dump _ (html: t) _ _ =
     Log.info (fun m -> m "Preparing for dump");
-    TraceCollector.reply_stream "text/html" html
+    TraceCollector.reply_stream "text/html" (Lwt_stream.clone html)
 
   let handlers_global = []
   let handlers_local = [
