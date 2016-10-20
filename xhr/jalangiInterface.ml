@@ -145,12 +145,12 @@ let rec url_reader ~base url: char Lwt_stream.t Lwt.t =
                                  (Cohttp.Code.string_of_status s));
               raise Exit
 
-let map_script_path base = function
+let map_script_path server_base base = function
   | `Start_element ((path, "script"), args) ->
       `Start_element ((path, "script"),
        BatList.map (function
                       | ((namespace, "src"), path) ->
-                          ((namespace, "src"), mutated_path base path ^ ".js")
+                          ((namespace, "src"), server_base ^ mutated_path base path ^ ".js")
                       | a -> a)
          args)
   | s -> s
@@ -170,8 +170,6 @@ let fold_script_collection tmpdir base s (tasks, paths) =
         end
     | _ -> Lwt.return (tasks, paths)
 
-(* WTF, markup library - why don't you tell me what the end tag
- * is for *)
 let onload_script = {javascript|
 // JALANGI DO NOT INSTRUMENT
 var onload_chain = onload;
@@ -184,6 +182,8 @@ onload = function () {
 }
 |javascript}
 
+(* WTF, markup library - why don't you tell me what the end tag
+ * is for *)
 let insert_onload_handler level signal =
   match signal, level with
   | `Start_element ((_, "body"), _), None ->
@@ -202,11 +202,46 @@ let insert_onload_handler level signal =
   | _, _ ->
       Lwt.return ([signal], Some level)
 
+type where = OUTSIDE | HTML | HEAD of int * Markup.signal list | DONE
+let insert_base_if_needed base_str where signal =
+  let base_signal base_str = [
+    `Start_element ((Markup.Ns.html, "base"), [(("", "href"), base_str)]);
+    `End_element
+  ]
+  in let head_base_signal base_str =
+    let bs = base_signal base_str
+    in `Start_element ((Markup.Ns.html, "head"), []) :: bs @ [`End_element]
+  in match signal, where with
+    | `Start_element ((_, "html"), _), OUTSIDE ->
+        Lwt.return ([signal], Some HTML)
+    | `Start_element ((_, "head"), _), HTML ->
+        Lwt.return ([signal], Some (HEAD (0, [])))
+    | `Start_element ((_, "base"), _), HEAD (_, l) ->
+        Lwt.return (BatList.rev (signal :: l), Some DONE)
+    | `Start_element _, HEAD (i, l) ->
+        Lwt.return ([], Some (HEAD (i+1, signal :: l)))
+    | `End_element, HEAD (0, l) ->
+        Lwt.return (base_signal base_str @ BatList.rev l, Some DONE)
+    | `End_element, HEAD (i, l) ->
+        Lwt.return ([], Some (HEAD (i-1, signal :: l)))
+    | _, HEAD (i, l) ->
+        Lwt.return ([], Some (HEAD (i, signal :: l)))
+    | `Start_element _, HTML ->
+        Lwt.return (head_base_signal base_str @ [signal], Some DONE)
+    | _, _ -> Lwt.return ([signal], Some where)
+
 (* The function gets calls as [instrument_page uri], and instruments
  * the page at the given URI.
  * It returs the path to the instrumented HTML file. *)
 let instrument_page base_str =
   let base = Uri.of_string base_str
+  and server_base =
+    Uri.make ~scheme:"http"
+      ~host:(Config.get_xhr_server_address())
+      ~port:(Config.get_xhr_server_port())
+      ~path:"/"
+      ()
+    |> Uri.to_string
   in let%lwt (tmpdir, insdir) = get_instrument_tmp_dir ()
   in let html_path = tmpdir /: (mutated_path base base_str) ^ ".html"
   in let%lwt html_raw_stream = url_reader ~base base
@@ -220,8 +255,9 @@ let instrument_page base_str =
   in let html_writer =
     Log.info (fun m -> m "Writing HTML to %s" html_path);
     Markup_lwt.lwt_stream html_stream
-      |> Markup_lwt.map (fun s -> Lwt.return (map_script_path base s))
+      |> Markup_lwt.map (fun s -> Lwt.return (map_script_path server_base base s))
       |> Markup_lwt.transform insert_onload_handler None
+      |> Markup_lwt.transform (insert_base_if_needed base_str) OUTSIDE
       |> Markup_lwt.write_html
       |> Markup_lwt_unix.to_file html_path
   in let%lwt (tasks, paths) =
