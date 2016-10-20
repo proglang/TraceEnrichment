@@ -15,6 +15,7 @@ type reference = Field of TypesJS.fieldref | Variable of scope * string
 (** Boilerplate code. *)
 val pp_reference : reference Fmt.t
 val equal_reference : reference -> reference -> bool
+val cmp_reference : reference -> reference -> int
 
 (** {3 Reference constructors} *)
 (** Transform a field access to a reference.

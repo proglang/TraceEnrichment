@@ -24,6 +24,7 @@ type reference = Reference.t =
 
 let pp_reference = Reference.pp
 let equal_reference = Reference.equal
+let cmp_reference = Reference.compare
 
 let get_fieldref = function
   | Field(obj, fld) -> Some (obj, fld)
