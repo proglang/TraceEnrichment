@@ -240,6 +240,7 @@ end = struct
   let html_filename_re = Str.regexp "^[-a-zA-Z0-9._]*\\.html$"
   let js_filename_re = Str.regexp "^[-a-zA-Z0-9._]*\\.js$"
 
+  let pp_meth pp mode = Fmt.string pp (Cohttp.Code.string_of_method mode)
   let multiplex conn req body =
     try
       let open Cohttp.Request in
@@ -263,10 +264,18 @@ end = struct
              | id::op::tail when Hashtbl.mem sessions id ->
                  begin try
                    let (_, handler) = List.assoc (op, meth) handlers_local in
-                     handler id (update_uri tail) body
+                     begin try handler id (update_uri tail) body with
+                         e -> Log.err (fun m -> m "Get exception %s from handler"
+                                                  (Printexc.to_string e));
+                              reply_text "text/plain" (Printexc.to_string e)
+                     end
                  with
                      Not_found ->
-                       Log.info (fun m -> m "No handler found for %s, session %s" op id);
+                       Log.info (fun m -> m "No handler found for %s (mode %a), session %s" op pp_meth meth id);
+                       Log.info (fun m -> m "Available handlers: %a"
+                                            (Fmt.list ~sep:Fmt.sp
+                                               (Fmt.using (fun (key, _) -> key)
+                                                  (Fmt.pair ~sep:Fmt.sp Fmt.string pp_meth))) handlers_local);
                        reply_error `Not_found ("No handler found")
                    | e ->
                        Log.err (fun m -> m "Got exception %s" (Printexc.to_string e));
