@@ -213,12 +213,29 @@ end = struct
           Log.info (fun m -> m "Session management with bad method");
           reply_error `Method_not_allowed "Cannot access using this method"
 
+  let ua_mozilla =
+    let open Cohttp.Header in
+      add_list (init ()) [
+        "User-Agent", "Mozilla/5.0 (X11; Linux x86_64; rv:45.0) Gecko/20100101 Firefox/45.0";
+      ]
+
+  let user_agents =
+    let open Cohttp.Header in StringMap.of_list [
+    ("mozilla", ua_mozilla);
+    ("chrome", add_list (init()) [
+      "User-Agent", "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36"
+    ])
+  ]
+
   let handle_proxy uri body =
     Log.info (fun m -> m "Instrumenting HTML file");
-    begin match Uri.get_query_param uri "url" with
+    let request_headers = match Uri.get_query_param uri "useragent" with
+      | None -> ua_mozilla
+      | Some ua -> try StringMap.find ua user_agents with Not_found -> ua_mozilla
+    in begin match Uri.get_query_param uri "url" with
       | Some url ->
           Log.info (fun m -> m "proxy, url=%s" url);
-          let%lwt path = JalangiInterface.instrument_page url
+          let%lwt path = JalangiInterface.instrument_page request_headers url
           in reply_redirect (Uri.with_path uri path)
       | None ->
           reply_error Cohttp.Code.(`Bad_request) "URL is missing"

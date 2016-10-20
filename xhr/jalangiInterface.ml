@@ -123,9 +123,9 @@ let mutated_path base path =
   let uri = Uri.to_string (Uri.resolve "" base (Uri.of_string path))
   in Uuidm.to_string (Uuidm.v5 Uuidm.ns_url uri)
 
-let rec url_reader ~base url: char Lwt_stream.t Lwt.t =
+let rec url_reader ~request_headers ~base url: char Lwt_stream.t Lwt.t =
   let url = Uri.resolve "" base url
-  in let%lwt (response, body) = Cohttp_lwt_unix.Client.get url
+  in let%lwt (response, body) = Cohttp_lwt_unix.Client.get ~headers:request_headers url
   in match Cohttp.Response.(response.status) with
       (* OK-style responses *)
     | `OK
@@ -147,7 +147,7 @@ let rec url_reader ~base url: char Lwt_stream.t Lwt.t =
     | `Temporary_redirect ->
         begin match
           Cohttp.Header.get Cohttp.Response.(response.headers) "Location"
-        with Some url -> url_reader ~base (Uri.of_string url)
+        with Some url -> url_reader ~request_headers ~base (Uri.of_string url)
           | None -> Log.err (fun m -> m "Bad redirect");
                     raise Exit
         end
@@ -171,7 +171,11 @@ let rec url_reader ~base url: char Lwt_stream.t Lwt.t =
     | `Service_unavailable
     | `Gateway_timeout
     | `Bandwidth_limit_exceeded
-    | `Insufficient_storage -> Lwt.fail Not_found
+    | `Insufficient_storage as s ->
+        Log.err (fun m -> m "Failed to load %s, reason: %s"
+                            (Uri.to_string url)
+                            (Cohttp.Code.string_of_status s));
+        Lwt.fail Not_found
     (* Other responses *)
     | s -> Log.err(fun m -> m "Got unhandled response %s for %s"
                               (Cohttp.Code.string_of_status s)
@@ -188,13 +192,13 @@ let map_script_path server_base base = function
          args)
   | s -> s
 
-let fold_script_collection tmpdir base s (tasks, paths) =
+let fold_script_collection ~request_headers tmpdir base s (tasks, paths) =
   match s with
     | `Start_element ((_, "script"), args) ->
         begin try
           let path = List.assoc ("", "src") args
           in let mutated = tmpdir /: mutated_path base path ^ ".js"
-          in Lwt.try_bind (fun () -> url_reader ~base (Uri.of_string path))
+          in Lwt.try_bind (fun () -> url_reader ~request_headers ~base (Uri.of_string path))
                (fun reader -> Lwt.return
                   (Lwt_io.chars_to_file mutated reader :: tasks,
                    mutated :: paths))
@@ -265,10 +269,10 @@ let insert_base_if_needed base_str where signal =
         Lwt.return (head_base_signal base_str @ [signal], Some DONE)
     | _, _ -> Lwt.return ([signal], Some where)
 
-(* The function gets calls as [instrument_page uri], and instruments
+(* The function gets calls as [instrument_page headers uri], and instruments
  * the page at the given URI.
  * It returs the path to the instrumented HTML file. *)
-let instrument_page base_str =
+let instrument_page request_headers base_str =
   let base = Uri.of_string base_str
   and server_base =
     Uri.make ~scheme:"http"
@@ -279,7 +283,7 @@ let instrument_page base_str =
     |> Uri.to_string
   in let%lwt (tmpdir, insdir) = get_instrument_tmp_dir ()
   in let html_path = tmpdir /: (mutated_path base base_str) ^ ".html"
-  in let%lwt html_raw_stream = url_reader ~base base
+  in let%lwt html_raw_stream = url_reader ~request_headers ~base base
   in let html_stream =
     html_raw_stream
       |> Markup_lwt.lwt_stream
@@ -296,7 +300,7 @@ let instrument_page base_str =
       |> Markup_lwt.write_html
       |> Markup_lwt_unix.to_file html_path
   in let%lwt (tasks, paths) =
-    Lwt_stream.fold_s (fold_script_collection tmpdir base)
+    Lwt_stream.fold_s (fold_script_collection ~request_headers tmpdir base)
       html_stream_dup ([], [])
   in let%lwt _ = Lwt.join (html_writer :: tasks)
   in let%lwt _ = jalangi2_instrument "xhr" (html_path :: paths) insdir

@@ -40,8 +40,8 @@ val clean_up: unit -> unit
   A complete solution for instrumenting a whole web page for browser-based
   analysis.
 
-  The function gets calls as [instrument_page uri], and instruments
+  The function gets calls as [instrument_page headers uri], and instruments
   the page at the given URI.
   It returs the path to the instrumented HTML file.
   *)
-val instrument_page : string -> string Lwt.t
+val instrument_page : Cohttp.Header.t -> string -> string Lwt.t
