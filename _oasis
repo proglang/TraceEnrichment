@@ -44,7 +44,7 @@ Library "xhr"
   BuildDepends: yojson, str, lwt.ppx, lwt, fmt, batteries, cohttp, jingoo, uuidm, conduit, logs, markup.lwt.unix
   Modules:    Config, CompilationConfig, TraceCollector, TraceStream, JalangiInterface, TraceStreamServer, Files, PageText
   DataFiles:  ../tracer/*.js
-  
+
 Document "xhr-api"
   Type:       ocamlbuild (0.4)
   BuildTools: ocamldoc, ocamlbuild
