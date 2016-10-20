@@ -126,23 +126,56 @@ let mutated_path base path =
 let rec url_reader ~base url: char Lwt_stream.t Lwt.t =
   let url = Uri.resolve "" base url
   in let%lwt (response, body) = Cohttp_lwt_unix.Client.get url
-  in match Cohttp.Response.(response.status), body with
-    | `OK, `Empty -> Lwt.return (Lwt_stream.of_list [])
-    | `OK, `Stream s -> Lwt.return (Lwt_stream.map_list BatString.to_list s)
-    | `OK, `String s -> Lwt.return (Lwt_stream.of_string s)
-    | `OK, `Strings s -> Lwt.return (Lwt_stream.of_string (BatString.concat "" s))
-    | `Moved_permanently, _
-    | `Found, _
-    | `See_other, _
-    | `Temporary_redirect, _ ->
+  in match Cohttp.Response.(response.status) with
+      (* OK-style responses *)
+    | `OK
+    | `Created
+    | `Accepted
+    | `Non_authoritative_information
+    | `No_content
+    | `Reset_content ->
+        begin match body with
+            `Empty -> Lwt.return (Lwt_stream.of_list [])
+          | `Stream s -> Lwt.return (Lwt_stream.map_list BatString.to_list s)
+          | `String s -> Lwt.return (Lwt_stream.of_string s)
+          | `Strings s -> Lwt.return (Lwt_stream.of_string (BatString.concat "" s))
+        end
+      (* Redirect responses *)
+    | `Moved_permanently
+    | `Found
+    | `See_other
+    | `Temporary_redirect ->
         begin match
           Cohttp.Header.get Cohttp.Response.(response.headers) "Location"
         with Some url -> url_reader ~base (Uri.of_string url)
           | None -> Log.err (fun m -> m "Bad redirect");
                     raise Exit
         end
-    | s, _ -> Log.err(fun m -> m "Got non-ok response %s"
-                                 (Cohttp.Code.string_of_status s));
+      (* Not found/server error responses *)
+    | `Bad_request
+    | `Unauthorized
+    | `Payment_required
+    | `Forbidden
+    | `Not_found
+    | `Method_not_allowed
+    | `Not_acceptable
+    | `Proxy_authentication_required
+    | `Request_timeout
+    | `Gone
+    | `Locked
+    | `Upgrade_required
+    | `Too_many_requests
+    | `Internal_server_error
+    | `Not_implemented
+    | `Bad_gateway
+    | `Service_unavailable
+    | `Gateway_timeout
+    | `Bandwidth_limit_exceeded
+    | `Insufficient_storage -> Lwt.fail Not_found
+    (* Other responses *)
+    | s -> Log.err(fun m -> m "Got unhandled response %s for %s"
+                              (Cohttp.Code.string_of_status s)
+                              (Uri.to_string url));
               raise Exit
 
 let map_script_path server_base base = function
@@ -161,11 +194,13 @@ let fold_script_collection tmpdir base s (tasks, paths) =
         begin try
           let path = List.assoc ("", "src") args
           in let mutated = tmpdir /: mutated_path base path ^ ".js"
-          in let reader = url_reader ~base (Uri.of_string path)
-          in Lwt.return
-               (Lwt.bind reader
-                  (Lwt_io.chars_to_file mutated) :: tasks,
-                mutated :: paths)
+          in Lwt.try_bind (fun () -> url_reader ~base (Uri.of_string path))
+               (fun reader -> Lwt.return
+                  (Lwt_io.chars_to_file mutated reader :: tasks,
+                   mutated :: paths))
+               (function
+                  | Not_found -> Lwt.return (tasks, paths)
+                  | e -> Lwt.fail e)
         with Not_found -> Lwt.return (tasks, paths)
         end
     | _ -> Lwt.return (tasks, paths)
